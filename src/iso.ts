@@ -9,12 +9,12 @@
  * projection, text and rounded corners included.
  */
 
-/** A point in world space: [x, y, z]. */
-export type Vec3 = readonly [number, number, number]
+import { check, DEV } from "./dev"
+import type { Box3, Fit, Vec3 } from "./schema"
+
+export type { Box3, Fit, Vec3 }
 /** A point on screen, in viewBox units. */
 export type Vec2 = [number, number]
-/** An axis-aligned box: its back-left-bottom corner and its size along x (w), y (d) and z (h). */
-export type Box3 = { x: number; y: number; z: number; w: number; d: number; h: number }
 
 const COS = Math.cos(Math.PI / 6)
 const SIN = Math.sin(Math.PI / 6)
@@ -56,23 +56,50 @@ export const corners = ({ x, y, z, w, d, h }: Box3): Vec3[] =>
   [0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k): Vec3 => [x + i * w, y + j * d, z + k * h])))
 
 const isBox = (b: Box3 | Vec3): b is Box3 => !Array.isArray(b)
+const finite = (p: Vec3) => Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2])
 
 /**
  * A viewBox that fits the given boxes and points with some padding, at a fixed
  * aspect ratio (width / height). Fit the most extreme pose your figure takes,
- * so nothing leaves the frame when it moves.
+ * so nothing leaves the frame when it moves. Points that are not finite are
+ * left out (and reported in development).
  */
 export function frame(fit: ReadonlyArray<Box3 | Vec3>, aspect = 1.25, pad = 0.07): string {
-  const pts = fit.flatMap((b) => (isBox(b) ? corners(b) : [b])).map((p) => project(...p))
+  if (DEV) check("fit", fit, "frame() was given something that is not a box or an [x, y, z] point")
+  if (DEV) check("plate", { aspect, pad }, "frame() needs a positive aspect and a small, non-negative pad")
+  const pts = fit
+    .flatMap((b) => (isBox(b) ? corners(b) : [b]))
+    .filter(finite)
+    .map((p) => project(...p))
+  const ratio = Number.isFinite(aspect) && aspect > 0 ? aspect : 1.25
+  const margin = Number.isFinite(pad) && pad >= 0 ? pad : 0.07
   if (!pts.length) return "0 0 100 100"
   const xs = pts.map((p) => p[0])
   const ys = pts.map((p) => p[1])
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
-  let w = Math.max(x1 - x0, 1) * (1 + 2 * pad)
-  let h = Math.max(y1 - y0, 1) * (1 + 2 * pad)
-  if (w / h < aspect) w = h * aspect
-  else h = w / aspect
+  const x0 = Math.min(...xs)
+  const x1 = Math.max(...xs)
+  const y0 = Math.min(...ys)
+  const y1 = Math.max(...ys)
+  let w = Math.max(x1 - x0, 1) * (1 + 2 * margin)
+  let h = Math.max(y1 - y0, 1) * (1 + 2 * margin)
+  if (w / h < ratio) w = h * ratio
+  else h = w / ratio
   return [(x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h].map(r3).join(" ")
+}
+
+/** Points along a cubic Bézier through four world points: a cable, a cord, a rail. Draw them with `path`. */
+export function curve(a: Vec3, b: Vec3, c: Vec3, d: Vec3, steps = 40): Vec3[] {
+  const out: Vec3[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const u = 1 - t
+    const w0 = u * u * u
+    const w1 = 3 * u * u * t
+    const w2 = 3 * u * t * t
+    const w3 = t * t * t
+    out.push([w0 * a[0] + w1 * b[0] + w2 * c[0] + w3 * d[0], w0 * a[1] + w1 * b[1] + w2 * c[1] + w3 * d[1], w0 * a[2] + w1 * b[2] + w2 * c[2] + w3 * d[2]])
+  }
+  return out
 }
 
 /** A rounded-rectangle footprint, sampled round its corners. */
@@ -91,17 +118,21 @@ function footprint(x: number, y: number, w: number, d: number, r: number, steps 
 export function hull(input: readonly Vec2[]): Vec2[] {
   const pts = input.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1])
   const cross = (o: Vec2, a: Vec2, b: Vec2) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-  const lower: Vec2[] = [], upper: Vec2[] = []
-  for (const p of pts) {
-    while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop()
-    lower.push(p)
+  const chain = (points: Vec2[]) => {
+    const out: Vec2[] = []
+    for (const p of points) {
+      for (;;) {
+        const a = out[out.length - 2]
+        const b = out[out.length - 1]
+        if (!a || !b || cross(a, b, p) > 0) break
+        out.pop()
+      }
+      out.push(p)
+    }
+    out.pop()
+    return out
   }
-  for (let i = pts.length - 1; i >= 0; i--) {
-    const p = pts[i]
-    while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop()
-    upper.push(p)
-  }
-  return lower.slice(0, -1).concat(upper.slice(0, -1))
+  return chain(pts).concat(chain(pts.slice().reverse()))
 }
 
 /**

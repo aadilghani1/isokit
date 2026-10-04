@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { corners, frame, front, hull, outline, path, project, radius, side, top } from "../src/iso"
+import { corners, curve, frame, front, hull, outline, path, project, radius, side, top } from "../src/iso"
 
 const near = (a: number, b: number) => expect(a).toBeCloseTo(b, 6)
 
@@ -21,8 +21,8 @@ describe("project", () => {
 describe("planes", () => {
   // matrices are written to three decimals, so compare to two
   const close = (a: number, b: number) => expect(a).toBeCloseTo(b, 2)
-  const apply = (m: string, x: number, y: number) => {
-    const [a, b, c, d, e, f] = m.slice(7, -1).split(" ").map(Number)
+  const apply = (m: string, x: number, y: number): [number, number] => {
+    const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0] = m.slice(7, -1).split(" ").map(Number)
     return [a * x + c * y + e, b * x + d * y + f]
   }
   it("top maps local (u, v) to world (x + u, y + v, z)", () => {
@@ -44,12 +44,16 @@ describe("planes", () => {
 
 describe("frame", () => {
   const box = { x: 0, y: 0, z: 0, w: 100, d: 60, h: 40 }
+  const view = (v: string) => {
+    const [x = 0, y = 0, w = 0, h = 0] = v.split(" ").map(Number)
+    return { x, y, w, h }
+  }
   it("holds the aspect ratio", () => {
-    const [, , w, h] = frame([box], 1.25).split(" ").map(Number)
+    const { w, h } = view(frame([box], 1.25))
     near(w / h, 1.25)
   })
   it("contains every corner", () => {
-    const [x, y, w, h] = frame([box], 1.25).split(" ").map(Number)
+    const { x, y, w, h } = view(frame([box], 1.25))
     for (const c of corners(box)) {
       const [sx, sy] = project(...c)
       expect(sx).toBeGreaterThanOrEqual(x); expect(sx).toBeLessThanOrEqual(x + w)
@@ -76,6 +80,15 @@ describe("solids", () => {
   it("radius is cut to half the shorter side", () => {
     expect(radius({ x: 0, y: 0, z: 0, w: 10, d: 40, h: 5 }, 20)).toBe(5)
     expect(radius({ x: 0, y: 0, z: 0, w: 10, d: 40, h: 5 }, -1)).toBe(0)
+  })
+  it("leaves out points that are not finite instead of breaking the view", () => {
+    expect(frame([[0, 0, 0], [Number.NaN, 0, 0], [10, 10, 10]])).not.toContain("NaN")
+  })
+  it("curve starts and ends on its end points", () => {
+    const pts = curve([0, 0, 0], [5, 0, 0], [5, 5, 0], [10, 10, 4], 10)
+    expect(pts).toHaveLength(11)
+    expect(pts[0]).toEqual([0, 0, 0])
+    expect(pts[10]).toEqual([10, 10, 4])
   })
   it("path needs two points", () => {
     expect(path([[0, 0, 0]])).toBe("")

@@ -1,4 +1,4 @@
-import type { SoundName, SoundOptions } from "./sound"
+import type { SoundName, SoundOptions } from "./schema"
 
 /**
  * The synthesis. Every sound is built from two voices, a shaped oscillator and
@@ -10,7 +10,7 @@ import type { SoundName, SoundOptions } from "./sound"
 type Voice = { at?: number; a?: number; d: number; peak: number }
 type ToneVoice = Voice & { f: number; to?: number; type?: OscillatorType }
 type NoiseVoice = Voice & { f: number; to?: number; q?: number; filter?: BiquadFilterType }
-type Recipe = (c: AudioContext, bus: AudioNode, t: number, v: number, o: Required<SoundOptions>, still: boolean) => number
+type Recipe = (c: AudioContext, bus: AudioNode, t: number, v: number, o: { count: number; stagger: number; delay: number }, still: boolean) => number
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
@@ -129,7 +129,7 @@ const RECIPES: Record<SoundName, Recipe> = {
     const land = still ? 0 : o.delay
     const step = still ? 0 : o.stagger
     for (let i = 0; i < o.count; i++) {
-      const f = SCALE[i % SCALE.length] * 2 ** Math.floor(i / SCALE.length)
+      const f = (SCALE[i % SCALE.length] ?? 392) * 2 ** Math.floor(i / SCALE.length)
       tone(c, b, t, { f: f * 1.5, to: f, at: land + i * step, a: 0.001, d: 0.07, peak: 0.13 })
       noise(c, b, t, { f: 1400, filter: "lowpass", at: land + i * step, d: 0.016, peak: 0.06 })
     }
@@ -160,15 +160,18 @@ const RECIPES: Record<SoundName, Recipe> = {
 }
 
 export function play(name: SoundName, options: SoundOptions = {}): () => void {
+  const recipe = Object.hasOwn(RECIPES, name) ? RECIPES[name] : undefined
+  if (!recipe) return () => {}
   const c = ctx ?? boot()
   const bus = c.createGain()
   bus.connect(master as GainNode)
-  const opts = { count: 4, stagger: 0.06, delay: 0.3, ...options }
+  const clamp = (v: number | undefined, lo: number, hi: number, fallback: number) => (v === undefined || !Number.isFinite(v) ? fallback : Math.min(hi, Math.max(lo, v)))
+  const opts = { count: Math.round(clamp(options.count, 1, 32, 4)), stagger: clamp(options.stagger, 0, 2, 0.06), delay: clamp(options.delay, 0, 5, 0.3) }
   let done = false
   const start = () => {
     if (done) return
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches
-    const length = RECIPES[name](c, bus, c.currentTime + 0.005, 1 + (Math.random() - 0.5) * 0.06, opts, still)
+    const length = recipe(c, bus, c.currentTime + 0.005, 1 + (Math.random() - 0.5) * 0.06, opts, still)
     window.setTimeout(() => bus.disconnect(), (length + 0.2) * 1000)
   }
   if (c.state === "running") start()

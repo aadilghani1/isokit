@@ -42,6 +42,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "default": "./dist/schema.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
@@ -52,7 +56,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "dev": "vite examples/demo",
     "demo:build": "vite build examples/demo",
     "typecheck": "tsc --noEmit",
@@ -67,6 +71,9 @@
     "release": "npm run build && changeset publish",
     "prepublishOnly": "npm run check"
   },
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
   "peerDependencies": {
     "react": ">=18"
   },
@@ -74,52 +81,68 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.15",
     "@changesets/changelog-github": "^1.0.1",
-    "@changesets/cli": "^2.31.1",
-    "@size-limit/preset-small-lib": "^11.2.0",
-    "@types/node": "^22.20.5",
+    "@changesets/cli": "^3.0.3",
+    "@size-limit/preset-small-lib": "^14.1.0",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^5.2.0",
-    "jsdom": "^26.1.0",
-    "playwright-core": "1.56",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.63.0",
     "publint": "^0.3.25",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "size-limit": "^11.2.0",
-    "tsup": "^8.5.1",
-    "typescript": "5.9",
-    "vite": "^7.3.6",
-    "vitest": "^3.2.7"
+    "size-limit": "^14.1.0",
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
   },
   "size-limit": [
     {
-      "name": "core (Plate, Box, Press, math)",
+      "name": "core: Plate, Box, Press and the math",
       "path": "dist/index.js",
       "import": "{ Plate, Box, Press, frame }",
-      "limit": "4 kB",
+      "limit": "3.5 kB",
       "ignore": [
         "react",
-        "react/jsx-runtime"
+        "react/jsx-runtime",
+        "zod",
+        "./schema.js",
+        "./sound-engine.js"
       ]
     },
     {
-      "name": "everything",
+      "name": "everything in the main entry",
       "path": "dist/index.js",
-      "limit": "4 kB",
+      "limit": "3.5 kB",
+      "ignore": [
+        "react",
+        "react/jsx-runtime",
+        "zod",
+        "./schema.js",
+        "./sound-engine.js"
+      ]
+    },
+    {
+      "name": "sound engine (loaded on intent)",
+      "path": "dist/sound-engine.js",
+      "limit": "2 kB"
+    },
+    {
+      "name": "schemas, with zod/mini (react-isokit/schema)",
+      "path": "dist/schema.js",
+      "limit": "8 kB",
       "ignore": [
         "react",
         "react/jsx-runtime"
       ]
-    },
-    {
-      "name": "sound engine (lazy chunk)",
-      "path": "dist/sound-engine-*.js",
-      "limit": "3 kB"
     },
     {
       "name": "styles.css",
       "path": "dist/styles.css",
-      "limit": "2.5 kB"
+      "limit": "2 kB",
+      "rolldown": false
     }
   ]
 }
