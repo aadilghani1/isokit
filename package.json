@@ -50,13 +50,13 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown --config-loader native",
     "dev": "vite examples/demo",
     "demo:build": "vite build examples/demo",
     "typecheck": "tsc --noEmit",
