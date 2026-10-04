@@ -7,15 +7,16 @@
 **Isometric figures you can press.**
 
 Rounded boxes, faces you can draw on, keys that click back, and sound you can hear.<br />
-A small React kit with no dependencies, and a Claude Code skill that draws with it.
+A small, typed React kit, and a skill your coding agent uses to draw with it.
 
 [![npm](https://img.shields.io/npm/v/react-isokit?color=161616&label=npm)](https://www.npmjs.com/package/react-isokit)
-[![size](https://img.shields.io/badge/core-3.4%20kB-161616)](#performance)
+[![size](https://img.shields.io/badge/core-2.4%20kB-161616)](#performance)
+[![types](https://img.shields.io/badge/types-strict%20%2B%20zod-161616)](#validation)
 [![CI](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml/badge.svg)](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/aadilghani1/isokit?color=161616)](LICENSE)
 [![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-161616)](#the-skill)
 
-[**Live demo**](https://aadilghani1.github.io/isokit/) · [Quick start](#quick-start) · [API](#api) · [Skill](#the-skill)
+[**Live demo**](https://aadilghani1.github.io/isokit/) · [Quick start](#quick-start) · [API](#api) · [With your agent](#with-your-agent-end-to-end)
 
 <a href="https://aadilghani1.github.io/isokit/"><img src="docs/demo.gif" width="880" alt="A desk computer typing a prompt, an approval pad allowing an agent, a webpage whose blocks drop into place, and a box reading a folder, all drawn as isometric line figures" /></a>
 
@@ -29,7 +30,8 @@ Most product illustrations are pictures. These are objects: the key goes down wh
 - **Draw on faces, not polygons.** Every face takes ordinary `<rect>`, `<path>` and `<text>` in its own flat coordinates. Screens, labels and vents land in projection for free.
 - **Presses that feel physical.** Down on press, up on release, acts on release. Pointer, touch, Enter and Space.
 - **Sound, done properly.** Twelve synthesized interaction sounds, no audio files, loaded only when someone reaches for a figure, silent until the page opts in.
-- **Light on the page.** 3.4 kB core, the sound engine is a separate 1.5 kB chunk, loops sleep offscreen, server rendering works.
+- **Typed and validated.** Every public type is inferred from a zod schema. In development, bad input is explained in the console; in production it is clamped and costs nothing.
+- **Light on the page.** 2.4 kB core, the sound engine is a separate 1.6 kB chunk, loops sleep offscreen, server rendering works.
 
 ## Quick start
 
@@ -125,6 +127,7 @@ A small switch for interaction sound that remembers the reader's choice. Takes a
 | `project(x, y, z)` | A world point on screen. |
 | `top(x, y, z)`, `front(x, y, z)`, `side(x, y, z)` | SVG `transform` strings for drawing on a plane yourself. |
 | `path(points)` | An open path through world points: cables, guides, wires. |
+| `curve(a, b, c, d, steps?)` | Points along a cubic Bézier through four world points; draw them with `path`. |
 | `outline(box, r)` | The outline path of a rounded box. |
 | `corners(box)`, `hull(points)`, `radius(box, r)` | The geometry underneath. |
 
@@ -137,6 +140,25 @@ A small switch for interaction sound that remembers the reader's choice. Takes a
 | `primeSound()` | Starts loading the engine. `Plate` calls it when a pointer or focus arrives. |
 | `useSoundEnabled()` | `[on, setOn]`. |
 | `soundPreference` | The store, shaped for `useSyncExternalStore`. |
+
+### Validation
+
+Every type isokit accepts is defined once, as a zod schema, and the TypeScript types are inferred from it. In development builds, `Plate`, `Box`, `frame`, `playSound` and `configureSound` check what they are given and explain any problem once in the console:
+
+```
+react-isokit: <Box x={0} y={0} z={0} w={-5} d={10} h={10}> cannot be drawn
+✖ w cannot be negative
+  → at w
+```
+
+Production builds skip the checks entirely, never load zod, and clamp bad input instead of breaking. To validate figure data you did not write yourself (JSON, a CMS, an agent's output), import the schemas:
+
+```ts
+import { box3Schema, describe } from "react-isokit/schema"
+
+const result = box3Schema.safeParse(json)
+if (!result.success) console.error(describe(result.error))
+```
 
 **The palette:** `press`, `release`, `toggle`, `boot`, `success`, `error`, `notify`, `complete`, `cascade`, `whoosh`, `paper`, `process`, `done`. `cascade` takes `{ count, stagger, delay }` so its steps land in time with your animation.
 
@@ -153,15 +175,16 @@ Everything is drawn with a few classes and coloured by `--ik-*` custom propertie
 | `ik-dash` | Dotted construction guides. |
 | `ik-well`, `ik-fill`, `ik-dot` | Recesses, solid marks, a bright dot. |
 | `ik-screen`, `ik-screen-text`, `ik-screen-line` | Displays and what they show. |
-| `ik-label` | Small engraved labels. |
+| `ik-label` | Small engraved labels. Size them with CSS (`font-size`), not the `fontSize` attribute: CSS wins over SVG presentation attributes. |
 | `ik-enter`, `ik-pulse`, `ik-blink`, `ik-float`, `ik-loop` | Ready-made motion; loops sleep offscreen. |
 
 Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `--ik-line`, `--ik-detail`, `--ik-live`, `--ik-ink`, `--ik-ink-hi`, `--ik-screen`, `--ik-screen-ink`, `--ik-screen-font`, `--ik-border`, `--ik-ease` and `--ik-spring`.
 
 ## Performance
 
-- **3.4 kB** for `Plate`, `Box`, `Press` and the math, minified and brotlied. **1.4 kB** of CSS.
-- **Sound costs nothing until it is used.** The 1.5 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again after four quiet seconds.
+- **2.4 kB** for `Plate`, `Box`, `Press` and the math, 3.1 kB for the whole entry, minified and brotlied. **1.8 kB** of CSS. Budgets are enforced in CI.
+- **Validation costs nothing in production.** The schemas (zod/mini, 7.4 kB) load only in development builds, or when you import `react-isokit/schema` yourself.
+- **Sound costs nothing until it is used.** The 1.6 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again after four quiet seconds.
 - **Loops sleep offscreen.** Each plate watches itself with one `IntersectionObserver`.
 - **Server rendering.** Everything renders to static SVG; the package ships `"use client"` for the Next.js App Router.
 - **Reduced motion** lands every transition at once and stops every loop.
@@ -191,11 +214,23 @@ Then ask for a figure:
 /isokit a kitchen timer with minute buttons and a display that counts down
 ```
 
+## With your agent, end to end
+
+1. **Teach your agent.** `npx skills add aadilghani1/isokit` (Claude Code, Codex, Cursor and any agent that reads skills).
+2. **Add the kit.** `npm i react-isokit` and `import "react-isokit/styles.css"` once.
+3. **Ask for a figure.** `/isokit a coffee grinder with a dial that sets the grind`. The skill decides what pressing produces, then lays out the boxes.
+4. **It draws, looks and fixes.** Your agent writes the component, screenshots it in light and dark at desktop and phone width with the skill's checker, and fixes what it sees.
+5. **Approve from your phone.** When your agent stops to install a package or start the dev server, [Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme) sends the question to your phone. Tap approve and it keeps working.
+
 ## Examples
 
 <img src="docs/figures.gif" width="880" alt="An approval pad allowing a request, a page press publishing a page as its blocks drop into place, and an edge box reading a folder" />
 
 The demo's four figures are in [`examples/demo/src/figures`](examples/demo/src/figures): a desk computer you can type on, an approval pad, a page whose blocks drop into place and a box that reads folders. Run them with `npm run dev`.
+
+## Made by the maker of Pushary
+
+isokit is built by [Aadil Ghani](https://github.com/aadilghani1), who also makes **[Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme)**, the control panel for AI agents. Your agent froze, waiting for your yes: Pushary sends the question to your phone, Mac or Slack, and one tap puts it back to work. It works with Claude Code, Codex, Cursor, Windsurf, Gemini CLI and any MCP agent; `npx pushary@latest setup` connects them in under two minutes. The approval pad and the phone in the demo are drawn from it.
 
 ## Contributing
 

@@ -14,18 +14,18 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 24, cache: npm, registry-url: "https://registry.npmjs.org" }
       - run: npm ci
       - name: Version pull request, or publish
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
-          version: npx changeset version
-          publish: npm run release
-          commit: "chore: version packages"
-          title: "chore: version packages"
+          version-script: npx changeset version
+          publish-script: npm run release
+          commit-message: "chore: version packages"
+          pr-title: "chore: version packages"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # npm trusted publishing: no token; npm signs provenance from this workflow's OIDC identity
           NPM_CONFIG_PROVENANCE: true

@@ -1,6 +1,6 @@
 # isokit
 
-> Interactive isometric line figures for React (npm: react-isokit). Rounded boxes, faces you draw on in flat coordinates, parts that press like real keys, and optional synthesized interaction sound. Zero dependencies, SSR-safe, 3.4 kB core.
+> Interactive isometric line figures for React (npm: react-isokit). Rounded boxes, faces you draw on in flat coordinates, parts that press like real keys, optional synthesized interaction sound and zod-validated input. One dependency (zod, loaded only in development), SSR-safe, 2.4 kB core.
 
 Install: `npm i react-isokit`, then `import "react-isokit/styles.css"` once.
 
@@ -11,7 +11,8 @@ Core API:
 - `<Box x y z w d h r top front side>`: a rounded box; `top`/`front`/`side` children are drawn on that face in flat local coordinates.
 - `<Press label onPress>`: wraps one `<g>` of boxes; sinks on press, acts on release; pointer, Enter, Space.
 - `configureSound({ defaultOn })`, `playSound(name)`, `<SoundToggle />`: sound is off until a page opts in.
-- `frame`, `project`, `top`, `front`, `side`, `path`, `outline`: the geometry.
+- `frame`, `project`, `top`, `front`, `side`, `path`, `curve`, `outline`: the geometry.
+- `react-isokit/schema`: zod schemas for every input (`box3Schema`, `fitSchema`, `soundConfigSchema`, …) and `describe(error)`; types are inferred from them. Development builds warn about bad input; production skips the checks.
 
 ## Docs
 - [README](https://github.com/aadilghani1/isokit#readme): full API, styling, performance and accessibility.
@@ -24,6 +25,9 @@ Core API:
 - [Approval pad](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/ApprovalPad.tsx): allow or deny an agent.
 - [Page press](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/PagePress.tsx): blocks drop into place.
 - [Edge box](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/EdgeBox.tsx): pick a folder, read it offline.
+
+## Maker
+- isokit is made by Aadil Ghani, maker of [Pushary](https://pushary.com): human-in-the-loop approvals that unblock Claude Code, Codex, Cursor and other agents from your phone.
 
 ## Skill
 - `npx skills add aadilghani1/isokit`, then `/isokit <object>` in Claude Code, Codex, Cursor or any agent that reads skills.
