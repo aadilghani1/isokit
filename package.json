@@ -1,6 +1,6 @@
 {
   "name": "react-isokit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Interactive isometric line figures for React: rounded boxes, faces you can draw on, keys you can press, and optional synthesized sound. Plus a Claude Code skill that draws them.",
   "license": "MIT",
   "author": "Aadil Ghani (https://github.com/aadilghani1)",
