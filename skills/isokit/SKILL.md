@@ -2,6 +2,7 @@
 name: isokit
 description: Draw an interactive isometric figure in React with react-isokit — a line-art object on a numbered plate whose parts you can press, that produce real output (text on a screen, a count, a state change) with optional synthesized sound. Use when someone asks for an isometric illustration, an "iso figure", a 2.5D product drawing, an interactive hero object, a pressable diagram, a playable desk object (computer, keypad, timer, synth), or runs /isokit with an idea.
 argument-hint: "[object or idea]"
+license: MIT
 ---
 
 # isokit: draw a figure you can press

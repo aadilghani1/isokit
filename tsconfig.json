@@ -19,5 +19,5 @@
     "paths": { "react-isokit": ["./src/index.ts"], "react-isokit/schema": ["./src/schema.ts"] },
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "test", "examples/demo/src", "examples/demo/vite.config.ts", "tsdown.config.ts", "vitest.config.ts"]
+  "include": ["src", "test", "examples/demo/src", "examples/demo/vite.config.ts", "tsdown.config.mjs", "vitest.config.ts"]
 }

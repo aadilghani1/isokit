@@ -208,6 +208,8 @@ Or as a Claude Code plugin:
 /plugin install isokit@isokit
 ```
 
+From a shell: `claude plugin marketplace add aadilghani1/isokit` and `claude plugin install isokit@isokit`. Where else the skill is listed, and how, is in [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+
 Then ask for a figure:
 
 ```

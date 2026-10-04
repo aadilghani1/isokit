@@ -1,12 +1,15 @@
 {
   "name": "isokit",
-  "owner": { "name": "Aadil Ghani", "url": "https://github.com/aadilghani1" },
+  "description": "Draw interactive isometric figures in React with react-isokit.",
+  "owner": {
+    "name": "Aadil Ghani",
+    "url": "https://github.com/aadilghani1"
+  },
   "plugins": [
     {
       "name": "isokit",
       "source": "./",
-      "description": "Draw interactive isometric figures in React with react-isokit.",
-      "version": "0.1.0"
+      "description": "Draw interactive isometric figures in React with react-isokit."
     }
   ]
 }

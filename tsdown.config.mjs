@@ -1,5 +1,7 @@
 import { defineConfig } from "tsdown"
 
+// Plain JavaScript, so every supported Node version can load it without a TypeScript loader.
+
 export default defineConfig({
   entry: { index: "src/index.ts", schema: "src/schema.ts" },
   format: "esm",
