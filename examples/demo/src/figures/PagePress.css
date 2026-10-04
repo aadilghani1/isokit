@@ -1,0 +1,10 @@
+.page-press .block { transition: transform 700ms var(--ik-ease) calc(var(--j) * 60ms); }
+.page-press svg[data-live="true"] .block { transform: translateY(var(--drop)); transition-delay: calc(var(--i) * 60ms); }
+.page-press svg[data-live="true"] .block .ik-top { animation: page-seat 520ms ease-out calc(var(--i) * 60ms + 280ms); }
+.page-press svg[data-live="true"] .ik-float { animation: none; }
+.page-press svg[data-live="true"] .guide { opacity: 0; }
+.page-press .url { fill: none; stroke: var(--ik-line); stroke-dasharray: 1 3; vector-effect: non-scaling-stroke; transition: stroke 260ms var(--ik-ease) 440ms; }
+.page-press svg[data-live="true"] .url { stroke-dasharray: none; stroke: var(--ik-live); }
+.page-press .url-dot { fill: var(--ik-detail); transition: fill 260ms var(--ik-ease) 440ms; }
+.page-press svg[data-live="true"] .url-dot { fill: var(--ik-live); }
+@keyframes page-seat { 12% { stroke: var(--ik-live); } }

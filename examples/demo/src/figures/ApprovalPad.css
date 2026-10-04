@@ -1,0 +1,7 @@
+.approval .pip { fill: var(--ik-screen-ink); opacity: 0.14; transition: opacity 260ms var(--ik-ease); }
+.approval .pip[data-on="true"] { opacity: 0.85; }
+.approval .light { fill: var(--ik-detail); transition: fill 260ms var(--ik-ease); }
+.approval svg[data-phase="waiting"] .light { fill: var(--ik-live); animation: ik-pulse 1.8s ease-in-out infinite; }
+.approval .ping path { opacity: 0; animation: approval-ping 900ms var(--ik-ease) 2; }
+@keyframes approval-ping { 30% { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .approval .ping path { animation: none; } }

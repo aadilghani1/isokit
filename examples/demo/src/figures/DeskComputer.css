@@ -1,0 +1,26 @@
+.desk { --glass: #e2e2df; --screen: #181818; --phosphor: #f4f4ef; aspect-ratio: 16 / 10.6; height: auto; padding: 18px 22px; }
+.dark .desk { --glass: #171717; --screen: #0e0e0e; }
+.desk .mat > .ik-face, .desk .mat .ik-top { fill: var(--ik-panel); }
+.desk .pc:hover .ik-top { stroke: var(--ik-line); }
+
+.desk .key { cursor: pointer; }
+.desk .key > g { transition: transform 60ms ease-out; }
+.desk .key[data-down="true"] > g { transform: translateY(1.8px); }
+.desk .key[data-down="true"] .ik-face { stroke: var(--ik-live); transition-duration: 0ms; }
+
+.desk .glass { fill: var(--glass); stroke: var(--ik-detail); vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease); }
+.desk svg[data-on="true"] .glass { fill: var(--screen); }
+.desk .crt { opacity: 0; transform: scale(1, 0.02); transform-box: fill-box; transform-origin: center; transition: transform 160ms ease-in, opacity 120ms 60ms; }
+.desk svg[data-on="true"] .crt { opacity: 1; transform: none; transition: transform 520ms var(--ik-ease), opacity 160ms; }
+.desk .glow-in { stop-color: var(--phosphor); stop-opacity: 0.11; }
+.desk .glow-out { stop-color: var(--phosphor); stop-opacity: 0; }
+.desk .scanline { stroke: var(--phosphor); stroke-opacity: 0.05; vector-effect: non-scaling-stroke; }
+.desk .phosphor path { fill: var(--phosphor); }
+.desk .screen-text { fill: var(--phosphor); font: 6.2px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+.desk .screen-text.dim { fill-opacity: 0.45; }
+.desk .cursor { animation: desk-blink 1.06s steps(1) infinite; }
+.desk .led { fill: var(--ik-detail); transition: fill 260ms var(--ik-ease); }
+.desk svg[data-on="true"] .led { fill: var(--ik-live); }
+@keyframes desk-blink { 50% { opacity: 0; } }
+
+@media (max-width: 600px) { .desk { padding: 12px 14px; } }

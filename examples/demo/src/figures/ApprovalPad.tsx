@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react"
 import { Box, Plate, Press, playSound, project } from "react-isokit"
+import "./ApprovalPad.css"
 
 /**
- * An approval pad: an agent's request waits on a small screen with its light
- * on; two keys answer it. Allow and the antenna pings; the next request
+ * Fig 2, an approval pad: an agent's request waits on a small screen with its
+ * light on; two keys answer it. Allow and the antenna pings; the next request
  * arrives with a small chime.
  */
 
-const QUEUE = [
+type Request = { agent: string; where: string; ask: string }
+const QUEUE: readonly Request[] = [
   { agent: "claude code", where: "portfolio/main", ask: "Deploy preview?" },
   { agent: "codex", where: "api/staging", ask: "Run migration?" },
   { agent: "cursor", where: "web · 3 commits", ask: "Push to main?" },
@@ -30,46 +32,114 @@ export function ApprovalPad() {
   const timer = useRef(0)
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
-  const clear = at >= QUEUE.length
-  const req = QUEUE[Math.min(at, QUEUE.length - 1)]
+  const request = QUEUE[at]
   const decide = (kind: "allow" | "deny") => {
-    if (clear) { setAt(0); setPhase("waiting"); playSound("notify"); return }
+    if (!request) {
+      setAt(0)
+      setPhase("waiting")
+      playSound("notify")
+      return
+    }
     if (phase !== "waiting") return
     setPhase(kind === "allow" ? "allowed" : "denied")
     playSound(kind === "allow" ? "success" : "error")
     const next = at + 1
-    timer.current = window.setTimeout(() => { setAt(next); setPhase("waiting"); playSound(next >= QUEUE.length ? "complete" : "notify") }, 1500)
+    timer.current = window.setTimeout(() => {
+      setAt(next)
+      setPhase("waiting")
+      playSound(next >= QUEUE.length ? "complete" : "notify")
+    }, 1500)
   }
 
-  const decided = phase !== "waiting" && !clear
-  const readout = clear ? "all clear · 0 waiting" : phase === "allowed" ? "allowed · back to work" : phase === "denied" ? "denied · agent paused" : `${req.agent} · ${QUEUE.length - at} waiting`
-  const screen = clear ? ["no agents waiting", "All clear."] : phase === "allowed" ? ["agent back to work", "Approved"] : phase === "denied" ? ["agent paused", "Denied"] : [req.where, req.ask]
+  const decided = request !== undefined && phase !== "waiting"
+  const [small, big, readout] = !request
+    ? ["no agents waiting", "All clear.", "all clear · 0 waiting"]
+    : phase === "allowed"
+      ? ["agent back to work", "Approved", "allowed · back to work"]
+      : phase === "denied"
+        ? ["agent paused", "Denied", "denied · agent paused"]
+        : [request.where, request.ask, `${request.agent} · ${QUEUE.length - at} waiting`]
 
-  return <Plate fig="Fig 2" name="Approval pad" hint="Allow or deny" readout={readout} className="approval" data-phase={clear ? "clear" : phase}
-    fit={[BASE, { ...RISER, z: 0, h: RISER.z + RISER.h }, [MAST.x, MAST.y, MAST.z + MAST.h + 10]]} aspect={1.18}
-    label="An approval pad. An agent's request waits on its screen; press allow or deny to answer it.">
-    <Box {...BASE} r={10} />
-    <Box {...RISER} r={8} front={<>
-      <rect className="ik-screen" x={9} y={8} width={106} height={30} rx={4} />
-      <g key={`${at}-${phase}`} className="ik-enter">
-        <text className="ik-screen-text ik-dim" x={15} y={18} fontSize={5.6}>{screen[0]}</text>
-        {decided && <path className="ik-screen-line" d={phase === "allowed" ? CHECK : CROSS} transform="translate(15 23.5)" />}
-        <text className="ik-screen-text" x={decided ? 30 : 15} y={32} fontSize={9.5}>{screen[1]}</text>
-      </g>
-      {QUEUE.map((_, i) => <rect key={i} className="pip" data-on={i >= at} x={92 + i * 5} y={12} width={3} height={3} rx={0.6} />)}
-      <circle className="light ik-loop" cx={132} cy={13} r={2.4} />
-      {Array.from({ length: 6 }, (_, i) => <path key={i} className="ik-detail" d={`M${123.5 + i * 3.4} 21v16`} />)}
-    </>} />
-    <Box {...MAST} r={4} />
-    <circle className="ik-face ik-top" cx={TX} cy={TY} r={4.6} />
-    {phase === "allowed" && <g className="ping">{[0, 1, 2].map((i) => <path key={i} className="ik-live" style={{ animationDelay: `${i * 120}ms` }}
-      d={`M${TX - 8 - i * 5} ${TY - 3 - i * 3}a${10 + i * 6} ${10 + i * 6} 0 0 1 ${16 + i * 10} 0`} />)}</g>}
+  return (
+    <Plate
+      fig="Fig 2"
+      name="Approval pad"
+      hint="Allow or deny"
+      readout={readout}
+      className="approval"
+      data-phase={request ? phase : "clear"}
+      fit={[BASE, { ...RISER, z: 0, h: RISER.z + RISER.h }, [MAST.x, MAST.y, MAST.z + MAST.h + 10]]}
+      aspect={1.18}
+      label="An approval pad. An agent's request waits on its screen; press allow or deny to answer it."
+    >
+      <Box {...BASE} r={10} />
+      <Box
+        {...RISER}
+        r={8}
+        front={
+          <>
+            <rect className="ik-screen" x={9} y={8} width={106} height={30} rx={4} />
+            <g key={`${at}-${phase}`} className="ik-enter">
+              <text className="ik-screen-text ik-dim" x={15} y={18} fontSize={5.6}>
+                {small}
+              </text>
+              {decided && <path className="ik-screen-line" d={phase === "allowed" ? CHECK : CROSS} transform="translate(15 23.5)" />}
+              <text className="ik-screen-text" x={decided ? 30 : 15} y={32} fontSize={9.5}>
+                {big}
+              </text>
+            </g>
+            {QUEUE.map((r, i) => (
+              <rect key={`${r.where}-${i}`} className="pip" data-on={i >= at} x={92 + i * 5} y={12} width={3} height={3} rx={0.6} />
+            ))}
+            <circle className="light ik-loop" cx={132} cy={13} r={2.4} />
+            {Array.from({ length: 6 }, (_, i) => (
+              <path key={i} className="ik-detail" d={`M${123.5 + i * 3.4} 21v16`} />
+            ))}
+          </>
+        }
+      />
+      <Box {...MAST} r={4} />
+      <circle className="ik-face ik-top" cx={TX} cy={TY} r={4.6} />
+      {phase === "allowed" && (
+        <g className="ping">
+          {[0, 1, 2].map((i) => (
+            <path key={i} className="ik-live" style={{ animationDelay: `${i * 120}ms` }} d={`M${TX - 8 - i * 5} ${TY - 3 - i * 3}a${10 + i * 6} ${10 + i * 6} 0 0 1 ${16 + i * 10} 0`} />
+          ))}
+        </g>
+      )}
 
-    <Press label="Allow the request" onPress={() => decide("allow")}>
-      <g><Box {...ALLOW} r={7} top={<><text className="ik-label" x={12} y={30}>ALLOW</text><path className="ik-detail" d="M12 36h22" /></>} /></g>
-    </Press>
-    <Press label="Deny the request" onPress={() => decide("deny")}>
-      <g><Box {...DENY} r={7} top={<><path className="ik-detail ik-thick" d={CROSS} transform="translate(9 14) scale(1.1)" /><text className="ik-label" x={8} y={40}>DENY</text></>} /></g>
-    </Press>
-  </Plate>
+      <Press label="Allow the request" onPress={() => decide("allow")}>
+        <g>
+          <Box
+            {...ALLOW}
+            r={7}
+            top={
+              <>
+                <text className="ik-label" x={12} y={30}>
+                  ALLOW
+                </text>
+                <path className="ik-detail" d="M12 36h22" />
+              </>
+            }
+          />
+        </g>
+      </Press>
+      <Press label="Deny the request" onPress={() => decide("deny")}>
+        <g>
+          <Box
+            {...DENY}
+            r={7}
+            top={
+              <>
+                <path className="ik-detail ik-thick" d={CROSS} transform="translate(9 14) scale(1.1)" />
+                <text className="ik-label" x={8} y={40}>
+                  DENY
+                </text>
+              </>
+            }
+          />
+        </g>
+      </Press>
+    </Plate>
+  )
 }

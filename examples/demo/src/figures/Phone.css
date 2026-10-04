@@ -1,0 +1,11 @@
+.phone { --card: #ffffff; --app: #161616; }
+.dark .phone { --card: #262626; --app: #f2f2f2; }
+.phone .card { fill: var(--card); stroke: var(--ik-detail); vector-effect: non-scaling-stroke; }
+.phone .app { fill: var(--app); }
+.phone .clock { font-weight: 300; }
+.phone .button { fill: var(--ik-screen); stroke: var(--ik-line); vector-effect: non-scaling-stroke; transition: fill 120ms, stroke 120ms; }
+.phone .button.primary { fill: var(--ik-live); stroke: var(--ik-live); }
+.phone .approve { fill: var(--ik-panel); }
+.phone .tap { cursor: pointer; }
+.phone .tap[data-down="true"] .button { fill: var(--ik-detail); }
+.phone .tap:focus-visible .button { stroke: var(--ik-live); stroke-width: 1.6; }
