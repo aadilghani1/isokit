@@ -1,0 +1,29 @@
+# isokit
+
+> Interactive isometric line figures for React (npm: react-isokit). Rounded boxes, faces you draw on in flat coordinates, parts that press like real keys, and optional synthesized interaction sound. Zero dependencies, SSR-safe, 3.4 kB core.
+
+Install: `npm i react-isokit`, then `import "react-isokit/styles.css"` once.
+
+World space: +x down-right, +y down-left, +z up (true isometric, no perspective). A box is { x, y, z, w, d, h }. Paint back to front: lower z first, smaller x + y first.
+
+Core API:
+- `<Plate label fit aspect fig name hint readout>`: the plate and its svg; `fit` frames boxes and points.
+- `<Box x y z w d h r top front side>`: a rounded box; `top`/`front`/`side` children are drawn on that face in flat local coordinates.
+- `<Press label onPress>`: wraps one `<g>` of boxes; sinks on press, acts on release; pointer, Enter, Space.
+- `configureSound({ defaultOn })`, `playSound(name)`, `<SoundToggle />`: sound is off until a page opts in.
+- `frame`, `project`, `top`, `front`, `side`, `path`, `outline`: the geometry.
+
+## Docs
+- [README](https://github.com/aadilghani1/isokit#readme): full API, styling, performance and accessibility.
+- [Agent API reference](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/api.md): the API in one page.
+- [Rules](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/rules.md): what a finished figure holds to.
+- [Recipes](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/recipes.md): screens, keys, cables, antennas, exploded layers, folders.
+
+## Examples
+- [Desk computer](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/DeskComputer.tsx): type on it, click it to switch.
+- [Approval pad](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/ApprovalPad.tsx): allow or deny an agent.
+- [Page press](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/PagePress.tsx): blocks drop into place.
+- [Edge box](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/EdgeBox.tsx): pick a folder, read it offline.
+
+## Skill
+- `npx skills add aadilghani1/isokit`, then `/isokit <object>` in Claude Code, Codex, Cursor or any agent that reads skills.

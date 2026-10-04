@@ -1,0 +1,124 @@
+{
+  "name": "react-isokit",
+  "version": "0.1.0",
+  "description": "Interactive isometric line figures for React: rounded boxes, faces you can draw on, keys you can press, and optional synthesized sound. Plus a Claude Code skill that draws them.",
+  "license": "MIT",
+  "author": "Aadil Ghani (https://github.com/aadilghani1)",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "keywords": [
+    "isometric",
+    "svg",
+    "react",
+    "illustration",
+    "interactive",
+    "figure",
+    "sound",
+    "web-audio",
+    "claude-code",
+    "skill"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aadilghani1/isokit.git"
+  },
+  "homepage": "https://github.com/aadilghani1/isokit#readme",
+  "bugs": {
+    "url": "https://github.com/aadilghani1/isokit/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "vite examples/demo",
+    "demo:build": "vite build examples/demo",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "size": "size-limit",
+    "publint": "publint --strict",
+    "attw": "attw --pack . --profile esm-only --exclude-entrypoints styles.css",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run publint && npm run attw && npm run size",
+    "changeset": "changeset",
+    "release": "npm run build && changeset publish",
+    "prepublishOnly": "npm run check"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "^2.5.15",
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^2.31.1",
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jsdom": "^26.1.0",
+    "playwright-core": "1.56",
+    "publint": "^0.3.25",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "size-limit": "^11.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "5.9",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  },
+  "size-limit": [
+    {
+      "name": "core (Plate, Box, Press, math)",
+      "path": "dist/index.js",
+      "import": "{ Plate, Box, Press, frame }",
+      "limit": "4 kB",
+      "ignore": [
+        "react",
+        "react/jsx-runtime"
+      ]
+    },
+    {
+      "name": "everything",
+      "path": "dist/index.js",
+      "limit": "4 kB",
+      "ignore": [
+        "react",
+        "react/jsx-runtime"
+      ]
+    },
+    {
+      "name": "sound engine (lazy chunk)",
+      "path": "dist/sound-engine-*.js",
+      "limit": "3 kB"
+    },
+    {
+      "name": "styles.css",
+      "path": "dist/styles.css",
+      "limit": "2.5 kB"
+    }
+  ]
+}

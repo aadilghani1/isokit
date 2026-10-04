@@ -1,0 +1,91 @@
+import { useEffect, useRef, useState } from "react"
+import { Box, front, Plate, Press, path, playSound, side, type Vec3 } from "react-isokit"
+
+/**
+ * An edge box: a small computer that reads files where they sit, its network
+ * cable lying unplugged in front of it. Pick a folder from the stepped sorter;
+ * it lifts and its neighbours make room, the box reads it with a few quiet
+ * ticks, and the answer comes up on its own screen.
+ */
+
+const DOCS = [
+  { file: "contract.pdf", page: "p.03", answer: "Term: 24 months" },
+  { file: "lease.pdf", page: "p.07", answer: "Notice: 3 months" },
+  { file: "nda.pdf", page: "p.01", answer: "Mutual, 2 years" },
+]
+const DEV = { x: 0, y: 0, z: 0, w: 92, d: 92, h: 58 }
+const STAND = { x: 108, y: 34, z: 0, w: 72, d: 62, h: 9 }
+const FW = 58, FH = 52, TAB = 7, FX = STAND.x + 7, STEP = 9
+const fy = (i: number) => STAND.y + 10 + i * 14
+/** Front to back, each step shallower and a step taller, so the folder on it shows above the one in front. */
+const STEPS = [0, 1, 2].map((k) => ({ ...STAND, d: k ? fy(2 - k) - STAND.y + 9 : STAND.d, h: STAND.h + k * STEP }))
+const fz = (i: number) => STAND.h + (2 - i) * STEP
+const TABS = [[4, 18], [21, 18], [38, 16]]
+const folder = (tx: number, tw: number) => `M0 ${FH + TAB}V${TAB + 2}q0-2 2-2H${tx}l3-6q.5-1 1.5-1H${tx + tw - 4.5}q1 0 1.5 1l3 6H${FW - 2}q2 0 2 2V${FH + TAB}Z`
+const CABLE = (() => {
+  const a: Vec3 = [72, 112, 3], b: Vec3 = [74, 140, 1.6], c: Vec3 = [30, 118, 1.6], d: Vec3 = [6, 146, 1.6]
+  const pts: Vec3[] = []
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40, w = [(1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3]
+    pts.push([0, 1, 2].map((k) => w[0] * a[k] + w[1] * b[k] + w[2] * c[k] + w[3] * d[k]) as unknown as Vec3)
+  }
+  return path(pts)
+})()
+
+export function EdgeBox() {
+  const [pick, setPick] = useState(0)
+  const [reading, setReading] = useState(false)
+  const timer = useRef(0)
+  const stop = useRef(() => {})
+  useEffect(() => () => { window.clearTimeout(timer.current); stop.current() }, [])
+  const choose = (i: number) => {
+    window.clearTimeout(timer.current)
+    stop.current()
+    playSound("paper")
+    stop.current = playSound("process")
+    setPick(i)
+    setReading(true)
+    timer.current = window.setTimeout(() => { setReading(false); playSound("done") }, 700)
+  }
+  const doc = DOCS[pick]
+
+  return <Plate fig="Fig 4" name="Edge box" hint="Pick a file" readout={`${doc.file} · ${reading ? "reading" : doc.page}`} className="edge" data-reading={reading}
+    fit={[DEV, STAND, [FX, fy(0), fz(0) + FH + TAB + 22], [6, 146, 0]]} aspect={1.18}
+    label="A small computer with its network cable unplugged, beside a sorter of three folders. Pick a folder and the computer answers from it on its own screen.">
+    <Box {...DEV} r={10}
+      top={<><rect className="ik-detail" x={16} y={16} width={60} height={60} rx={9} />{Array.from({ length: 25 }, (_, k) => <circle key={k} className="ik-fill" cx={28 + (k % 5) * 9} cy={28 + Math.floor(k / 5) * 9} r={1.3} />)}</>}
+      side={<><circle className="ik-well" cx={82} cy={42.5} r={2.4} />{Array.from({ length: 6 }, (_, k) => <path key={k} className="ik-detail" d={`M${10 + k * 3.4} 40v12`} />)}</>}
+      front={<>
+        <rect className="ik-screen" x={8} y={8} width={76} height={28} rx={4} />
+        <g key={`${pick}-${reading}`} className="ik-enter">
+          <text className="ik-screen-text ik-dim" x={13} y={17.5} fontSize={5.6}>{reading ? "reading on device" : `${doc.file} · ${doc.page}`}</text>
+          {reading ? <rect className="sweep" x={13} y={25} width={14} height={3.5} rx={1} /> : <text className="ik-screen-text" x={13} y={30} fontSize={7.2}>{doc.answer}</text>}
+        </g>
+        <circle className="light ik-loop" cx={11} cy={47.5} r={1.8} />
+        <path className="ik-detail" d="M18.5 46v-2a2.5 2.5 0 0 1 5 0v2" />
+        <rect className="ik-detail" x={17} y={46} width={8} height={6} rx={1} />
+        {Array.from({ length: 7 }, (_, k) => <path key={k} className="ik-detail" d={`M${33 + k * 3.4} 42v10`} />)}
+        <rect className="ik-well" x={65} y={42} width={12} height={9} rx={1.2} />
+        <path className="ik-detail" d="M69 51v-2.5h4V51" />
+      </>} />
+
+    <path className="ik-line" d={CABLE} />
+    <Box x={66} y={100} z={0} w={10} d={12} h={6} r={1.5} top={<path className="ik-detail" d="M5 3v5" />} />
+
+    {STEPS.map((st, k) => <Box key={k} {...st} r={5} top={<path className="ik-detail" d={`M5 ${fy(2 - k) - st.y + 2}h${st.w - 10}`} />} />)}
+    {DOCS.map((d, i) => {
+      const y = fy(i), [tx, tw] = TABS[i]
+      return <Press key={d.file} className="ik-lift folder" label={`Read ${d.file}`} onPress={() => choose(i)} sound={false} data-on={pick === i}
+        style={{ "--d": Math.abs(i - pick) } as React.CSSProperties}>
+        <g>
+          <g transform={side(FX + FW, y + 2, fz(i) + FH)}><rect className="ik-face ik-tint" width={2} height={FH} /></g>
+          <g transform={front(FX, y + 2, fz(i) + FH + TAB)}>
+            <path className="ik-face" d={folder(tx, tw)} />
+            {Array.from({ length: i + 1 }, (_, k) => <circle key={k} className="ik-fill tab-dot" cx={tx + 6 + k * 3.4} cy={4} r={0.9} />)}
+            <path className="ik-detail" d={`M7 ${TAB + 11}h30M7 ${TAB + 17}h40M7 ${TAB + 23}h24`} />
+          </g>
+        </g>
+      </Press>
+    })}
+  </Plate>
+}
