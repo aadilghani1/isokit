@@ -10,7 +10,7 @@ describe("server rendering", () => {
         <Press label="Press" onPress={() => {}}><g><Box {...key} r={6} top={<rect className="ik-detail" width={4} height={4} />} /></g></Press>
       </Plate>,
     )
-    expect(html).toContain('role="img"')
+    expect(html).toContain('role="group"')
     expect(html).toContain('aria-label="A key"')
     expect(html).toContain('role="button"')
     expect(html).toContain("viewBox=")

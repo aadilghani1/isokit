@@ -73,7 +73,8 @@ export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, nam
           <span>{name}</span>
         </div>
       )}
-      <svg viewBox={box} role="img" aria-label={label} {...svg}>
+      {/* A group, not an image: a figure holds buttons, and an image's children are presentational. Pass role="img" for a figure with nothing to press. */}
+      <svg viewBox={box} role="group" aria-label={label} {...svg}>
         {children}
       </svg>
       {foot && (
@@ -154,7 +155,7 @@ const activates = (e: KeyboardEvent) => e.key === "Enter" || e.key === " "
  * up on release and acts on release. Pointer, Enter and Space all work. Wrap
  * the boxes that should sink in one `<g>` inside it.
  */
-export function Press({ label, onPress, sound = true, disabled, className, children, ...rest }: PressProps): ReactNode {
+export function Press({ label, onPress, sound = true, disabled, className, children, onBlur, ...rest }: PressProps): ReactNode {
   const [down, setDown] = useState(false)
   const push = () => {
     if (disabled) return
@@ -181,6 +182,11 @@ export function Press({ label, onPress, sound = true, disabled, className, child
       }}
       onPointerLeave={() => setDown(false)}
       onPointerCancel={() => setDown(false)}
+      // A key released after focus has moved on would otherwise stay down.
+      onBlur={(e) => {
+        setDown(false)
+        onBlur?.(e)
+      }}
       onClick={() => {
         if (!disabled) onPress()
       }}
