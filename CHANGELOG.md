@@ -1,5 +1,11 @@
 # react-isokit
 
+## 0.2.2
+
+### Patch Changes
+
+- [#12](https://github.com/aadilghani1/isokit/pull/12) [`808ace4`](https://github.com/aadilghani1/isokit/commit/808ace48005b6d819c8b9299823712e2eaacd098) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Keyboard focus is visible on parts that are already live. 0.2.1 stopped host pages' focus rings from drawing around pressed parts and relied on the live stroke alone, so a `data-hot` key (or one a figure marks as picked) looked the same focused or not. A focused part's faces now also draw at a heavier stroke.
+
 ## 0.2.1
 
 ### Patch Changes
