@@ -1,5 +1,22 @@
 # react-isokit
 
+## 0.4.0
+
+### Minor Changes
+
+- [#18](https://github.com/aadilghani1/isokit/pull/18) [`5e92136`](https://github.com/aadilghani1/isokit/commit/5e92136f68c195a0408807ae96607328039551a6) Thanks [@aadilghani1](https://github.com/aadilghani1)! - `<Ripple inFace>` draws its ring in the coordinates of the face it sits in, so a key on an upright face (inside a `Box`'s `front` or `side`) can be marked without an inverse matrix. `z` is now optional, defaulting to 0.
+
+### Patch Changes
+
+- [#18](https://github.com/aadilghani1/isokit/pull/18) [`5e92136`](https://github.com/aadilghani1/isokit/commit/5e92136f68c195a0408807ae96607328039551a6) Thanks [@aadilghani1](https://github.com/aadilghani1)! - `Plate`'s grid has an explicit `minmax(0, 1fr)` column. A plate given a fixed height can no longer have its drawing widen the column past the plate's own edge.
+
+- [#16](https://github.com/aadilghani1/isokit/pull/16) [`db1c65b`](https://github.com/aadilghani1/isokit/commit/db1c65b74215a613e2abc42bb8fd5666b9ef7859) Thanks [@aadilghani1](https://github.com/aadilghani1)! - The source is reorganised into small modules with one job each: geometry, components, guided motion and sound (store, player, engine, recipes, voices). The public API is unchanged.
+  
+  - `frame` fits boxes in a single pass, with no array spreads, so a large `fit` can no longer overflow the stack.
+  - `Box` recomputes its outline only when its numbers change.
+  - Sound state lives in two lazily created module singletons, and the engine chunk still imports nothing at runtime from the main entry.
+  - The type declarations no longer carry doc comments. The props and usage for every component are on the docs site.
+
 ## 0.3.0
 
 ### Minor Changes
