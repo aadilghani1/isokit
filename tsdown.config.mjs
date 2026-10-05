@@ -5,7 +5,9 @@ import { defineConfig } from "tsdown"
 export default defineConfig({
   entry: { index: "src/index.ts", schema: "src/schema.ts" },
   format: "esm",
-  platform: "browser",
+  // Neutral, not browser: the browser platform defines process.env.NODE_ENV at library build time,
+  // which baked the development checks into the published code. Neutral leaves it for the app's bundler.
+  platform: "neutral",
   target: "es2020",
   dts: true,
   sourcemap: true,

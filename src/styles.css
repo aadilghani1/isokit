@@ -56,6 +56,8 @@
 
 /* Parts you press: down fast, back up with a little spring; the live stroke marks focus and the press */
 :where(.ik-press) { cursor: pointer; outline: none; }
+/* A host page's focus ring would be drawn around the transformed group's bounding box, not the part; presses show focus with the live stroke instead. */
+.ik-plate .ik-press:focus-visible { outline: none; }
 :where(.ik-press[aria-disabled="true"]) { cursor: default; }
 :where(.ik-press > g) { transition: transform 200ms var(--ik-spring); }
 :where(.ik-press[data-down="true"]:not(.ik-lift) > g) { transform: translateY(3px); transition: transform 50ms ease-out; }
@@ -73,7 +75,8 @@
 @keyframes ik-float { 50% { transform: translateY(-1.6px); } }
 
 /* Loops sleep offscreen (give your own looping animations .ik-loop); reduced motion lands everything at once */
-:where(.ik-plate:not([data-awake])) :where(.ik-pulse, .ik-blink, .ik-float, .ik-loop) { animation-play-state: paused; }
+/* Important, so a figure's own animation shorthand (which resets the play state) still sleeps offscreen. */
+.ik-plate:not([data-awake]) :is(.ik-pulse, .ik-blink, .ik-float, .ik-loop) { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
   :where(.ik-plate) * { animation: none !important; transition-duration: 0ms !important; transition-delay: 0ms !important; }
 }

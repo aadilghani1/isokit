@@ -191,7 +191,7 @@ Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `
 
 ## Accessibility
 
-Every plate is an image with your `label`. Every `Press` is a focusable button with its own label; Enter and Space work like a real key, and focus shows as the live stroke. The read-out is a polite live region. Sound is never the only feedback.
+Every plate is a group named by your `label` (pass `role="img"` for a figure with nothing to press). Every `Press` is a focusable button with its own label; Enter and Space work like a real key, and focus shows as the live stroke. The read-out is a polite live region. Sound is never the only feedback.
 
 ## The skill
 

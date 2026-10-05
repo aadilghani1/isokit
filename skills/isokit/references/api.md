@@ -13,7 +13,7 @@ import "react-isokit/styles.css"   // once, at the app root
 
 ## `<Plate label fit aspect pad viewBox fig name hint readout theme>`
 
-The plate and its `<svg>`. `label` is required. `fit` takes boxes and `[x, y, z]` points and frames them; `aspect` is width over height (default 1.25). `fig`, `name`, `hint`, `readout` are the four corner captions; `readout` is a polite live region. Any other prop lands on the `<svg>`: put state there as `data-*` attributes and style descendants from CSS (`.my-figure svg[data-live="true"] .block { … }`). `theme`: unset follows a `.dark` / `[data-theme="dark"]` ancestor, or `"light"`, `"dark"`, `"system"`.
+The plate and its `<svg>`, a group named by `label` (required; pass `role="img"` for a figure with nothing to press). `fit` takes boxes and `[x, y, z]` points and frames them; `aspect` is width over height (default 1.25). `fig`, `name`, `hint`, `readout` are the four corner captions; `readout` is a polite live region. Any other prop lands on the `<svg>`: put state there as `data-*` attributes and style descendants from CSS (`.my-figure svg[data-live="true"] .block { … }`). `theme`: unset follows a `.dark` / `[data-theme="dark"]` ancestor, or `"light"`, `"dark"`, `"system"`.
 
 ## `<Box x y z w d h r className top front side>`
 
