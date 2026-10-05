@@ -1,0 +1,10 @@
+.fig-ev-charger .ev-plug { transition: transform 360ms var(--ik-ease); }
+.fig-ev-charger svg[data-charging="true"] .ev-plug { transform: translate(var(--seat-x), var(--seat-y)); }
+.fig-ev-charger .ev-cell { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 200ms var(--ik-ease), stroke 200ms var(--ik-ease); }
+.fig-ev-charger svg[data-charging="true"] .ev-cell[data-on="true"] { fill: var(--ik-line); stroke: var(--ik-line); transition-delay: var(--t); }
+.fig-ev-charger svg[data-charging="true"] .ev-cell[data-head="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: ik-pulse 1.6s ease-in-out calc(var(--t) + 400ms) infinite; }
+.fig-ev-charger .ev-strip { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease); }
+.fig-ev-charger svg[data-charging="true"] .ev-strip { fill: var(--ik-line); transition-delay: var(--t); }
+.fig-ev-charger .ev-linking { opacity: 0; animation: ev-linking 820ms steps(1, end) both; }
+.fig-ev-charger .ev-tag { font-size: 5.4px; }
+@keyframes ev-linking { from { opacity: 1; } to { opacity: 0; } }

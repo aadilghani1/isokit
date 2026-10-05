@@ -1,0 +1,28 @@
+.fig-quality-gauge .qg-bin-name { font-size: 5.6px; }
+.fig-quality-gauge .qg-mark { font-size: 4.6px; }
+.fig-quality-gauge .qg-key { font-size: 6.6px; }
+.fig-quality-gauge .qg-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-quality-gauge .qg-lamp[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: quality-gauge-lamp 1ms linear var(--land) both; }
+.fig-quality-gauge .qg-go { transform: translate(var(--mx), var(--my)); animation: quality-gauge-go 1000ms backwards; }
+.fig-quality-gauge .qg-reject { transform: translate(var(--ex), var(--ey)); animation: quality-gauge-reject 1000ms backwards; }
+.fig-quality-gauge .qg-fall { transform: translateY(var(--drop)); animation: quality-gauge-fall 1000ms backwards; }
+.fig-quality-gauge .qg-jab { animation: quality-gauge-jab 360ms 140ms both; }
+.fig-quality-gauge .qg-old { opacity: 0; animation: quality-gauge-old 280ms var(--ik-ease) backwards; }
+.fig-quality-gauge .ik-press[data-hot="true"] .qg-tick { stroke: var(--ik-live); }
+@keyframes quality-gauge-go {
+  0%, 20% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.3, .1, .3, 1); }
+  76%, 100% { transform: translate(var(--mx), var(--my)); }
+}
+@keyframes quality-gauge-reject {
+  0%, 20% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.4, 0, .9, .9); }
+  76% { transform: translate(var(--mx), var(--my)); animation-timing-function: cubic-bezier(.2, .6, .4, 1); }
+  100% { transform: translate(var(--ex), var(--ey)); }
+}
+@keyframes quality-gauge-fall {
+  0% { transform: translateY(var(--rise)); animation-timing-function: cubic-bezier(.5, 0, 1, .6); }
+  16%, 76% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 0, 1, .6); }
+  100% { transform: translateY(var(--drop)); }
+}
+@keyframes quality-gauge-jab { 45% { transform: translate(5.2px, 3px); } }
+@keyframes quality-gauge-lamp { from { fill: var(--ik-well); stroke: var(--ik-detail); } }
+@keyframes quality-gauge-old { from { opacity: 1; } to { opacity: 0; } }

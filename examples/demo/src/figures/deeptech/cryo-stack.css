@@ -11,3 +11,4 @@
 @keyframes cryo-seat { 15%, 45% { stroke: var(--ik-live); } }
 @keyframes cryo-on { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cryo-off { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fig-cryo-stack .shown.passing { display: none; } }

@@ -1,0 +1,20 @@
+.fig-quiz-buzzers .qb-token { transition: opacity 0ms linear var(--t); }
+.fig-quiz-buzzers .qb-token[data-on="false"] { opacity: 0; }
+.fig-quiz-buzzers .qb-window { fill: var(--ik-screen); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke 260ms var(--ik-ease); }
+.fig-quiz-buzzers .qb-window[data-live="true"] { stroke: var(--ik-live); transition: stroke 0ms linear var(--t); }
+.fig-quiz-buzzers .qb-was { animation: qb-was 160ms linear var(--t) forwards; }
+.fig-quiz-buzzers .qb-now { animation: ik-enter 420ms var(--ik-ease) var(--t) both; }
+.fig-quiz-buzzers .qb-card-out { animation: qb-card-out 360ms var(--ik-ease) var(--t) forwards; }
+.fig-quiz-buzzers .qb-card-in { animation: qb-card-in 420ms var(--ik-ease) var(--t) both; }
+.fig-quiz-buzzers .qb-card[data-live="true"] .ik-face { stroke: var(--ik-live); }
+.fig-quiz-buzzers .qb-buzzer[data-lit="true"] .ik-face { stroke: var(--ik-live); }
+.fig-quiz-buzzers .qb-buzzer[data-lit="true"] .qb-dome .ik-top { fill: var(--ik-live); }
+.fig-quiz-buzzers .qb-bulb { fill: var(--ik-detail); }
+.fig-quiz-buzzers .qb-letter { font-size: 7px; }
+.fig-quiz-buzzers .qb-team { font-size: 5.6px; }
+.fig-quiz-buzzers .qb-key { font-size: 6.4px; }
+.fig-quiz-buzzers .qb-q { font-size: 7.4px; }
+.fig-quiz-buzzers .qb-mark { fill: none; stroke: var(--ik-ink); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes qb-was { to { opacity: 0; } }
+@keyframes qb-card-out { to { opacity: 0; transform: translate(-10px, -6px); } }
+@keyframes qb-card-in { from { opacity: 0; transform: translate(8px, -10px); } }

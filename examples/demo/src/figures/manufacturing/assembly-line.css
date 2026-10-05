@@ -1,0 +1,36 @@
+.fig-assembly-line .al-key { font-size: 7px; }
+.fig-assembly-line .al-tag { font-size: 5px; }
+.fig-assembly-line .ik-press[data-hot="true"] .al-play { stroke: var(--ik-live); }
+.fig-assembly-line .al-ride { --hx: 32.909px; --hy: 19px; transform: translate(calc(var(--hx) * 4), calc(var(--hy) * 4)); animation: assembly-line-ride 2620ms backwards, assembly-line-arrive 200ms ease-out both; }
+.fig-assembly-line .al-mounted { animation: assembly-line-show 1ms linear var(--t) both; }
+.fig-assembly-line .al-held { opacity: 0; animation: assembly-line-hold 1ms linear var(--t) backwards, assembly-line-reload 200ms var(--ik-ease) backwards; }
+.fig-assembly-line .al-dip { animation: assembly-line-dip 380ms var(--t) both; }
+.fig-assembly-line .al-exit { opacity: 0; animation: assembly-line-exit 260ms var(--ik-ease) backwards; }
+.fig-assembly-line .al-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-assembly-line .al-lamp[data-run="true"] { animation: assembly-line-flash 380ms linear var(--t) both; }
+.fig-assembly-line .al-beacon { fill: var(--ik-detail); }
+.fig-assembly-line .al-beacon[data-on="true"] { fill: var(--ik-live); animation: assembly-line-beacon 1ms linear var(--t) both; }
+.fig-assembly-line .al-pip { fill: var(--ik-screen-ink); opacity: .16; }
+.fig-assembly-line .al-pip[data-on="true"] { opacity: .85; animation: assembly-line-pip 1ms linear var(--t) both; }
+.fig-assembly-line .al-shown { animation: assembly-line-show 1ms linear var(--on) both; }
+.fig-assembly-line .al-window { opacity: 0; animation: assembly-line-hold var(--span) linear var(--on); }
+@keyframes assembly-line-ride {
+  0%, 7.634% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  19.847%, 34.351% { transform: translate(var(--hx), var(--hy)); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  46.565%, 61.069% { transform: translate(calc(var(--hx) * 2), calc(var(--hy) * 2)); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  73.282%, 87.786% { transform: translate(calc(var(--hx) * 3), calc(var(--hy) * 3)); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  100% { transform: translate(calc(var(--hx) * 4), calc(var(--hy) * 4)); }
+}
+@keyframes assembly-line-dip {
+  0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 0, .8, .5); }
+  36.842%, 52.632% { transform: translateY(22px); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  100% { transform: translateY(0); }
+}
+@keyframes assembly-line-arrive { from { opacity: 0; } }
+@keyframes assembly-line-show { from { opacity: 0; } }
+@keyframes assembly-line-hold { from, to { opacity: 1; } }
+@keyframes assembly-line-reload { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes assembly-line-exit { from { opacity: 1; transform: translate(0, 0); } to { opacity: 0; transform: translate(6.928px, 4px); } }
+@keyframes assembly-line-flash { 20%, 70% { fill: var(--ik-live); stroke: var(--ik-live); } }
+@keyframes assembly-line-beacon { from { fill: var(--ik-detail); } }
+@keyframes assembly-line-pip { from { opacity: .16; } }

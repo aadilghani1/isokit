@@ -1,0 +1,20 @@
+.fig-desk-globe .dg-sphere { fill: var(--ik-top); }
+.fig-desk-globe .dg-meridian { transform: scaleX(var(--s0)); }
+.fig-desk-globe .dg-spin .dg-meridian { animation: dg-turn 140ms linear 0ms 3, dg-turn 220ms linear 420ms 1, dg-turn 360ms cubic-bezier(.2, .7, .3, 1) 640ms 1; }
+.fig-desk-globe .dg-land { fill: var(--ik-well); stroke: var(--ik-line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.fig-desk-globe .dg-city { fill: var(--ik-detail); }
+.fig-desk-globe .dg-city[data-lit="true"] { animation: dg-lit 240ms var(--ik-ease) var(--arrive) both; }
+.fig-desk-globe .dg-leave { animation: dg-leave 320ms var(--ik-ease) both; }
+.fig-desk-globe .dg-arrive { animation: dg-arrive 320ms var(--ik-ease) var(--land) both; }
+.fig-desk-globe .dg-ping { fill: none; stroke: var(--ik-live); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; animation: dg-ping 700ms var(--ik-ease) forwards; }
+.fig-desk-globe .dg-turning { animation: dg-turning 1320ms steps(1, end) both; }
+.fig-desk-globe .dg-cone { animation: dg-cone 360ms var(--ik-ease) both; }
+.fig-desk-globe .dg-key { font-size: 7.5px; }
+.fig-desk-globe svg[data-marked="false"] .dg-arrow { stroke: var(--ik-live); }
+@keyframes dg-turn { from { transform: scaleX(var(--s0)); } to { transform: scaleX(var(--s1)); } }
+@keyframes dg-lit { from { fill: var(--ik-detail); } to { fill: var(--ik-live); } }
+@keyframes dg-leave { to { opacity: 0; transform: translateX(10px); } }
+@keyframes dg-arrive { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes dg-ping { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(3); } }
+@keyframes dg-turning { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dg-cone { from { opacity: 0; } }

@@ -1,0 +1,11 @@
+.fig-checkout-till .ct-key { font-size: 5.2px; }
+.fig-checkout-till .ct-total { font-size: 5.6px; }
+.fig-checkout-till .ct-tag { font-size: 4.4px; }
+.fig-checkout-till svg[data-printed="false"] .ct-equals { stroke: var(--ik-live); }
+.fig-checkout-till .ct-led { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-checkout-till .ct-led[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: ct-led-on 220ms var(--ik-ease) var(--t) both; }
+.fig-checkout-till .ct-receipt { transition: transform 360ms var(--ik-ease), opacity 300ms var(--ik-ease); }
+.fig-checkout-till .ct-receipt[data-state="gone"] { opacity: 0; transform: translateY(-16px); }
+.fig-checkout-till .ct-feed { animation: ct-feed 900ms cubic-bezier(.3, .5, .4, 1) var(--t) both; }
+@keyframes ct-feed { from { transform: translateY(var(--rh)); } }
+@keyframes ct-led-on { from { fill: var(--ik-well); stroke: var(--ik-detail); } }

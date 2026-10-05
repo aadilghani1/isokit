@@ -1,0 +1,8 @@
+.fig-on-air-light .oal-panel { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 160ms var(--ik-ease), stroke 160ms var(--ik-ease); }
+.fig-on-air-light .oal-word { font-size: 8.6px; transition: fill 160ms var(--ik-ease); }
+.fig-on-air-light svg[data-on="true"] .oal-panel { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-on-air-light svg[data-on="true"] .oal-word { fill: var(--ik-panel); }
+.fig-on-air-light svg[data-on="true"] .oal-lit { animation: oal-strike 420ms linear both; }
+.fig-on-air-light .oal-roll { animation-name: oal-roll; animation-iteration-count: infinite; }
+@keyframes oal-strike { 0% { opacity: .2; } 18% { opacity: 1; } 30% { opacity: .35; } 46%, 100% { opacity: 1; } }
+@keyframes oal-roll { to { transform: translateY(var(--shift)); } }
