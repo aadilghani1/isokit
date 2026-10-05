@@ -61,4 +61,4 @@ Physical objects behind products, with the level each wants. Pick one, or use it
 - **Security:** key fob (1), badge gate (2), vault timer (3), SOC wall (4).
 - **Mobility:** charge plug (1), parking barrier (2), traffic signal (3), rail switchyard (4).
 - **Education:** school bell (1), quiz buzzer (2), abacus (3), library sorter (4).
-- **Deep tech:** wafer probe (2), cryostat (3), GPU cluster (3), ground station (2).
+- **Deep tech:** wafer probe (2), cryostat (3), GPU cluster (3), ground station (2), agent relay (4).
