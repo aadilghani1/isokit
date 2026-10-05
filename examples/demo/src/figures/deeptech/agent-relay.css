@@ -2,7 +2,7 @@
 
 .fig-agent-relay .key { font-size: 6.6px; }
 .fig-agent-relay .tier-name { font-size: 3.7px; }
-.fig-agent-relay .hub-word { font-size: 4px; }
+.fig-agent-relay .hub-word { font-size: 3.2px; }
 .fig-agent-relay .board-title { font-size: 2.9px; }
 .fig-agent-relay .switch-word { font-size: 4.6px; transition: fill 260ms var(--ik-ease); }
 .fig-agent-relay .switch-word[data-on="true"] { fill: var(--ik-ink-hi); }
@@ -16,7 +16,8 @@
 
 .fig-agent-relay .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease) calc(var(--i) * 60ms), stroke 260ms var(--ik-ease) calc(var(--i) * 60ms); }
 .fig-agent-relay .tier:is([data-state="plan"], [data-state="work"]) .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
-.fig-agent-relay .tier:is([data-state="wait"], [data-state="retry"]) .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-agent-relay .tier[data-state="wait"] .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-agent-relay .tier[data-state="retry"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
 .fig-agent-relay .tier[data-state="wait"] .lamp { animation: ar-blink 900ms steps(2, jump-none) infinite; }
 .fig-agent-relay .tier[data-state="done"] .lamp { opacity: 0; }
 .fig-agent-relay .check { fill: none; stroke: var(--ik-line); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 260ms var(--ik-ease); }
@@ -25,7 +26,7 @@
 .fig-agent-relay .tier:is([data-state="work"], [data-state="plan"], [data-state="retry"]) .work { opacity: 1; animation-play-state: running; }
 .fig-agent-relay .tier[data-state="plan"] .work { stroke-dasharray: 3 3; animation-duration: 2400ms; }
 .fig-agent-relay .tier[data-state="retry"] .work { stroke: var(--ik-live); animation-duration: 420ms; }
-.fig-agent-relay .tier[data-state="wait"] .work { opacity: 1; stroke: var(--ik-live); }
+.fig-agent-relay .tier[data-state="wait"] .work { opacity: 1; }
 .fig-agent-relay .tier[data-state="done"] .work { opacity: 1; stroke-dasharray: none; animation: none; }
 
 .fig-agent-relay .desktop { transition: opacity 400ms var(--ik-ease); }
@@ -52,7 +53,7 @@
 .fig-agent-relay .isle-spin { fill: none; stroke: var(--isle-attention); stroke-width: 1; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: ar-spin 900ms linear infinite; }
 .fig-agent-relay .isle-check { fill: var(--isle-attention); }
 .fig-agent-relay .isle-tick { fill: none; stroke: var(--isle); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
-.fig-agent-relay .isle-phone { fill: none; stroke: var(--isle-ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .isle-phone { fill: var(--isle-ink); }
 .fig-agent-relay .chip-line { fill: none; stroke: var(--isle-ink); stroke-opacity: .7; stroke-width: 1; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .fig-agent-relay .window-bar { fill: var(--isle-attention); transform-box: fill-box; transform-origin: 0 50%; animation: ar-drain var(--hold) linear var(--arrive) both; }
 .fig-agent-relay .island { transform-box: fill-box; transform-origin: 50% 0; }
@@ -60,10 +61,11 @@
 .fig-agent-relay .island.card .island-content { animation: ar-fade 320ms var(--ik-ease) calc(var(--arrive) + 220ms) both; }
 .fig-agent-relay .island.pill { animation: ar-pill 420ms var(--ik-spring) both; }
 .fig-agent-relay .island.receipt { animation: ar-pill 420ms var(--ik-spring) both, ar-shrink 320ms ease-in 1600ms forwards; }
-.fig-agent-relay .link-hit, .fig-agent-relay .menu-hit { fill: transparent; }
+.fig-agent-relay .link-hit, .fig-agent-relay .menu-hit { fill: transparent; vector-effect: non-scaling-stroke; }
 .fig-agent-relay .tap { cursor: pointer; }
-.fig-agent-relay .tap[data-down="true"] :is(.isle-button, .menu-hit, .prompt-row) { opacity: .6; }
-.fig-agent-relay .tap:focus-visible :is(.isle-button, .menu-hit, .prompt-row) { stroke: var(--isle-attention); stroke-width: 1.6; }
+.fig-agent-relay .tap[data-down="true"] :is(.isle-button, .menu-hit, .prompt-row, .link-hit) { opacity: .6; }
+.fig-agent-relay .tap:focus-visible :is(.isle-button, .link-hit) { stroke: var(--isle-attention); stroke-width: 1.6; }
+.fig-agent-relay .tap:focus-visible :is(.menu-hit, .prompt-row) { stroke: var(--ik-ink-hi); stroke-width: 1.6; }
 
 .fig-agent-relay .phone-island { fill: var(--isle); }
 .fig-agent-relay .lock { opacity: .45; transition: opacity 400ms var(--ik-ease); }

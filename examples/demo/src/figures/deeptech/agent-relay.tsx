@@ -23,8 +23,8 @@ type Where = "notch" | "phone" | "terminal"
 type Via = "ask" | "fly"
 type Verdict = "picked" | "changed" | "approved" | "steered" | "denied" | "timeout" | "gave-up"
 type Reply = "first" | "second" | "approve" | "steer" | "deny"
-type Event = "idle" | "run" | "complete" | "ask" | "escalate" | "recall" | "presence" | "timeout" | "answer" | "finish"
-type Answer = { tier: number; kind: Kind; verdict: Verdict; where: Where; seconds: number }
+type Event = "idle" | "run" | "ask" | "escalate" | "recall" | "presence" | "timeout" | "answer" | "finish"
+type Answer = { tier: number; verdict: Verdict; where: Where; seconds: number }
 type Tally = { withSeconds: number; withUsd: number; withStops: number; withoutSeconds: number; withoutUsd: number; withoutStops: number }
 type TierState = "off" | "plan" | "work" | "wait" | "retry" | "done"
 type State = {
@@ -48,6 +48,7 @@ type State = {
   tally: Tally
   beat: number
   event: Event
+  latest: "event" | "complete"
   doneTier: number
   last: Answer | null
 }
@@ -66,10 +67,10 @@ type Action =
 const AGENTS: readonly Agent[] = [
   { id: "opencode", name: "OpenCode", label: "OPENCODE", project: "api", fork: { question: "Migration?", options: ["New table", "Alter in place"] }, commands: ["migrate up", "migrate --dry", "prisma diff"] },
   { id: "hermes", name: "Hermes", label: "HERMES", project: "infra", fork: { question: "Install with?", options: ["Homebrew", "pip"] }, commands: ["brew install", "pip install", "uv tool add"] },
-  { id: "antigravity", name: "Antigravity", label: "ANTIGRAVITY", project: "site", fork: { question: "Deploy order?", options: ["Staging first", "Prod now"] }, commands: ["deploy prod", "deploy stage", "deploy preview"] },
+  { id: "antigravity", name: "Antigravity", label: "ANTIGRAVITY", project: "site", fork: { question: "Deploy order?", options: ["Staging first", "Prod now"] }, commands: ["deploy prod", "deploy stage", "deploy dev"] },
   { id: "fx", name: "fx", label: "FX", project: "web", fork: { question: "Clean what?", options: ["dist only", "Every build"] }, commands: ["rm -rf dist", "mv dist .old", "git clean -n"] },
   { id: "codex", name: "Codex", label: "CODEX", project: "backend", fork: { question: "Which app?", options: ["Both apps", "Dashboard only"] }, commands: ["git push", "gh pr create", "git push wip"] },
-  { id: "claude-code", name: "Claude Code", label: "CLAUDE CODE", project: "pushary", fork: { question: "Rollout?", options: ["Behind the flag", "Straight to main"] }, commands: ["npm publish", "npm pack", "npm pub --dry"] },
+  { id: "claude-code", name: "Claude Code", label: "CLAUDE CODE", project: "pushary", fork: { question: "Rollout?", options: ["Behind the flag", "Straight to main"] }, commands: ["npm publish", "npm pack", "npm link"] },
 ]
 const ALL_DONE = (1 << AGENTS.length) - 1
 const ASK_ORDER = [5, 4, 2, 3, 1, 0] as const
@@ -116,7 +117,7 @@ const NOTCH = { x: LID.w / 2, y: 3 }
 const CARD = { w: 92, round: 43, gate: 40 }
 const PILL = { w: 76, h: 9.4 }
 const NOTE = { x: 3, y: 38, w: 48, h: 21 }
-const MENU = { x: 3, y: 61.5, w: 48, row: 8.5 }
+const MENU = { x: 3, y: 61.5, w: 48, row: 8.5, icon: 7.8, label: 12.6 }
 const PROMPT = { x: 13, y: 62, w: 88, h: 6.4 }
 const SCREEN = { x: 3, y: 8.4, w: BOARD.w - 6, h: BOARD.h - 11.4 }
 
@@ -140,7 +141,7 @@ const FLY_MS = 620
 const SWITCH_MS = 320
 const RETRY_MS = 1400
 const FINISH_MS = 900
-const AUTO_MS = 520
+const AUTO_MS = 480
 const STAGGER_MS = 60
 const RESUME_MS = 2 * HOP_MS
 const SETTLE_MS = 1100
@@ -171,6 +172,7 @@ const START: State = {
   tally: NO_TALLY,
   beat: 0,
   event: "idle",
+  latest: "event",
   doneTier: 0,
   last: null,
 }
@@ -195,8 +197,8 @@ const usd = (value: number) => `$${value.toFixed(2)}`
 const ms = (value: number) => `${value}ms`
 const duration = (seconds: number) => {
   if (seconds < 90) return `${Math.round(seconds)}s`
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`
-  return `${Math.floor(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`
+  const minutes = Math.round(seconds / 60)
+  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`
 }
 const baselineOf = (kind: Kind) => {
   const stops = kind === "round" ? PLAN.forks : 1
@@ -216,7 +218,7 @@ function settle(s: State, seconds: number): Tally {
 }
 
 function advance(s: State, a: Action): State {
-  const next = (patch: Partial<State>, event: Event): State => ({ ...s, ...patch, event, beat: s.beat + 1 })
+  const next = (patch: Partial<State>, event: Event): State => ({ ...s, ...patch, event, latest: "event", beat: s.beat + 1 })
   const ask = askOf(s)
   switch (a.type) {
     case "run":
@@ -245,7 +247,7 @@ function advance(s: State, a: Action): State {
       return isActive(s.phase) ? { ...s, auto: s.auto + 1, autoAt: a.now } : s
     case "complete":
       if (!isActive(s.phase) || isDone(s, a.tier)) return s
-      return next({ finished: s.finished | (1 << a.tier), doneAt: a.now, doneTier: a.tier }, "complete")
+      return { ...s, finished: s.finished | (1 << a.tier), doneAt: a.now, doneTier: a.tier, latest: "complete" }
     case "ask":
       if (!((s.phase === "working" && s.asked < ASKS) || s.phase === "retrying")) return s
       return next({ phase: "asking", at: a.now, since: a.now, via: "ask", where: s.away ? "phone" : "notch" }, "ask")
@@ -258,19 +260,19 @@ function advance(s: State, a: Action): State {
     case "timeout": {
       if (s.phase !== "asking") return s
       if (ask.kind === "round" || s.tries >= MAX_TRIES) {
-        return next({ phase: "waiting", at: a.now, where: "terminal", last: { tier: ask.tier, kind: ask.kind, verdict: "gave-up", where: s.where, seconds: ask.kind === "round" ? ASK_TIMEOUT_S : BASH_TIMEOUT_S } }, "timeout")
+        return next({ phase: "waiting", at: a.now, where: "terminal", last: { tier: ask.tier, verdict: "gave-up", where: s.where, seconds: ask.kind === "round" ? ASK_TIMEOUT_S : BASH_TIMEOUT_S } }, "timeout")
       }
-      return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + RETRY_TURNS, last: { tier: ask.tier, kind: ask.kind, verdict: "timeout", where: s.where, seconds: BASH_TIMEOUT_S } }, "timeout")
+      return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + RETRY_TURNS, last: { tier: ask.tier, verdict: "timeout", where: s.where, seconds: BASH_TIMEOUT_S } }, "timeout")
     }
     case "answer": {
       if (s.phase !== "asking" && s.phase !== "waiting") return s
-      const seconds = realSeconds(a.now - s.since)
+      const seconds = s.where === "terminal" ? CHECK_BACK_MIN * 60 : realSeconds(a.now - s.since)
       if (a.reply === "deny" && s.tries < MAX_TRIES) {
-        return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + 1, last: { tier: ask.tier, kind: ask.kind, verdict: "denied", where: s.where, seconds } }, "answer")
+        return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + 1, last: { tier: ask.tier, verdict: "denied", where: s.where, seconds } }, "answer")
       }
       const verdict: Verdict = ask.kind === "round" ? (a.reply === "first" ? "picked" : "changed") : a.reply === "steer" ? "steered" : a.reply === "deny" ? "denied" : "approved"
       const resumed = s.resumed.map((time, tier) => (tier === ask.tier ? a.now : time))
-      return next({ phase: "working", at: a.now, asked: s.asked + 1, tries: 0, resumed, tally: settle(s, seconds), last: { tier: ask.tier, kind: ask.kind, verdict, where: s.where, seconds } }, "answer")
+      return next({ phase: "working", at: a.now, asked: s.asked + 1, tries: 0, resumed, tally: settle(s, seconds), last: { tier: ask.tier, verdict, where: s.where, seconds } }, "answer")
     }
     case "finish":
       return s.phase === "working" && s.asked === ASKS && s.finished === ALL_DONE ? next({ phase: "done", at: a.now }, "finish") : s
@@ -312,14 +314,13 @@ function readoutOf(s: State): string {
   const last = s.last ? agentAt(s.last.tier) : agent
   const who = last.name.toLowerCase()
   const saved = savedOf(s)
-  const event: Event = s.event === "complete" && (s.phase === "asking" || s.phase === "waiting") ? (s.phase === "waiting" ? "timeout" : "ask") : s.event
-  switch (event) {
+  if (s.latest === "complete" && s.phase === "working") return `${agentAt(s.doneTier).name.toLowerCase()} done`
+  switch (s.event) {
     case "idle":
       return `${AGENTS.length} agents · idle`
     case "run":
-      return isPlanning(s) ? `${name} plans first · ${s.auto} lookups auto-approved` : `${AGENTS.length} agents working`
-    case "complete":
-      return `${agentAt(s.doneTier).name.toLowerCase()} done`
+      if (!isPlanning(s)) return `${AGENTS.length} agents working`
+      return s.auto ? `${name} plans · ${s.auto} lookup${s.auto === 1 ? "" : "s"} auto-approved` : `${name} plans first`
     case "presence":
       return s.away ? "away · asks go straight to your phone" : `at the desk · notch first, phone after ${PUSH_WINDOW_S} s`
     case "ask":
@@ -327,18 +328,19 @@ function readoutOf(s: State): string {
       if (s.tries) return `${name} tries ${command} instead`
       return `${name} wants to run ${command}`
     case "escalate":
-      return `no answer in ${PUSH_WINDOW_S} s · sent to your phone`
+      return s.away ? `away · ${name} sent to your phone` : `no answer in ${PUSH_WINDOW_S} s · sent to your phone`
     case "recall":
       return `back at the mac · ${name} on the notch`
     case "timeout":
-      if (s.phase === "waiting") return `no answer · ${who} waits in the terminal`
-      return `denied at ${BASH_TIMEOUT_S} s · ${who} burns ${Math.round(RETRY_TURNS * TURN_K_TOKENS)}k tokens on a workaround`
+      if (s.phase === "waiting") return `no answer · ${who} waits in terminal`
+      return `denied at ${BASH_TIMEOUT_S} s · ${who} burns ${Math.round(RETRY_TURNS * TURN_K_TOKENS)}k tokens`
     case "answer":
       if (!s.last) return "answered"
       if (s.last.verdict === "picked") return `${last.fork.options[0].toLowerCase()} · ${who} goes ahead`
       if (s.last.verdict === "changed") return "plan changed before a token was spent"
       if (s.last.verdict === "denied") return `denied · ${who} tries another route`
-      if (s.last.verdict === "steered") return `denied with a note · ${who} changes course`
+      if (s.last.verdict === "steered") return `denied with a note · ${who} adjusts`
+      if (s.last.where === "terminal") return `approved ${CHECK_BACK_MIN} min later · ${who} resumes`
       return `approved in ${s.last.seconds} s · ${who} keeps going`
     case "finish":
       return `done · saved ${duration(saved.seconds)} and ${usd(saved.usd)}`
@@ -563,16 +565,14 @@ export default function AgentRelay() {
           top={
             <>
               <circle className="ik-detail" cx={HUB.w / 2} cy={HUB.d / 2} r={12.5} />
+              <circle key={`led-${s.auto}`} className="hub-led" data-on={isPlanning(s) && s.auto > 0} cx={HUB.w - 5} cy={HUB.d - 5} r={1.3} />
               <Glyph className="glyph" x={HUB.w / 2 - 6.4 * PUSHARY_GLYPH.aspect} y={HUB.d / 2 - 6.4} height={12.8} mask={glyph} />
             </>
           }
           front={
-            <>
-              <text className="ik-label hub-word" x={4} y={8}>
-                PUSHARY
-              </text>
-              <circle key={`led-${s.auto}`} className="hub-led" data-on={isPlanning(s) && s.auto > 0} cx={HUB.w - 3.6} cy={6} r={1.3} />
-            </>
+            <text className="ik-label hub-word" x={HUB.w / 2} y={8} textAnchor="middle">
+              PUSHARY
+            </text>
           }
         />
 
@@ -678,10 +678,9 @@ function Savings({ s, glyph, clip }: { s: State; glyph: string; clip: string }) 
   const asked = tally.withoutStops > 0
   const saved = savedOf(s)
   const spent = withCost(s)
-  const share = asked ? Math.max(0.03, Math.min(1, Math.max(tally.withSeconds / tally.withoutSeconds, spent / tally.withoutUsd))) : 0
+  const share = asked ? Math.max(0.03, Math.min(1, spent / tally.withoutUsd)) : 0
   const left = SCREEN.x + 3.4
-  const right = SCREEN.x + SCREEN.w - 3.4
-  const bar = right - left
+  const bar = SCREEN.w - 6.8
   return (
     <>
       <Glyph className="board-glyph" x={4} y={2.4} height={4.2} mask={glyph} />
@@ -691,22 +690,18 @@ function Savings({ s, glyph, clip }: { s: State; glyph: string; clip: string }) 
       <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.4} />
       <g clipPath={`url(#${clip})`}>
         <g key={`saved-${s.run}-${tally.withStops}-${s.wasted}`} className="ik-enter">
-          <text className="ik-screen-text meter-dim" x={left} y={15.4} fontSize={3.8}>
-            saved
+          <text className="ik-screen-text" x={left} y={15.6} fontSize={3.8}>
+            <tspan className="meter-dim">saved </tspan>
+            <tspan className="board-value" fontSize={5.6}>
+              {asked ? `${duration(saved.seconds)} · ${usd(saved.usd)}` : "–"}
+            </tspan>
           </text>
-          <text className="ik-screen-text board-value" x={right} y={15.6} fontSize={5.6} textAnchor="end">
-            {asked ? `${duration(saved.seconds)} · ${usd(saved.usd)}` : "–"}
-          </text>
-          <text className="ik-screen-text meter-dim" x={left} y={22.6} fontSize={3.8}>
-            without
-          </text>
-          <text className="ik-screen-text" x={right} y={22.6} fontSize={3.8} textAnchor="end">
+          <text className="ik-screen-text" x={left} y={22.6} fontSize={3.8}>
+            <tspan className="meter-dim">without </tspan>
             {asked ? `${duration(tally.withoutSeconds)} · ${usd(tally.withoutUsd)}` : `${CHECK_BACK_MIN}m a stop`}
           </text>
-          <text className="ik-screen-text meter-dim" x={left} y={30.6} fontSize={3.8}>
-            pushary
-          </text>
-          <text className="ik-screen-text" x={right} y={30.6} fontSize={3.8} textAnchor="end">
+          <text className="ik-screen-text" x={left} y={30.6} fontSize={3.8}>
+            <tspan className="meter-dim">pushary </tspan>
             {asked ? `${duration(tally.withSeconds)} · ${usd(spent)}` : "seconds"}
           </text>
         </g>
@@ -769,7 +764,7 @@ function Screen({ s, agent, ask, command, card, arrive, receipt, clip, answer, g
       ) : isPlanning(s) ? (
         <Pill key={`plan-${s.run}`} id={lead.id} clip={clip} name={lead.name} status="working" />
       ) : receipt ? (
-        <Pill key={`receipt-${s.beat}`} id={agentAt(receipt.tier).id} clip={clip} name={agentAt(receipt.tier).project} status={receipt.verdict} phone={receipt.where === "phone"} fade />
+        <Pill key={`receipt-${s.beat}`} id={agentAt(receipt.tier).id} clip={clip} name={agentAt(receipt.tier).name} status={receipt.verdict} phone={receipt.where === "phone"} fade />
       ) : null}
     </>
   )
@@ -791,7 +786,7 @@ function Pill({ id, clip, name, status, phone = false, fade = false }: { id: Age
       </text>
       {status === "needs" ? <circle className="isle-dot ik-loop" cx={mark} cy={7.7} r={1} /> : null}
       {status === "working" ? <path className="isle-spin ik-loop" d={`M${mark + 1.3} ${7.7}a1.3 1.3 0 1 1 -1.3 -1.3`} /> : null}
-      {status === "approved" || status === "picked" || status === "changed" || status === "steered" || status === "denied" ? (
+      {status === "approved" || status === "picked" || status === "changed" ? (
         <g>
           <circle className="isle-check" cx={mark} cy={7.7} r={1.6} />
           <path className="isle-tick" d={`M${mark - 0.8} ${7.7}l.6.6 1.1-1.2`} />
@@ -826,7 +821,7 @@ function DecisionCard({ s, agent, ask, command, arrive, clip, answer }: { s: Sta
           Needs you
         </text>
         <text className="isle-text" x={left} y={22.4} fontSize={4.2}>
-          {ask.kind === "round" ? agent.fork.question : `Run ${command}?`}
+          {ask.kind === "round" ? agent.fork.question : `Allow bash: ${command}?`}
         </text>
         {ask.kind === "round" ? (
           agent.fork.options.map((option, k) => (
@@ -939,10 +934,10 @@ function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, fra
               <Press key={row.label} className="ik-lift tap" label={row.aria} onPress={() => answer(row.reply)} sound={false} data-hot={k === 0}>
                 <g>
                   <rect className={k === 0 ? "menu-hit primary-row" : "menu-hit"} x={MENU.x} y={MENU.y + k * MENU.row} width={MENU.w} height={MENU.row} />
-                  <text className={`ui-text menu-text${row.strong ? " strong" : ""}${row.destructive ? " destructive" : ""}`} x={MENU.x + 3.4} y={MENU.y + k * MENU.row + 5.6} fontSize={3.6}>
+                  <text className={`ui-text menu-text${row.strong ? " strong" : ""}${row.destructive ? " destructive" : ""}`} x={MENU.label} y={MENU.y + k * MENU.row + 5.6} fontSize={3.6}>
                     {row.label}
                   </text>
-                  {k === 0 ? ask.kind === "gate" ? <FaceIdMark x={MENU.x + 3.4 + row.label.length * 2.3 + 4} y={MENU.y + MENU.row / 2} /> : <path className="menu-star" d={star(MENU.x + 3.4 + row.label.length * 2.3 + 3, MENU.y + MENU.row / 2 - 0.4, 1.7)} /> : null}
+                  {k === 0 ? ask.kind === "gate" ? <FaceIdMark x={MENU.icon} y={MENU.y + MENU.row / 2} /> : <path className="menu-star" d={star(MENU.icon, MENU.y + MENU.row / 2 - 0.3, 1.7)} /> : null}
                 </g>
               </Press>
             ))}
