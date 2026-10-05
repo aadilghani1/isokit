@@ -34,6 +34,7 @@ Core API:
 
 ## Maker
 - isokit is made by Aadil Ghani, maker of [Pushary](https://pushary.com): human-in-the-loop approvals that unblock Claude Code, Codex, Cursor and other agents from your phone.
+- The [agent relay](https://aadilghani1.github.io/isokit/#/figures/agent-relay) figure shows Pushary end to end: coding agents ask one question up front on the Mac's notch, and on the phone when you step away.
 
 ## Skill
 - `npx skills add aadilghani1/isokit`, then `/isokit <object>` in Claude Code, Codex, Cursor or any agent that reads skills.
