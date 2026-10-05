@@ -141,10 +141,11 @@ const press = () => { demo.dismiss(); publish(true) }
     kind: "Component",
     group: "Guided motion",
     summary: "A ring that breathes out from a footprint: the part to press. It is the one live thing at rest, and it goes away once the reader has pressed.",
-    signature: "<Ripple x y z w d r className>",
+    signature: "<Ripple x y z w d r inFace className>",
     props: [
       { name: "x, y, z, w, d", type: "number", about: "The footprint, at height z. Usually the footprint of the key it sits under." },
       { name: "r", type: "number", fallback: "0", about: "Corner radius of the footprint." },
+      { name: "inFace", type: "boolean", fallback: "false", about: "Draw the ring in the face it sits in, at x, y, instead of on the ground at height z. Use it inside a Box's top, front or side to ring a key on an upright face." },
     ],
     usage: `{!touched && <Ripple {...KEY} r={6} />}
 <Press …><g><Box {...KEY} r={6} /></g></Press>`,

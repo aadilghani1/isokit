@@ -1,0 +1,15 @@
+.fig-scooter-dock .sd-deck { fill: none; stroke: var(--ik-detail); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.fig-scooter-dock svg[data-phase="unlocked"] .sd-deck { stroke: var(--ik-live); animation: sd-deck-on 260ms var(--ik-ease) 760ms both; }
+.fig-scooter-dock svg[data-phase="locked"] .sd-deck { animation: sd-deck-off 260ms var(--ik-ease) 760ms both; }
+.fig-scooter-dock svg[data-phase="locked"] .sd-unlock .sd-button { animation: sd-hot 260ms var(--ik-ease) 760ms both; }
+.fig-scooter-dock .sd-unlock[data-down="true"] .sd-button, .fig-scooter-dock svg[data-demo="press"] .sd-unlock[data-hot="true"] .sd-button { fill: var(--ik-well); transition-duration: 0ms; }
+.fig-scooter-dock .sd-lock-line { fill: none; stroke: var(--ik-screen-ink); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.fig-scooter-dock .sd-lock-body { fill: var(--ik-screen-ink); stroke: none; opacity: .75; }
+.fig-scooter-dock .sd-dash-shut, .fig-scooter-dock .sd-dash-open { transition: opacity 0ms linear 760ms; }
+.fig-scooter-dock .sd-dash-open, .fig-scooter-dock svg[data-phase="unlocked"] .sd-dash-shut { opacity: 0; }
+.fig-scooter-dock svg[data-phase="unlocked"] .sd-dash-open { opacity: 1; }
+.fig-scooter-dock .sd-key { font-size: 5.6px; letter-spacing: .04em; }
+.fig-scooter-dock .sd-bay { font-size: 9px; }
+@keyframes sd-deck-on { from { stroke: var(--ik-detail); } to { stroke: var(--ik-live); } }
+@keyframes sd-deck-off { from { stroke: var(--ik-live); } to { stroke: var(--ik-detail); } }
+@keyframes sd-hot { from { stroke: var(--ik-line); } to { stroke: var(--ik-live); } }

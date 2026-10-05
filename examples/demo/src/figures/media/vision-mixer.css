@@ -1,0 +1,15 @@
+.fig-vision-mixer .vm-ink { fill: var(--ik-screen-ink); opacity: .78; }
+.fig-vision-mixer .vm-soft { fill: var(--ik-screen-ink); opacity: .2; }
+.fig-vision-mixer .vm-bar { fill: var(--ik-screen-ink); }
+.fig-vision-mixer .vm-show { animation: vm-show 320ms var(--ik-ease) var(--t) both; }
+.fig-vision-mixer .vm-was { animation: vm-gone 1ms linear var(--t) forwards; }
+.fig-vision-mixer .vm-fade { animation: vm-gone 600ms var(--ik-ease) forwards; }
+.fig-vision-mixer .vm-tally, .fig-vision-mixer .vm-sel { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 200ms var(--ik-ease) var(--t), stroke 200ms var(--ik-ease) var(--t); }
+.fig-vision-mixer .vm-tally[data-on="true"], .fig-vision-mixer .vm-sel[data-on="true"] { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-vision-mixer .vm-tally[data-live="true"] { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-vision-mixer .vm-key { font-size: 8px; }
+.fig-vision-mixer .vm-cut { font-size: 8px; }
+.fig-vision-mixer .vm-ftb { font-size: 6.4px; }
+.fig-vision-mixer .vm-tag { font-size: 4.8px; }
+@keyframes vm-show { from { opacity: 0; } }
+@keyframes vm-gone { to { opacity: 0; } }

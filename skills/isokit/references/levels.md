@@ -10,7 +10,7 @@ One press changes one surface.
 - **Pieces:** `Plate`, `Box`, `Press`, `useDemoTap`, `Ripple`, `Cursor`.
 - **State:** one `useState`. No timers.
 - **Motion:** the press itself, and a screen or light that changes on release.
-- **Sound:** the built-in press and release, and `toggle` for a switch.
+- **Sound:** the built-in press and release, plus at most one short result sound on release: `toggle` for a switch, `success` or `notify` for an answer.
 - **Shape of it:** a tally counter, a light switch, a stamp.
 
 ## Level 2 · Cause and effect
@@ -40,7 +40,7 @@ Several parts move one after another, and the order explains the work.
 Two or more controls or modes drive a small machine whose parts trade things between them.
 
 - **Parts:** several controls, at least two stations, things that move between them.
-- **Pieces:** everything from level 3, plus `Flight` for a part carried between stations and a `useReducer` for the state machine.
+- **Pieces:** everything from level 3, plus `Flight` for a part carried between stations (or chained CSS moves when the part must stay on a track, like a train on its rails) and a `useReducer` for the state machine.
 - **State:** one reducer with named actions. Every press is a transition, every transition writes the read-out, and a cycle resets cleanly.
 - **Motion:** a flight hides the part at `from` on take-off and shows it at `to` on landing, both through CSS delays. Only one thing is in the air at a time unless the story needs more.
 - **Sound:** cut stale sounds when a newer action replaces them; `whoosh` on reset.

@@ -1,0 +1,30 @@
+.fig-lab-analyzer .tube { transition: opacity 0ms linear var(--t); }
+.fig-lab-analyzer .tube[data-on="false"] { opacity: 0; }
+.fig-lab-analyzer .drop { animation: la-drop 520ms var(--ik-ease) calc(var(--i) * 60ms) both; }
+.fig-lab-analyzer .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 200ms var(--ik-ease) var(--t), stroke 200ms var(--ik-ease) var(--t); }
+.fig-lab-analyzer .lamp[data-state="ok"] { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-lab-analyzer .lamp[data-state="flag"] { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-lab-analyzer .passing { opacity: 0; animation: la-off 1ms linear var(--off) both; }
+.fig-lab-analyzer .head.go { animation: la-move 1300ms both; }
+.fig-lab-analyzer .gripper.go { animation: la-grip 1300ms both; }
+.fig-lab-analyzer .head.back { animation: la-back 700ms var(--ik-ease) both; }
+.fig-lab-analyzer .head.parked { transform: translate(var(--x2), var(--y2)); }
+.fig-lab-analyzer .key { font-size: 7px; }
+.fig-lab-analyzer .tag { font-size: 5.4px; }
+.fig-lab-analyzer .ik-press[data-hot="true"] .glyph { stroke: var(--ik-live); }
+@keyframes la-drop { 0% { opacity: 0; transform: translateY(-18px); } 15% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes la-off { from { opacity: 1; } to { opacity: 0; } }
+@keyframes la-move {
+  0% { transform: translate(var(--x0), var(--y0)); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  30%, 40% { transform: translate(var(--x1), var(--y1)); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+  82%, 100% { transform: translate(var(--x2), var(--y2)); }
+}
+@keyframes la-grip {
+  0%, 30% { transform: translateY(0); animation-timing-function: ease-out; }
+  35% { transform: translateY(4px); animation-timing-function: cubic-bezier(.3, .6, .5, 1); }
+  61% { transform: translateY(-8px); animation-timing-function: cubic-bezier(.5, 0, .7, .4); }
+  82% { transform: translateY(2px); animation-timing-function: ease-out; }
+  90%, 100% { transform: translateY(0); }
+}
+@keyframes la-back { from { transform: translate(var(--x0), var(--y0)); } to { transform: translate(var(--x2), var(--y2)); } }
+.fig-lab-analyzer .flag { fill: var(--ik-screen-ink); stroke: var(--ik-screen-ink); stroke-width: .6; stroke-linejoin: round; }

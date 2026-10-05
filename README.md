@@ -123,7 +123,7 @@ A first-time reader should see what to press and what pressing does. These five 
 | --- | --- |
 | `useDemoTap(onTap, { delay, threshold })` | Presses the part marked `data-hot` once, silently, the first time the figure is mostly in view, then hands it over. Returns `{ ref, phase, dismiss, plate }`: `ref` on a group inside the svg, `plate` spread onto `Plate`, `phase` for `Cursor`. Cancelled by scrolling away before the press; never plays after the reader presses or types in the figure, under reduced motion, or without IntersectionObserver. |
 | `<Cursor at phase size>` | The pointer the demo presses with, landing on a world point. Draw it last. |
-| `<Ripple x y z w d r>` | A ring breathing out from a footprint: the part to press. Show it until the first press. |
+| `<Ripple x y z w d r inFace>` | A ring breathing out from a footprint: the part to press. Show it until the first press. `inFace` draws it in the face it sits in, for keys on upright faces. |
 | `<Signal points delay duration>` | A dash that runs once along world points, from the cause to the result. New `key` to run again. |
 | `<Flight from to delay duration lift>` | Carries its children along an arc between two world points and hides them as they land. |
 

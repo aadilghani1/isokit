@@ -1,0 +1,12 @@
+.fig-shelf-label .sl-key { font-size: 6.2px; }
+.fig-shelf-label svg[data-synced="false"] .sl-glyph { stroke: var(--ik-live); }
+.fig-shelf-label .sl-out { transform-box: fill-box; transform-origin: center; animation: sl-flip-out 160ms ease-in forwards; }
+.fig-shelf-label .sl-in { transform-box: fill-box; transform-origin: center; animation: sl-flip-in 320ms var(--ik-ease) 160ms both; }
+.fig-shelf-label .sl-later { animation-delay: 300ms; }
+.fig-shelf-label .sl-strike { text-decoration: line-through; }
+.fig-shelf-label .sl-flash { fill: var(--ik-screen-ink); opacity: 0; pointer-events: none; animation: sl-flash 380ms ease-out; }
+.fig-shelf-label .sl-led { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease) 300ms, stroke 260ms var(--ik-ease) 300ms; }
+.fig-shelf-label svg[data-synced="true"] .sl-led { fill: var(--ik-live); stroke: var(--ik-live); animation: ik-pulse 240ms steps(2) 300ms 3; }
+@keyframes sl-flip-out { to { transform: scaleY(0); } }
+@keyframes sl-flip-in { from { transform: scaleY(0); } }
+@keyframes sl-flash { 35% { opacity: .7; } }

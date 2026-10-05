@@ -57,7 +57,7 @@ export const INDUSTRIES = [
     title: "Fintech",
     blurb: "Payments, vaults, ledgers and the counters money moves across.",
     briefs: [
-      { slug: "card-terminal", title: "Card terminal", level: 1, brief: "A countertop card terminal with a keypad. Press the green key. The screen goes from amount to approved, and the read-out says €24.90 · approved." },
+      { slug: "card-terminal", title: "Card terminal", level: 1, brief: "A countertop card terminal with a keypad. Press OK. The screen goes from amount to approved and the status light comes on, and the read-out says €24.90 · approved." },
       { slug: "savings-jar", title: "Savings jar", level: 1, brief: "A glass savings jar with a coin slot. Press the coin. It drops in and the level rises, and the read-out says saved €120 · goal 40%." },
       { slug: "cash-machine", title: "Cash machine", level: 2, brief: "A cash machine wired to a vault. Press withdraw. A signal runs to the vault and notes slide out of the slot, and the read-out says €60 · balance €1,240." },
       { slug: "vault-door", title: "Vault door", level: 3, brief: "A round vault door with a wheel and five bolts. Press the wheel. The bolts retract one after another and the door swings open, and the read-out says unlocked · 5 of 5 bolts." },
@@ -111,7 +111,7 @@ export const INDUSTRIES = [
     briefs: [
       { slug: "stamping-press", title: "Stamping press", level: 1, brief: "A hydraulic press with a die and a palm button. Press the button. The ram comes down and a blank becomes a bracket, and the read-out says part 18 · ok." },
       { slug: "filament-printer", title: "Filament printer", level: 2, brief: "A desktop 3D printer with a spool. Press print. Filament runs from the spool to the nozzle and the first layer traces the bed, and the read-out says layer 1 of 40 · 12 min." },
-      { slug: "quality-gauge", title: "Quality gauge", level: 2, brief: "A go/no-go gauge over two bins. Press check. The part slides through the gauge and drops into pass or reject, and the read-out says 97% pass · lot 3." },
+      { slug: "quality-gauge", title: "Quality gauge", level: 2, brief: "A go/no-go gauge over two bins. Press check. The part slides through the gauge and drops into pass or reject, and the read-out says 97% pass · lot 3 · #34 go." },
       { slug: "assembly-line", title: "Assembly line", level: 3, brief: "A short line with three stations. Press run. A chassis moves station to station and each adds a part, and the read-out says 3 of 3 stations · unit 12 built." },
       { slug: "cnc-mill", title: "CNC mill", level: 3, brief: "A mill with a spindle over a stock block. Press cycle start. The spindle steps through four pockets, and the read-out says op 4 of 4 · ±0.02 mm." },
       { slug: "robot-cell", title: "Robot cell", level: 4, brief: "A welding cell with a turntable and a light curtain. Press load, then weld. The table turns the part in and the arm welds four seams, and the read-out says 4 seams · cell safe." },
@@ -125,7 +125,7 @@ export const INDUSTRIES = [
       { slug: "shelf-label", title: "Shelf label", level: 1, brief: "An electronic shelf label on a shelf edge. Press the update key. The price flips, and the read-out says €2.49 · was €2.99." },
       { slug: "loyalty-stamp", title: "Loyalty stamp", level: 1, brief: "A coffee loyalty card under a rubber stamp. Press the stamp. One more cup is inked, and the read-out says 7 of 10 · free coffee at 10." },
       { slug: "checkout-till", title: "Checkout till", level: 2, brief: "A till wired to a receipt printer. Press total. A signal runs to the printer and the receipt feeds out, and the read-out says 4 items · €18.40." },
-      { slug: "vending-machine", title: "Vending machine", level: 3, brief: "A vending machine with a coil grid and a keypad. Press B2. The coil turns, the can drops and the tray light comes on, and the read-out says B2 · €1.50 · dispensed." },
+      { slug: "vending-machine", title: "Vending machine", level: 3, brief: "A vending machine with a coil grid and a keypad. Press B2. The coil turns, the can drops and the tray light comes on, and the read-out says B2 · €1.50 · dispensed · 2 left." },
       { slug: "restock-shelf", title: "Restock shelf", level: 3, brief: "A store shelf with gaps and a restock cart. Press restock. The gaps fill from left to right, and the read-out says 8 of 8 facings · full." },
       { slug: "self-checkout", title: "Self checkout", level: 4, brief: "A self-checkout with a scanner, a bagging scale and a card reader. Press scan for each item, then pay. Items travel into the bag and the scale confirms, and the read-out says 3 items · €9.20 · paid." },
     ],
@@ -135,12 +135,12 @@ export const INDUSTRIES = [
     title: "Media",
     blurb: "Studios, mics, encoders and the switchers that put them on air.",
     briefs: [
-      { slug: "on-air-light", title: "On-air light", level: 1, brief: "A studio ON AIR sign with a wall switch. Press the switch. The sign lights, and the read-out says on air · 00:00." },
-      { slug: "turntable", title: "Turntable", level: 2, brief: "A record player with a tonearm. Press play. The arm swings onto the record and the platter spins up, and the read-out says side A · track 1." },
+      { slug: "on-air-light", title: "On-air light", level: 1, brief: "A studio ON AIR sign with a wall switch. Press the switch. The sign lights and its clock starts, and the read-out says on air · 00:00." },
+      { slug: "turntable", title: "Turntable", level: 2, brief: "A record player with a tonearm. Press start. The arm swings onto the next track and the platter spins up, and the read-out says side A · track 2." },
       { slug: "podcast-mic", title: "Podcast mic", level: 2, brief: "A mic on an arm, cabled to a recorder. Press record. A level signal runs down the cable and the recorder's meter moves, and the read-out says recording · 00:12." },
       { slug: "encoder-stack", title: "Encoder stack", level: 3, brief: "A broadcast encoder with three output bars. Press encode. 1080p, 720p and 480p fill one after another, and the read-out says 3 renditions · ready." },
       { slug: "strobe-studio", title: "Strobe studio", level: 3, brief: "A photo set with three strobes and a camera. Press shoot. The strobes fire in sequence and the frame counter ticks, and the read-out says frame 12 · f/8." },
-      { slug: "vision-mixer", title: "Vision mixer", level: 4, brief: "A vision mixer with preview and program monitors. Press a camera, then cut. Its picture moves from preview to program and the tally light follows, and the read-out says cam 2 · live." },
+      { slug: "vision-mixer", title: "Vision mixer", level: 4, brief: "A vision mixer with preview and program monitors. Press a camera, then cut. Its picture moves from preview to program and the tally light follows; fade to black resets, and the read-out says cam 2 · live." },
     ],
   },
   {
@@ -148,7 +148,7 @@ export const INDUSTRIES = [
     title: "Security",
     blurb: "Badges, keys, cameras and the rooms they keep closed.",
     briefs: [
-      { slug: "badge-reader", title: "Badge reader", level: 1, brief: "A badge reader beside a door. Press the badge. The light turns green, and the read-out says badge 0412 · door open." },
+      { slug: "badge-reader", title: "Badge reader", level: 1, brief: "A badge reader beside a door. Press the badge. The reader lights up and the door slides open, and the read-out says badge 0412 · door open." },
       { slug: "cctv-camera", title: "CCTV camera", level: 2, brief: "A camera on a wall bracket, cabled to a recorder. Press pan. The camera turns and a signal runs to the recorder, and the read-out says zone 3 · recording." },
       { slug: "security-key", title: "Security key", level: 2, brief: "A hardware key in a laptop port. Press its gold disc. A challenge runs in and the laptop unlocks, and the read-out says signed in · 2FA." },
       { slug: "firewall-rack", title: "Firewall rack", level: 3, brief: "A firewall appliance with a row of port lights. Press block. The ports drop suspicious traffic one after another, and the read-out says 3 threats · blocked." },

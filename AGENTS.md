@@ -206,5 +206,7 @@ These are the reasons behind code that looks odd. Each one cost a bug to learn.
 ### Tooling
 
 - **Playwright's `click` waits for an element to be stable, and a bobbing part never is.** Press parts with focus and Enter.
+- **`.ik-plate` sets `grid-template-columns: minmax(0, 1fr)`.** With the implicit `auto` column, a plate of fixed height let its svg's aspect ratio widen the column past the plate (the oktai landing layout test caught it at 320, 390 and 820 px).
+- **Destructure `useDemoTap` in React-compiler codebases.** The compiler's `react-hooks/refs` rule treats every field of an object that carries a `ref` as a ref read during render.
 - **Studio gallery plates set `aspect-ratio: auto`.** A figure's own aspect ratio plus a fixed gallery height overflowed the page.
 - **Builders work one industry folder each.** Never stash, reset or check out the shared tree while another agent is editing it.

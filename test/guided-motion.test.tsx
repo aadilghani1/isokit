@@ -57,6 +57,11 @@ describe("Signal and Ripple", () => {
     expect(html).toContain('rx="5"')
     expect(html).toContain("ik-loop")
   })
+  it("draws a ripple in the face it sits in, so it can ring a key on an upright face", () => {
+    const html = renderToString(<svg><Ripple inFace x={4} y={6} w={20} d={10} r={3} /></svg>)
+    expect(html).toContain('transform="translate(4 6)"')
+    expect(html).not.toContain("matrix(")
+  })
 })
 
 function DemoKey() {

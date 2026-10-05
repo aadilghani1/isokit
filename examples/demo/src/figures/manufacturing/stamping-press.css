@@ -1,0 +1,17 @@
+.fig-stamping-press .sp-plate { font-size: 6px; }
+.fig-stamping-press .sp-tag { font-size: 5.4px; }
+.fig-stamping-press .sp-stroke { animation: stamping-press-stroke 1100ms both; }
+.fig-stamping-press .sp-struck { opacity: 0; animation: stamping-press-held 1ms linear 440ms backwards; }
+.fig-stamping-press .sp-fed.sp-struck { animation: stamping-press-held 1ms linear 440ms backwards, stamping-press-feed 240ms var(--ik-ease) backwards; }
+.fig-stamping-press .sp-made { animation: stamping-press-show 1ms linear 440ms both; }
+.fig-stamping-press .sp-made .ik-face { stroke: var(--ik-live); }
+.fig-stamping-press .sp-eject { opacity: 0; animation: stamping-press-eject 300ms var(--ik-ease) backwards; }
+@keyframes stamping-press-stroke {
+  0%, 22% { transform: translateY(0); animation-timing-function: cubic-bezier(.55, 0, .9, .45); }
+  40%, 47% { transform: translateY(24px); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  100% { transform: translateY(0); }
+}
+@keyframes stamping-press-held { from, to { opacity: 1; } }
+@keyframes stamping-press-feed { from { opacity: 0; transform: translate(-10.39px, -6px); } to { opacity: 1; transform: translate(0, 0); } }
+@keyframes stamping-press-show { from { opacity: 0; } }
+@keyframes stamping-press-eject { from { opacity: 1; transform: translate(0, 0); } to { opacity: 0; transform: translate(15.59px, 9px); } }

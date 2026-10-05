@@ -1,0 +1,30 @@
+.fig-vending-machine .vm-brand { font-size: 6px; }
+.fig-vending-machine .vm-key { font-size: 4.4px; }
+.fig-vending-machine .vm-tag { font-size: 4px; }
+.fig-vending-machine .vm-tray { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-vending-machine .vm-tray[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: vm-tray-on 260ms var(--ik-ease) var(--t) both; }
+.fig-vending-machine .vm-pip { fill: var(--ik-screen-ink); opacity: .18; }
+.fig-vending-machine .vm-pip[data-on="true"] { animation: vm-pip 200ms var(--ik-ease) var(--t) both; }
+.fig-vending-machine .vm-shown { animation: vm-on 1ms linear var(--on) both; }
+.fig-vending-machine .vm-shown.vm-passing { animation: vm-on 1ms linear var(--on) both, vm-off 1ms linear var(--off) forwards; }
+.fig-vending-machine .vm-frame { opacity: 0; animation: vm-flash var(--f) step-end var(--at); }
+.fig-vending-machine .vm-turning { animation: vm-gone var(--f) step-end var(--at); }
+.fig-vending-machine .vm-advance { animation: vm-advance 560ms var(--ik-ease) calc(var(--i) * 60ms) both; }
+.fig-vending-machine .vm-load { animation: vm-load 520ms var(--ik-ease) calc(var(--i) * 60ms) both; }
+.fig-vending-machine .vm-drop { animation: vm-drop var(--d) linear both; }
+@keyframes vm-tray-on { from { fill: var(--ik-well); stroke: var(--ik-detail); } }
+@keyframes vm-pip { from { opacity: .18; } to { opacity: .9; } }
+@keyframes vm-on { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vm-off { to { opacity: 0; } }
+@keyframes vm-flash { from, to { opacity: 1; } }
+@keyframes vm-gone { from, to { opacity: 0; } }
+@keyframes vm-advance { from { transform: translate(var(--px), var(--py)); } }
+@keyframes vm-load { from { opacity: 0; transform: translate(var(--px), var(--py)); } }
+@keyframes vm-drop {
+  from { transform: none; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+  58% { transform: translate(var(--ex), var(--ey)); animation-timing-function: cubic-bezier(.55, 0, 1, .55); }
+  92% { transform: translate(var(--ex), var(--fy)); animation-timing-function: ease-out; }
+  96% { transform: translate(var(--ex), var(--by)); animation-timing-function: ease-in; }
+  to { transform: translate(var(--ex), var(--fy)); }
+}
+.fig-vending-machine .vm-axis { font-size: 6px; }

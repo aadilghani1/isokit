@@ -1,0 +1,8 @@
+.fig-crossing-light .cl-solid { fill: var(--ik-detail); stroke: none; transition: fill 260ms var(--ik-ease); }
+.fig-crossing-light .cl-limb { fill: none; stroke: var(--ik-detail); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke 260ms var(--ik-ease); }
+.fig-crossing-light .cl-torso { stroke-width: 2.6; }
+.fig-crossing-light svg[data-walk="false"] .cl-stand .cl-solid { fill: var(--ik-line); transition-delay: 160ms; }
+.fig-crossing-light svg[data-walk="true"] .cl-walk .cl-solid { fill: var(--ik-live); transition-delay: 160ms; }
+.fig-crossing-light svg[data-walk="true"] .cl-walk .cl-limb { stroke: var(--ik-live); transition-delay: 160ms; }
+.fig-crossing-light .cl-wait { font-size: 4.4px; }
+.fig-crossing-light .cl-push[data-down="true"] > g, .fig-crossing-light svg[data-demo="press"] .cl-push[data-hot="true"] > g { transform: translate(1.732px, -1px); transition: transform 50ms ease-out; }
