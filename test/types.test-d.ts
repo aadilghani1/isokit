@@ -10,13 +10,13 @@ describe("types", () => {
   })
   it("only take real sounds", () => {
     expectTypeOf(playSound).parameter(0).toEqualTypeOf<SoundName>()
-    // @ts-expect-error not a sound
+    // @ts-expect-error
     playSound("airhorn")
   })
   it("need what a figure cannot draw without", () => {
-    // @ts-expect-error a box needs all six numbers
+    // @ts-expect-error
     const box: BoxProps = { x: 0, y: 0, z: 0, w: 1, d: 1 }
-    // @ts-expect-error a press needs a label
+    // @ts-expect-error
     const press: PressProps = { onPress: () => {}, children: null }
     expectTypeOf(frame).parameter(0).toEqualTypeOf<ReadonlyArray<Box3 | Vec3>>()
     void box

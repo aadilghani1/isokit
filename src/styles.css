@@ -1,9 +1,3 @@
-/*
- * react-isokit: one stroke family, opaque faces painted back to front, and one
- * live colour for whatever is live. Restyle with the --ik-* properties on
- * .ik-plate or any ancestor. Every rule has low specificity, so yours win.
- */
-
 :where(.ik-plate) {
   --ik-panel: #f1f1ef; --ik-top: #fbfbfa; --ik-front: #f6f6f4; --ik-side: #ededeb; --ik-well: #e9e9e6;
   --ik-line: #9b9b97; --ik-detail: #cdcdc9; --ik-live: #161616; --ik-ink: #8a8a85; --ik-ink-hi: #2a2a2a;
@@ -29,14 +23,12 @@
   }
 }
 
-/* The plate */
 :where(.ik-plate) { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; height: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 20px; background: var(--ik-panel); border: 1px solid var(--ik-border); }
 :where(.ik-plate > svg) { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
 :where(.ik-plate:has(> svg:focus-visible)) { outline: 2px solid var(--ik-live); outline-offset: 3px; }
 :where(.ik-cap) { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; font: 500 10px/1.4 var(--ik-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ik-ink); }
 :where(.ik-cap-hi) { color: var(--ik-ink-hi); text-transform: none; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
 
-/* The palette: faces, and the marks drawn on them */
 :where(.ik-face) { fill: var(--ik-front); stroke: var(--ik-line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: stroke 260ms var(--ik-ease), fill 260ms var(--ik-ease); }
 :where(.ik-top) { fill: var(--ik-top); }
 :where(.ik-tint) { fill: var(--ik-side); stroke: none; }
@@ -54,11 +46,8 @@
 :where(.ik-thick) { stroke-width: 1.6; }
 :where(.ik-dim) { opacity: .45; }
 
-/* Parts you press: down fast, back up with a little spring; the live stroke marks focus and the press */
 :where(.ik-press) { cursor: pointer; outline: none; }
-/* A host page's focus ring would be drawn around the transformed group's bounding box, not the part; presses show focus with the live stroke instead. */
 .ik-plate .ik-press:focus-visible { outline: none; }
-/* Focus also thickens the stroke, so a part that is already live (data-hot, or picked) still shows that it has focus. */
 :where(.ik-press:focus-visible) :where(.ik-face) { stroke-width: 2; }
 :where(.ik-press[aria-disabled="true"]) { cursor: default; }
 :where(.ik-press > g) { transition: transform 200ms var(--ik-spring); }
@@ -67,7 +56,6 @@
 :where(.ik-press[data-down="true"]) :where(.ik-face) { transition-duration: 0ms; }
 @media (hover: hover) and (pointer: fine) { :where(.ik-press:not([aria-disabled="true"]):hover) :where(.ik-top) { stroke: var(--ik-live); } }
 
-/* Small motions to reach for */
 :where(.ik-enter) { animation: ik-enter 420ms var(--ik-ease) both; }
 :where(.ik-pulse) { animation: ik-pulse 1.8s ease-in-out infinite; }
 :where(.ik-blink) { animation: ik-pulse 240ms steps(2) infinite; }
@@ -76,7 +64,6 @@
 @keyframes ik-pulse { 50% { opacity: .35; } }
 @keyframes ik-float { 50% { transform: translateY(-1.6px); } }
 
-/* Guided motion: a ripple says where to press, a cursor presses once, signals and flights carry the effect to the result */
 :where(.ik-ripple, .ik-cursor, .ik-signal, .ik-flight) { pointer-events: none; }
 :where(.ik-ripple) { transform-box: fill-box; transform-origin: center; animation: ik-ripple 2.4s ease-out infinite; }
 :where(.ik-ripple rect, .ik-cursor-ring) { fill: none; stroke: var(--ik-live); vector-effect: non-scaling-stroke; }
@@ -87,7 +74,6 @@
 :where(.ik-cursor[data-phase="press"] .ik-cursor-arrow) { transform: scale(.86); transition: transform 90ms ease-out; }
 :where(.ik-cursor[data-phase="release"] .ik-cursor-arrow) { animation: ik-cursor-out 560ms var(--ik-ease) both; }
 :where(.ik-cursor[data-phase="release"] .ik-cursor-ring) { animation: ik-cursor-ring 520ms var(--ik-ease) both; }
-/* No non-scaling stroke here: it measures the dash in screen pixels and ignores pathLength. The dash starts and ends fully off the path, so no cap is left behind. */
 :where(.ik-signal) { fill: none; stroke: var(--ik-live); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 22 130; stroke-dashoffset: 24; animation: ik-signal 320ms ease-in both; }
 :where(.ik-flight) { opacity: 0; animation: ik-flight 520ms cubic-bezier(.45, 0, .55, 1) forwards; }
 :where(.ik-flight-arc) { animation: ik-arc 520ms forwards; animation-delay: inherit; animation-duration: inherit; }
@@ -99,14 +85,11 @@
 @keyframes ik-flight { from { opacity: 1; transform: none; } 97% { opacity: 1; transform: translateX(var(--ik-dx)); } to { opacity: 0; transform: translateX(var(--ik-dx)); } }
 @keyframes ik-arc { from { transform: none; animation-timing-function: cubic-bezier(.3, .6, .5, 1); } 50% { transform: translateY(calc(var(--ik-dy) / 2 + var(--ik-lift))); animation-timing-function: cubic-bezier(.5, 0, .7, .4); } to { transform: translateY(var(--ik-dy)); } }
 
-/* Loops sleep offscreen (give your own looping animations .ik-loop); reduced motion lands everything at once */
-/* Important, so a figure's own animation shorthand (which resets the play state) still sleeps offscreen. */
 .ik-plate:not([data-awake]) :is(.ik-pulse, .ik-blink, .ik-float, .ik-loop) { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
   :where(.ik-plate) * { animation: none !important; transition-duration: 0ms !important; transition-delay: 0ms !important; }
 }
 
-/* The sound switch */
 :where(.ik-sound-toggle) { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 11px; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 18%, transparent); border-radius: 999px; background: none; font: inherit; font-size: 12px; color: inherit; opacity: .6; cursor: pointer; transition: opacity 150ms, transform 120ms; }
 :where(.ik-sound-toggle[aria-pressed="true"]), :where(.ik-sound-toggle:hover) { opacity: 1; }
 :where(.ik-sound-toggle:active) { transform: scale(.96); }

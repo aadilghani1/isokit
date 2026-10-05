@@ -1,4 +1,3 @@
-// The published code must leave process.env.NODE_ENV for the app's bundler, so production builds skip the development checks.
 import { readFileSync } from "node:fs"
 
 const code = readFileSync(new URL("../dist/index.js", import.meta.url), "utf8")

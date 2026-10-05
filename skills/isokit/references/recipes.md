@@ -7,12 +7,14 @@ Common parts, as they are drawn in `examples/demo/src/figures`.
 ```tsx
 <Box {...RISER} r={8} front={<>
   <rect className="ik-screen" x={9} y={8} width={106} height={30} rx={4} />
-  <g key={state} className="ik-enter">            {/* a new key replays the entrance */}
+  <g key={state} className="ik-enter">
     <text className="ik-screen-text ik-dim" x={15} y={18} fontSize={5.6}>{small}</text>
     <text className="ik-screen-text" x={15} y={32} fontSize={9.5}>{big}</text>
   </g>
 </>} />
 ```
+
+A new `key` on the text group replays its entrance each time the state changes.
 
 ## A key with a label
 
@@ -34,7 +36,10 @@ const KEYS = ROWS.flatMap((row, r) => { let at = 0; return row.map(([id, w]) => 
 
 ```tsx
 <circle className="light ik-loop" cx={132} cy={13} r={2.4} />
-/* css */ .my-figure svg[data-phase="waiting"] .light { fill: var(--ik-live); animation: ik-pulse 1.8s ease-in-out infinite; }
+```
+
+```css
+.my-figure svg[data-phase="waiting"] .light { fill: var(--ik-live); animation: ik-pulse 1.8s ease-in-out infinite; }
 ```
 
 ## A cable
@@ -47,9 +52,11 @@ A cubic Bézier through world points, sampled, then `path()`. For a coiled cord,
 
 ## An antenna and a ping
 
+`tip` is the antenna's top, projected: `project(130, 12, 84)`.
+
 ```tsx
 <Box x={126} y={8} z={60} w={8} d={8} h={24} r={4} />
-<circle className="ik-face ik-top" cx={tip[0]} cy={tip[1]} r={4.6} />   {/* tip = project(...) */}
+<circle className="ik-face ik-top" cx={tip[0]} cy={tip[1]} r={4.6} />
 {pinged && <g className="ping">{[0, 1, 2].map((i) => <path key={i} className="ik-live" d={arc(i)} style={{ animationDelay: `${i * 120}ms` }} />)}</g>}
 ```
 
@@ -59,7 +66,9 @@ Draw each layer at its floating height, then drop it with CSS. The higher layers
 
 ```tsx
 <g className="block" style={{ "--drop": `${lift}px`, "--i": order }}>…</g>
-/* css */
+```
+
+```css
 .block { transition: transform 700ms var(--ik-ease) calc(var(--i) * 60ms); }
 svg[data-live="true"] .block { transform: translateY(var(--drop)); }
 ```

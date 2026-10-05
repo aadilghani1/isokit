@@ -10,7 +10,7 @@ Rounded boxes, faces you can draw on, keys that click back, and sound you can he
 A small, typed React kit, and a skill your coding agent uses to draw with it.
 
 [![npm](https://img.shields.io/npm/v/react-isokit?color=161616&label=npm)](https://www.npmjs.com/package/react-isokit)
-[![size](https://img.shields.io/badge/core-2.5%20kB-161616)](#performance)
+[![size](https://img.shields.io/badge/core-2.7%20kB-161616)](#performance)
 [![types](https://img.shields.io/badge/types-strict%20%2B%20zod-161616)](#validation)
 [![CI](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml/badge.svg)](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/aadilghani1/isokit?color=161616)](LICENSE)
@@ -31,7 +31,7 @@ Most product illustrations are pictures. These are objects: the key goes down wh
 - **Presses that feel physical.** Down on press, up on release, acts on release. Pointer, touch, Enter and Space.
 - **Sound, done properly.** Twelve synthesized interaction sounds, no audio files, loaded only when someone reaches for a figure, silent until the page opts in.
 - **Typed and validated.** Every public type is inferred from a zod schema. In development, bad input is explained in the console; in production it is clamped and costs nothing.
-- **Light on the page.** 2.5 kB core, the sound engine is a separate 1.6 kB chunk, loops sleep offscreen, server rendering works.
+- **Light on the page.** 2.7 kB core, the sound engine is a separate 1.8 kB chunk, loops sleep offscreen, server rendering works.
 
 ## Quick start
 
@@ -196,9 +196,9 @@ Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `
 
 ## Performance
 
-- **2.5 kB** for `Plate`, `Box`, `Press` and the math, 4.1 kB for the whole entry with guided motion, minified and brotlied; unused pieces tree-shake away. **2.5 kB** of CSS. Budgets are enforced in CI.
+- **2.7 kB** for `Plate`, `Box`, `Press` and the math, 4.3 kB for the whole entry with guided motion, minified and brotlied; unused pieces tree-shake away. **2 kB** of CSS. Budgets are enforced in CI.
 - **Validation costs nothing in production.** The schemas (zod/mini, 7.4 kB) load only in development builds, or when you import `react-isokit/schema` yourself.
-- **Sound costs nothing until it is used.** The 1.6 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again once the longest scheduled sound has finished and four quiet seconds have passed.
+- **Sound costs nothing until it is used.** The 1.8 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again once the longest scheduled sound has finished and four quiet seconds have passed.
 - **Loops sleep offscreen.** Each plate watches itself with one `IntersectionObserver`.
 - **Server rendering.** Everything renders to static SVG; the package ships `"use client"` for the Next.js App Router.
 - **Reduced motion** lands every transition at once and stops every loop.
@@ -242,7 +242,7 @@ Then ask for a figure:
 
 <img src="docs/figures.gif" width="880" alt="An approval pad allowing a request, a page press publishing a page as its blocks drop into place, and an edge box reading a folder" />
 
-The demo's four figures are in [`examples/demo/src/figures`](examples/demo/src/figures): a desk computer you can type on, an approval pad, a page whose blocks drop into place and a box that reads folders. Run them with `npm run dev`.
+The studio's figures are in [`examples/demo/src/figures`](examples/demo/src/figures), one folder per industry and one file per figure, at four levels of complication. Run them with `npm run dev`, browse the open briefs on the studio page, and start a new one with `npm run new:figure`.
 
 ## Made by the maker of Pushary
 

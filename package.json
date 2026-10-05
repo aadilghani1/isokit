@@ -59,6 +59,7 @@
     "build": "tsdown --config-loader native",
     "dev": "vite examples/demo",
     "demo:build": "vite build examples/demo",
+    "new:figure": "node --experimental-strip-types scripts/new-figure.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "biome check .",

@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * Looks at a figure the way a reader would, and says what it saw.
- *
- *   node shoot.mjs <url> [--selector .my-figure] [--click "Allow the request"]... [--out ./isokit-shots]
- *
- * For light and dark, at 1280px and 390px wide, it screenshots every plate that
- * matches the selector at rest, presses each --click button by its accessible
- * name, waits for the motion to land and screenshots again. It prints each
- * plate's read-out before and after, and exits 1 on any console error, page
- * error, or a press that changed no read-out. Needs Chrome or Chromium, and
- * playwright-core (`npm i -D playwright-core`).
- */
 import { mkdirSync } from "node:fs"
 import { join } from "node:path"
 
@@ -42,7 +30,7 @@ for (const theme of ["light", "dark"]) for (const width of [1280, 390]) {
   const readouts = async () => Promise.all(Array.from({ length: count }, (_, i) => plates.nth(i).locator("[aria-live]").first().textContent().catch(() => "")))
   for (let i = 0; i < count; i++) { await plates.nth(i).scrollIntoViewIfNeeded(); await page.waitForTimeout(900); await plates.nth(i).screenshot({ path: join(out, `${theme}-${width}-${i}-rest.png`) }) }
   const before = await readouts()
-  for (const name of clicks) await page.getByRole("button", { name }).first().click()
+  for (const name of clicks) { const part = page.getByRole("button", { name }).first(); await part.focus(); await page.keyboard.press("Enter") }
   await page.waitForTimeout(clicks.length ? 1200 : 0)
   const after = await readouts()
   for (let i = 0; i < count && clicks.length; i++) await plates.nth(i).screenshot({ path: join(out, `${theme}-${width}-${i}-pressed.png`) })

@@ -7,9 +7,9 @@ license: MIT
 
 # isokit: draw a figure you can press
 
-You are making one figure: an isometric line drawing of an object, on a plate, built from rounded boxes, whose parts work when pressed. It ships as one React component that uses `react-isokit`. The four figures in this repo's `examples/demo/src/figures` are the bar; read the one nearest your idea before you write.
+You are making one figure: an isometric line drawing of an object, on a plate, built from rounded boxes, whose parts work when pressed. It ships as one React component that uses `react-isokit`. The figures in this repo's `examples/demo/src/figures/<industry>/` are the bar; read the one nearest your idea, at the level you are aiming for, before you write.
 
-Read `references/api.md` once before writing code. Read `references/rules.md` before you check your work. Reach for `references/recipes.md` when you need a common part (keys, screens, cables, antennas, folders, exploded layers).
+Read `references/api.md` once before writing code. Read `references/levels.md` to pick how complicated the figure should be. Read `references/rules.md` before you check your work. Reach for `references/recipes.md` when you need a common part (keys, screens, cables, antennas, folders, exploded layers).
 
 ## 1. Decide what pressing produces
 
@@ -21,15 +21,19 @@ Write it as one line and keep it:
 
 For a product, find the physical object behind it. A deploy tool is not boxes and arrows; it is an approval pad with an "allow" key, or a press that seats a page. One figure, one idea.
 
+Then pick its level from `references/levels.md`: 1 tap, 2 cause and effect, 3 sequence, 4 system. Choose the lowest level that tells the story, and use only that level's pieces and state.
+
 ## 2. Lay out the boxes
 
 Decompose the object into 3 to 8 boxes. Write them as constants before any JSX, in world units (+x down-right, +y down-left, +z up):
 
 ```ts
 const BASE  = { x: 0,  y: 0,  z: 0,  w: 150, d: 124, h: 14 }
-const RISER = { x: 0,  y: 0,  z: 14, w: 150, d: 48,  h: 46 }   // sits on BASE, at the back
-const KEY   = { x: 10, y: 60, z: 14, w: 82,  d: 52,  h: 9 }    // on BASE, in front of RISER
+const RISER = { x: 0,  y: 0,  z: 14, w: 150, d: 48,  h: 46 }
+const KEY   = { x: 10, y: 60, z: 14, w: 82,  d: 52,  h: 9 }
 ```
+
+RISER sits on BASE at the back (`z` is BASE's height); KEY sits on BASE in front of RISER (its `y` starts past RISER's depth). Names carry the meaning, so the code needs no comments.
 
 - The object's "front" (a screen, a display) goes on a box's `front` face, which looks lower-left. Things a hand reaches for go at larger `y`, in front.
 - For each part, name the two or three features that make it what it is (a tapered stand, a slot, vents, a tab) and draw those. A part with none of them is just a rounded block.
