@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react"
 import { Box, Plate, Press } from "react-isokit"
 import { CopyCommand } from "../app/copy-command"
 import { PUSHARY_HOME, PUSHARY_SIGN_UP } from "../app/links"
+import { href } from "../app/route-store"
 import { SiteFooter } from "../app/site-footer"
 import { SiteHeader } from "../app/site-header"
 import { ApprovalPad } from "../figures/agents/approval-pad"
@@ -183,7 +184,9 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
               </a>
               <CopyCommand text="npx pushary@latest setup" />
             </div>
-            <p className="fine">Setup finds your agents and pairs your phone in under two minutes.</p>
+            <p className="fine">
+              Setup finds your agents and pairs your phone in under two minutes. <a href={href("figures", "agent-relay")}>See the whole flow in the agent relay figure →</a>
+            </p>
           </div>
           <Phone />
         </aside>

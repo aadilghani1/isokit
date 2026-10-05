@@ -1,8 +1,12 @@
 import type { ReactNode } from "react"
+import { CopyCommand } from "../app/copy-command"
+import { pusharyFrom } from "../app/links"
 import { href } from "../app/route-store"
 import { docSlugForExport } from "../catalog/component-docs"
 import { type FigureEntry, figureBySlug } from "../catalog/figure-registry"
 import { INDUSTRIES } from "../catalog/industries"
+import { PUSHARY_FIGURES } from "../catalog/pushary-figures"
+import { PUSHARY_ICON } from "../logos/agent-logos"
 import { FiguresPage, LevelBadge } from "./figures-page"
 
 const VARIATIONS = [
@@ -26,6 +30,28 @@ function BuiltFrom({ figure }: { figure: FigureEntry }): ReactNode {
         </li>
       ))}
     </ul>
+  )
+}
+
+function PusharyCredit({ slug }: { slug: string }): ReactNode {
+  const line = PUSHARY_FIGURES.get(slug)
+  if (!line) return null
+  return (
+    <aside className="pushary-credit" aria-label="Pushary">
+      <img src={PUSHARY_ICON} alt="" width={44} height={44} />
+      <div className="pushary-credit-copy">
+        <p className="eyebrow">
+          From the maker of isokit · <span>Pushary</span>
+        </p>
+        <p>{line}</p>
+      </div>
+      <div className="cta">
+        <a className="button" href={pusharyFrom("figure", slug)} target="_blank" rel="noopener">
+          See Pushary →
+        </a>
+        <CopyCommand text="npx pushary@latest setup" />
+      </div>
+    </aside>
   )
 }
 
@@ -68,6 +94,7 @@ function FigureDetail({ figure }: { figure: FigureEntry }): ReactNode {
       <div className="figure-stage">
         <Figure />
       </div>
+      <PusharyCredit slug={figure.slug} />
       <section className="figure-section" aria-labelledby="variations">
         <div className="section-head">
           <h2 id="variations">Variations</h2>

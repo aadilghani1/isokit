@@ -246,7 +246,7 @@ The studio's figures are in [`examples/demo/src/figures`](examples/demo/src/figu
 
 ## Made by the maker of Pushary
 
-isokit is built by [Aadil Ghani](https://github.com/aadilghani1), who also makes **[Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme)**, the control panel for AI agents. Your agent froze, waiting for your yes: Pushary sends the question to your phone, Mac or Slack, and one tap puts it back to work. It works with Claude Code, Codex, Cursor, Windsurf, Gemini CLI and any MCP agent; `npx pushary@latest setup` connects them in under two minutes. The approval pad and the phone in the demo are drawn from it.
+isokit is built by [Aadil Ghani](https://github.com/aadilghani1), who also makes **[Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme)**, the control panel for AI agents. Your agent froze, waiting for your yes: Pushary sends the question to your phone, Mac or Slack, and one tap puts it back to work. It works with Claude Code, Codex, Cursor, Windsurf, Gemini CLI and any MCP agent; `npx pushary@latest setup` connects them in under two minutes. The approval pad, the phone and the [agent relay](https://aadilghani1.github.io/isokit/#/figures/agent-relay) in the studio are drawn from it; the agent relay shows it end to end.
 
 ## Contributing
 
