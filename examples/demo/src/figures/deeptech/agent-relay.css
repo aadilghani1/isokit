@@ -1,0 +1,114 @@
+.fig-agent-relay { --isle: #000; --isle-ink: #fff; --isle-muted: #8aacac; --isle-attention: #aee3e3; --isle-quiet: #2b3d3d; --isle-quiet-edge: #4a6767; --isle-approve: #2a6b6b; --isle-approve-edge: #00a5a6; }
+
+.fig-agent-relay .key { font-size: 6.6px; }
+.fig-agent-relay .tier-name { font-size: 3.7px; }
+.fig-agent-relay .hub-word { font-size: 4px; }
+.fig-agent-relay .board-title { font-size: 2.9px; }
+.fig-agent-relay .switch-word { font-size: 4.6px; transition: fill 260ms var(--ik-ease); }
+.fig-agent-relay .switch-word[data-on="true"] { fill: var(--ik-ink-hi); }
+.fig-agent-relay svg:is([data-phase="idle"], [data-phase="done"]) .play { stroke: var(--ik-live); }
+
+.fig-agent-relay :is(.ui-text, .isle-text, .isle-chip-text) { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 500; white-space: pre; }
+.fig-agent-relay .ui-mono { font-family: var(--ik-mono); white-space: pre; }
+.fig-agent-relay .strong { font-weight: 650; }
+.fig-agent-relay .faint { fill-opacity: .5; }
+.fig-agent-relay .meter-dim { fill-opacity: .55; }
+
+.fig-agent-relay .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease) calc(var(--i) * 60ms), stroke 260ms var(--ik-ease) calc(var(--i) * 60ms); }
+.fig-agent-relay .tier:is([data-state="plan"], [data-state="work"]) .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-agent-relay .tier:is([data-state="wait"], [data-state="retry"]) .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-agent-relay .tier[data-state="wait"] .lamp { animation: ar-blink 900ms steps(2, jump-none) infinite; }
+.fig-agent-relay .tier[data-state="done"] .lamp { opacity: 0; }
+.fig-agent-relay .check { fill: none; stroke: var(--ik-line); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 260ms var(--ik-ease); }
+.fig-agent-relay .tier[data-state="done"] .check { opacity: 1; }
+.fig-agent-relay .work { stroke: var(--ik-line); stroke-dasharray: 22 78; stroke-dashoffset: 22; opacity: 0; animation: ar-scan 1200ms linear infinite paused; }
+.fig-agent-relay .tier:is([data-state="work"], [data-state="plan"], [data-state="retry"]) .work { opacity: 1; animation-play-state: running; }
+.fig-agent-relay .tier[data-state="plan"] .work { stroke-dasharray: 3 3; animation-duration: 2400ms; }
+.fig-agent-relay .tier[data-state="retry"] .work { stroke: var(--ik-live); animation-duration: 420ms; }
+.fig-agent-relay .tier[data-state="wait"] .work { opacity: 1; stroke: var(--ik-live); }
+.fig-agent-relay .tier[data-state="done"] .work { opacity: 1; stroke-dasharray: none; animation: none; }
+
+.fig-agent-relay .desktop { transition: opacity 400ms var(--ik-ease); }
+.fig-agent-relay svg[data-away="true"] .desktop { opacity: .25; }
+.fig-agent-relay .menubar { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .14; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .window { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .22; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .dot { fill: var(--ik-screen-ink); fill-opacity: .25; }
+.fig-agent-relay .log { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .18; stroke-width: 1.6; stroke-linecap: round; }
+.fig-agent-relay .menu-glyph { fill: var(--ik-screen-ink); fill-opacity: .7; }
+.fig-agent-relay .prompt { animation: ar-note 360ms var(--ik-ease) both; }
+.fig-agent-relay .prompt-row { fill: var(--ik-screen-ink); fill-opacity: .08; stroke: var(--ik-live); stroke-width: 1; vector-effect: non-scaling-stroke; animation: ar-blink 1400ms ease-in-out infinite; }
+.fig-agent-relay .prompt-text { fill: var(--ik-screen-ink); }
+
+.fig-agent-relay .isle { fill: var(--isle); }
+.fig-agent-relay .isle-wash { fill: var(--isle-attention); fill-opacity: .09; }
+.fig-agent-relay .isle-text { fill: var(--isle-ink); }
+.fig-agent-relay .isle-text.muted { fill: var(--isle-muted); }
+.fig-agent-relay .isle-chip { fill: var(--isle-attention); fill-opacity: .24; }
+.fig-agent-relay .isle-chip-text { fill: var(--isle-attention); }
+.fig-agent-relay .isle-button { stroke-width: 1; vector-effect: non-scaling-stroke; transition: opacity 120ms; }
+.fig-agent-relay .isle-button.quiet { fill: var(--isle-quiet); stroke: var(--isle-quiet-edge); }
+.fig-agent-relay .isle-button.approve { fill: var(--isle-approve); stroke: var(--isle-approve-edge); }
+.fig-agent-relay .isle-dot { fill: var(--isle-attention); animation: ar-blink 1400ms ease-in-out infinite; }
+.fig-agent-relay .isle-spin { fill: none; stroke: var(--isle-attention); stroke-width: 1; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: ar-spin 900ms linear infinite; }
+.fig-agent-relay .isle-check { fill: var(--isle-attention); }
+.fig-agent-relay .isle-tick { fill: none; stroke: var(--isle); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.fig-agent-relay .isle-phone { fill: none; stroke: var(--isle-ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .chip-line { fill: none; stroke: var(--isle-ink); stroke-opacity: .7; stroke-width: 1; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .window-bar { fill: var(--isle-attention); transform-box: fill-box; transform-origin: 0 50%; animation: ar-drain var(--hold) linear var(--arrive) both; }
+.fig-agent-relay .island { transform-box: fill-box; transform-origin: 50% 0; }
+.fig-agent-relay .island.card { animation: ar-island 560ms var(--ik-spring) var(--arrive) both; }
+.fig-agent-relay .island.card .island-content { animation: ar-fade 320ms var(--ik-ease) calc(var(--arrive) + 220ms) both; }
+.fig-agent-relay .island.pill { animation: ar-pill 420ms var(--ik-spring) both; }
+.fig-agent-relay .island.receipt { animation: ar-pill 420ms var(--ik-spring) both, ar-shrink 320ms ease-in 1600ms forwards; }
+.fig-agent-relay .link-hit, .fig-agent-relay .menu-hit { fill: transparent; }
+.fig-agent-relay .tap { cursor: pointer; }
+.fig-agent-relay .tap[data-down="true"] :is(.isle-button, .menu-hit, .prompt-row) { opacity: .6; }
+.fig-agent-relay .tap:focus-visible :is(.isle-button, .menu-hit, .prompt-row) { stroke: var(--isle-attention); stroke-width: 1.6; }
+
+.fig-agent-relay .phone-island { fill: var(--isle); }
+.fig-agent-relay .lock { opacity: .45; transition: opacity 400ms var(--ik-ease); }
+.fig-agent-relay .lock[data-awake="true"] { opacity: 1; }
+.fig-agent-relay :is(.lock, .note) .ui-text { fill: var(--ik-screen-ink); }
+.fig-agent-relay .clock { font-weight: 300; }
+.fig-agent-relay .status-ink { fill: var(--ik-screen-ink); fill-opacity: .8; }
+.fig-agent-relay .status-line { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .8; stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.fig-agent-relay .lock-button { fill: var(--ik-screen-ink); fill-opacity: .1; }
+.fig-agent-relay .face-id { animation: ar-face 900ms var(--ik-ease) both; }
+.fig-agent-relay .face-line { fill: none; stroke: var(--isle-ink); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.fig-agent-relay .note { animation: ar-note 460ms var(--ik-ease) var(--arrive, 0ms) both; }
+.fig-agent-relay .note.receipt { animation: ar-note 360ms var(--ik-ease) both, ar-off 300ms ease-in 1700ms forwards; }
+.fig-agent-relay :is(.note-card, .menu-card) { fill: var(--ik-top); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .menu-rule { fill: none; stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .menu .destructive { fill-opacity: .7; }
+.fig-agent-relay .menu-icon { fill: none; stroke: var(--ik-screen-ink); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.fig-agent-relay .menu-star { fill: var(--ik-screen-ink); }
+.fig-agent-relay .tap[data-hot="true"] .primary-row { fill: var(--ik-live); fill-opacity: .1; }
+
+.fig-agent-relay :is(.glyph, .board-glyph) { fill: var(--ik-ink-hi); }
+.fig-agent-relay .hub-led { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fig-agent-relay .hub-led[data-on="true"] { animation: ar-led 420ms ease-out both; }
+.fig-agent-relay .auto-pulse { stroke: var(--ik-line); stroke-width: 1; }
+
+.fig-agent-relay .board-value { font-weight: 600; }
+.fig-agent-relay .bar-track { fill: var(--ik-screen-ink); fill-opacity: .1; }
+.fig-agent-relay :is(.bar-without, .bar-with) { transform-box: fill-box; transform-origin: 0 50%; transform: scaleX(0); transition: transform 900ms var(--ik-ease) 200ms; }
+.fig-agent-relay .bar-without { fill: var(--ik-screen-ink); fill-opacity: .35; }
+.fig-agent-relay .bar-with { fill: var(--ik-screen-ink); }
+.fig-agent-relay .bar-without[data-on="true"] { transform: scaleX(1); }
+.fig-agent-relay .bar-with[data-on="true"] { transform: scaleX(var(--share, 1)); }
+
+.fig-agent-relay .slider { transition: transform 320ms var(--ik-spring); }
+.fig-agent-relay svg[data-away="true"] .slider { transform: translate(20.785px, 12px); }
+
+@keyframes ar-off { to { opacity: 0; } }
+@keyframes ar-fade { from { opacity: 0; } }
+@keyframes ar-blink { 50% { opacity: .25; } }
+@keyframes ar-spin { to { transform: rotate(360deg); } }
+@keyframes ar-scan { to { stroke-dashoffset: -78; } }
+@keyframes ar-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes ar-led { from { fill: var(--ik-line); stroke: var(--ik-line); } }
+@keyframes ar-island { from { transform: scale(.2, .12); } }
+@keyframes ar-pill { from { transform: scale(.32, .5); } }
+@keyframes ar-shrink { to { transform: scale(.32, .5); opacity: 0; } }
+@keyframes ar-note { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes ar-face { 0% { opacity: 0; } 20%, 70% { opacity: 1; } 100% { opacity: 0; } }

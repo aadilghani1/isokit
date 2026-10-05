@@ -23,6 +23,7 @@ export const INDUSTRIES = [
       { slug: "gpu-cluster", title: "GPU cluster", level: 3, brief: "A rack of four GPU nodes beside a head node. Press train. The nodes light bottom to top and the loss curve falls, and the read-out says epoch 3 · loss 0.42." },
       { slug: "wafer-probe", title: "Wafer prober", level: 3, brief: "A probe head over a wafer of dies. Press probe. The head steps across six dies marking pass or fail, and the read-out says yield 83% · 5/6." },
       { slug: "pick-and-place", title: "Pick and place", level: 4, brief: "A gantry over a chip tray and a board. Press pick. The head lifts the next chip and seats it on the board, and the read-out says placed · 3 of 6." },
+      { slug: "agent-relay", title: "Agent relay", level: 4, brief: "A rack of six coding agents, a Pushary relay, a MacBook, an iPhone and a savings board. Press run: the lead agent plans first and asks one question up front on the notch, then the phone. Approve the risky commands, and the read-out says done · saved 3h 4m and $3.73." },
     ],
   },
   {
