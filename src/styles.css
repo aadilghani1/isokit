@@ -58,6 +58,8 @@
 :where(.ik-press) { cursor: pointer; outline: none; }
 /* A host page's focus ring would be drawn around the transformed group's bounding box, not the part; presses show focus with the live stroke instead. */
 .ik-plate .ik-press:focus-visible { outline: none; }
+/* Focus also thickens the stroke, so a part that is already live (data-hot, or picked) still shows that it has focus. */
+:where(.ik-press:focus-visible) :where(.ik-face) { stroke-width: 2; }
 :where(.ik-press[aria-disabled="true"]) { cursor: default; }
 :where(.ik-press > g) { transition: transform 200ms var(--ik-spring); }
 :where(.ik-press[data-down="true"]:not(.ik-lift) > g) { transform: translateY(3px); transition: transform 50ms ease-out; }
