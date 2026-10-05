@@ -9,21 +9,21 @@ export const meta = {
   title: "Agent relay",
   industry: "deeptech",
   level: 4,
-  blurb: "Press run: six coding agents plan first and ask their one real question up front, on the Mac's notch and then the phone. Risky commands still ask. The board compares the time and money with and without Pushary.",
+  blurb: "Press run: six coding agents plan first and ask their one real question up front on the Mac's notch, and on the phone when you step away. Risky commands still ask. The board compares the time and money with and without Pushary.",
   uses: ["Plate", "Box", "Press", "Signal", "Flight", "Ripple", "Cursor", "useDemoTap", "curve", "path", "front"],
   sounds: ["cascade", "notify", "whoosh", "success", "error", "toggle", "complete"],
 } satisfies FigureMeta
 
 type Fork = { question: string; options: readonly [string, string] }
-type Agent = { id: AgentLogo; name: string; label: string; project: string; fork: Fork; commands: readonly [string, string, string] }
+type Agent = { id: AgentLogo; name: string; label: string; project: string; fork: Fork; commands: readonly [string, string, string] | null }
 type Kind = "round" | "gate"
 type Ask = { kind: Kind; tier: number }
 type Phase = "idle" | "working" | "asking" | "retrying" | "waiting" | "done"
 type Where = "notch" | "phone" | "terminal"
-type Via = "ask" | "fly"
-type Verdict = "picked" | "changed" | "approved" | "steered" | "denied" | "timeout" | "gave-up"
+type Via = "ask" | "push"
+type Verdict = "picked" | "changed" | "approved" | "steered" | "denied" | "gave-up"
 type Reply = "first" | "second" | "approve" | "steer" | "deny"
-type Event = "idle" | "run" | "ask" | "escalate" | "recall" | "presence" | "timeout" | "answer" | "finish"
+type Event = "idle" | "run" | "ask" | "push" | "open" | "presence" | "timeout" | "answer" | "finish"
 type Answer = { tier: number; verdict: Verdict; where: Where; seconds: number }
 type Tally = { withSeconds: number; withUsd: number; withStops: number; withoutSeconds: number; withoutUsd: number; withoutStops: number }
 type TierState = "off" | "plan" | "work" | "wait" | "retry" | "done"
@@ -39,7 +39,8 @@ type State = {
   doneAt: number
   asked: number
   tries: number
-  where: Where
+  pushed: boolean
+  opened: boolean
   finished: number
   resumed: readonly number[]
   wasted: number
@@ -57,30 +58,36 @@ type Action =
   | { type: "auto"; now: number }
   | { type: "complete"; tier: number; now: number }
   | { type: "ask"; now: number }
-  | { type: "escalate"; now: number }
-  | { type: "recall"; now: number }
+  | { type: "open"; now: number }
   | { type: "presence"; now: number }
   | { type: "timeout"; now: number }
-  | { type: "answer"; reply: Reply; now: number }
+  | { type: "answer"; reply: Reply; from: Where; now: number }
   | { type: "finish"; now: number }
 
 const AGENTS: readonly Agent[] = [
   { id: "opencode", name: "OpenCode", label: "OPENCODE", project: "api", fork: { question: "Migration?", options: ["New table", "Alter in place"] }, commands: ["migrate up", "migrate --dry", "prisma diff"] },
   { id: "hermes", name: "Hermes", label: "HERMES", project: "infra", fork: { question: "Install with?", options: ["Homebrew", "pip"] }, commands: ["brew install", "pip install", "uv tool add"] },
-  { id: "antigravity", name: "Antigravity", label: "ANTIGRAVITY", project: "site", fork: { question: "Deploy order?", options: ["Staging first", "Prod now"] }, commands: ["deploy prod", "deploy stage", "deploy dev"] },
-  { id: "fx", name: "fx", label: "FX", project: "web", fork: { question: "Clean what?", options: ["dist only", "Every build"] }, commands: ["rm -rf dist", "mv dist .old", "git clean -n"] },
+  { id: "antigravity", name: "Antigravity CLI", label: "ANTIGRAVITY CLI", project: "site", fork: { question: "Deploy order?", options: ["Staging first", "Prod now"] }, commands: ["deploy prod", "deploy stage", "deploy dev"] },
+  { id: "fx", name: "fx", label: "FX", project: "web", fork: { question: "Clean what?", options: ["dist only", "Every build"] }, commands: null },
   { id: "codex", name: "Codex", label: "CODEX", project: "backend", fork: { question: "Which app?", options: ["Both apps", "Dashboard only"] }, commands: ["git push", "gh pr create", "git push wip"] },
   { id: "claude-code", name: "Claude Code", label: "CLAUDE CODE", project: "pushary", fork: { question: "Rollout?", options: ["Behind the flag", "Straight to main"] }, commands: ["npm publish", "npm pack", "npm link"] },
 ]
 const ALL_DONE = (1 << AGENTS.length) - 1
 const ASK_ORDER = [5, 4, 2, 3, 1, 0] as const
 const ASKS = 3
+const GATE_ORDER = ASK_ORDER.filter((tier) => AGENTS[tier]?.commands)
+const RUN_ASKS: readonly (readonly Ask[])[] = ASK_ORDER.map((lead, k) => {
+  const gates: Ask[] = []
+  for (let step = 0; gates.length < ASKS - 1 && step < GATE_ORDER.length; step++) {
+    const tier = GATE_ORDER[(k + 1 + step) % GATE_ORDER.length] ?? 0
+    if (tier !== lead) gates.push({ kind: "gate", tier })
+  }
+  return [{ kind: "round", tier: lead }, ...gates]
+})
 const PLAN = { steps: 7, facts: 5, forks: 3 }
 const MAX_TRIES = 2
 
-const PUSH_WINDOW_S = 20
-const ASK_TIMEOUT_S = 55
-const BASH_TIMEOUT_S = 60
+const HAND_BACK_S: Readonly<Record<Kind, number>> = { round: 55 + 55, gate: 20 + 60 }
 const CHECK_BACK_MIN = 37
 const WRONG_GUESS_ODDS = 0.5
 const OPUS_PER_MILLION = { input: 5, output: 25, cacheWrite: 1.25, cacheRead: 0.1 }
@@ -89,9 +96,7 @@ const TURN_TOKENS = { fresh: 10_000, output: 6_000 }
 const WARM_RESUME_USD = (CONTEXT_TOKENS * OPUS_PER_MILLION.input * OPUS_PER_MILLION.cacheRead) / 1_000_000
 const COLD_RESUME_USD = (CONTEXT_TOKENS * OPUS_PER_MILLION.input * OPUS_PER_MILLION.cacheWrite) / 1_000_000
 const TURN_USD = WARM_RESUME_USD + (TURN_TOKENS.fresh * OPUS_PER_MILLION.input + TURN_TOKENS.output * OPUS_PER_MILLION.output) / 1_000_000
-const TURN_K_TOKENS = (CONTEXT_TOKENS + TURN_TOKENS.fresh + TURN_TOKENS.output) / 1000
 const RERUN_TURNS = 6
-const RETRY_TURNS = 2
 
 const BASE = { x: 0, y: 0, z: 0, w: 302, d: 158, h: 8 }
 const RACK = { x: 10, y: 22, w: 66, d: 54 }
@@ -118,6 +123,7 @@ const CARD = { w: 92, round: 43, gate: 40 }
 const PILL = { w: 76, h: 9.4 }
 const NOTE = { x: 3, y: 38, w: 48, h: 21 }
 const MENU = { x: 3, y: 61.5, w: 48, row: 8.5, icon: 7.8, label: 12.6 }
+const SHEET = { x: 2, y: 2, w: 50, h: 104, option: 42 }
 const PROMPT = { x: 13, y: 62, w: 88, h: 6.4 }
 const SCREEN = { x: 3, y: 8.4, w: BOARD.w - 6, h: BOARD.h - 11.4 }
 
@@ -133,12 +139,10 @@ const FROM_HUB = [...TRUNK].reverse()
 
 const HOP_MS = 380
 const ARRIVE_MS = 2 * HOP_MS
-const NOTCH_MS = 5000
-const PHONE_MS = 5000
+const HOLD_MS = 10000
 const PLAN_MS = 2600
 const NEXT_ASK_MS = 1900
 const FLY_MS = 620
-const SWITCH_MS = 320
 const RETRY_MS = 1400
 const FINISH_MS = 900
 const AUTO_MS = 480
@@ -163,7 +167,8 @@ const START: State = {
   doneAt: 0,
   asked: 0,
   tries: 0,
-  where: "notch",
+  pushed: false,
+  opened: false,
   finished: 0,
   resumed: NO_RESUMES,
   wasted: 0,
@@ -177,21 +182,31 @@ const START: State = {
   last: null,
 }
 
-const asksOf = (run: number): readonly Ask[] =>
-  Array.from({ length: ASKS }, (_, j) => ({ kind: j === 0 ? "round" : "gate", tier: ASK_ORDER[(run - 1 + j) % ASK_ORDER.length] ?? 0 }) as const)
+const asksOf = (run: number): readonly Ask[] => RUN_ASKS[(run + RUN_ASKS.length - 1) % RUN_ASKS.length] ?? []
 const askOf = (s: State): Ask => asksOf(s.run)[s.asked] ?? { kind: "gate", tier: 0 }
 const agentAt = (tier: number): Agent => AGENTS[tier] ?? AGENTS[0]!
-const commandOf = (agent: Agent, tries: number): string => agent.commands[Math.min(tries, agent.commands.length - 1)] ?? agent.commands[0]
+const commandOf = (agent: Agent, tries: number): string => (agent.commands ? (agent.commands[Math.min(tries, agent.commands.length - 1)] ?? agent.commands[0]) : "")
 const isActive = (phase: Phase) => phase === "working" || phase === "asking" || phase === "retrying" || phase === "waiting"
 const isDone = (s: State, tier: number) => (s.finished & (1 << tier)) !== 0
 const isPlanning = (s: State) => s.phase === "working" && s.asked === 0
 const shownAt = (s: State) => s.since + ARRIVE_MS
-const msFor = (seconds: number) => (seconds <= PUSH_WINDOW_S ? (seconds / PUSH_WINDOW_S) * NOTCH_MS : NOTCH_MS + ((seconds - PUSH_WINDOW_S) / (BASH_TIMEOUT_S - PUSH_WINDOW_S)) * PHONE_MS)
-const realSeconds = (waited: number) => {
-  const shown = Math.max(0, waited - ARRIVE_MS)
-  const notch = Math.min(shown, NOTCH_MS) * (PUSH_WINDOW_S / NOTCH_MS)
-  const phone = Math.max(0, shown - NOTCH_MS) * ((BASH_TIMEOUT_S - PUSH_WINDOW_S) / PHONE_MS)
-  return Math.max(1, Math.round(notch + phone))
+const realSeconds = (waited: number, kind: Kind) => {
+  const shown = Math.min(HOLD_MS, Math.max(0, waited - ARRIVE_MS))
+  return Math.max(1, Math.round((shown / HOLD_MS) * HAND_BACK_S[kind]))
+}
+const GLYPH_EM: ReadonlyMap<string, number> = new Map(
+  Object.entries({ " ": 0.27, ijlI: 0.32, ".:'": 0.37, ft: 0.42, r: 0.48, "1-": 0.53, "sz?": 0.58, acekvxyFJL: 0.64, "04689BKPRSYZ": 0.74, ACDGUVX: 0.8, HNOQ: 0.85, wM: 0.93, "mW…": 1.03 }).flatMap(([glyphs, em]) => [...glyphs].map((glyph) => [glyph, em] as const)),
+)
+const widthOf = (text: string, size: number) => {
+  let em = 0
+  for (const glyph of text) em += GLYPH_EM.get(glyph) ?? 0.69
+  return em * size
+}
+const ellipsize = (text: string, size: number, room: number) => {
+  if (widthOf(text, size) <= room) return text
+  let cut = text.length
+  while (cut > 1 && widthOf(`${text.slice(0, cut).trimEnd()}…`, size) > room) cut--
+  return `${text.slice(0, cut).trimEnd()}…`
 }
 const usd = (value: number) => `$${value.toFixed(2)}`
 const ms = (value: number) => `${value}ms`
@@ -205,11 +220,11 @@ const baselineOf = (kind: Kind) => {
   return { stops, seconds: stops * CHECK_BACK_MIN * 60, usd: stops * COLD_RESUME_USD + (kind === "round" ? WRONG_GUESS_ODDS * RERUN_TURNS * TURN_USD : 0) }
 }
 
-function settle(s: State, seconds: number): Tally {
+function settle(s: State, seconds: number, from: Where): Tally {
   const base = baselineOf(askOf(s).kind)
   return {
     withSeconds: s.tally.withSeconds + seconds,
-    withUsd: s.tally.withUsd + WARM_RESUME_USD,
+    withUsd: s.tally.withUsd + (from === "terminal" ? COLD_RESUME_USD : WARM_RESUME_USD),
     withStops: s.tally.withStops + 1,
     withoutSeconds: s.tally.withoutSeconds + base.seconds,
     withoutUsd: s.tally.withoutUsd + base.usd,
@@ -233,7 +248,8 @@ function advance(s: State, a: Action): State {
           doneAt: a.now,
           asked: 0,
           tries: 0,
-          where: "notch",
+          pushed: false,
+          opened: false,
           finished: 0,
           resumed: NO_RESUMES,
           wasted: 0,
@@ -250,29 +266,26 @@ function advance(s: State, a: Action): State {
       return { ...s, finished: s.finished | (1 << a.tier), doneAt: a.now, doneTier: a.tier, latest: "complete" }
     case "ask":
       if (!((s.phase === "working" && s.asked < ASKS) || s.phase === "retrying")) return s
-      return next({ phase: "asking", at: a.now, since: a.now, via: "ask", where: s.away ? "phone" : "notch" }, "ask")
-    case "escalate":
-      return s.phase === "asking" && s.where === "notch" ? next({ where: "phone", moved: a.now, via: "fly" }, "escalate") : s
-    case "recall":
-      return s.phase === "asking" && s.where === "phone" && !s.away ? next({ where: "notch", moved: a.now, via: "fly" }, "recall") : s
+      return next({ phase: "asking", at: a.now, since: a.now, via: "ask", pushed: s.away, opened: false }, "ask")
+    case "open":
+      return s.phase === "asking" && s.pushed && ask.kind === "round" && !s.opened ? next({ opened: true }, "open") : s
     case "presence":
+      if (!s.away && s.phase === "asking" && !s.pushed) return next({ away: true, moved: a.now, pushed: true, via: "push" }, "push")
       return next({ away: !s.away, moved: a.now }, "presence")
-    case "timeout": {
+    case "timeout":
       if (s.phase !== "asking") return s
-      if (ask.kind === "round" || s.tries >= MAX_TRIES) {
-        return next({ phase: "waiting", at: a.now, where: "terminal", last: { tier: ask.tier, verdict: "gave-up", where: s.where, seconds: ask.kind === "round" ? ASK_TIMEOUT_S : BASH_TIMEOUT_S } }, "timeout")
-      }
-      return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + RETRY_TURNS, last: { tier: ask.tier, verdict: "timeout", where: s.where, seconds: BASH_TIMEOUT_S } }, "timeout")
-    }
+      return next({ phase: "waiting", at: a.now, pushed: false, opened: false, last: { tier: ask.tier, verdict: "gave-up", where: s.pushed ? "phone" : "notch", seconds: HAND_BACK_S[ask.kind] } }, "timeout")
     case "answer": {
       if (s.phase !== "asking" && s.phase !== "waiting") return s
-      const seconds = s.where === "terminal" ? CHECK_BACK_MIN * 60 : realSeconds(a.now - s.since)
+      if (a.from === "phone" && !s.pushed) return s
+      const from: Where = s.phase === "waiting" ? "terminal" : a.from
+      const seconds = from === "terminal" ? CHECK_BACK_MIN * 60 : realSeconds(a.now - s.since, ask.kind)
       if (a.reply === "deny" && s.tries < MAX_TRIES) {
-        return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + 1, last: { tier: ask.tier, verdict: "denied", where: s.where, seconds } }, "answer")
+        return next({ phase: "retrying", at: a.now, tries: s.tries + 1, wasted: s.wasted + 1, pushed: false, opened: false, last: { tier: ask.tier, verdict: "denied", where: from, seconds } }, "answer")
       }
       const verdict: Verdict = ask.kind === "round" ? (a.reply === "first" ? "picked" : "changed") : a.reply === "steer" ? "steered" : a.reply === "deny" ? "denied" : "approved"
       const resumed = s.resumed.map((time, tier) => (tier === ask.tier ? a.now : time))
-      return next({ phase: "working", at: a.now, asked: s.asked + 1, tries: 0, resumed, tally: settle(s, seconds), last: { tier: ask.tier, verdict, where: s.where, seconds } }, "answer")
+      return next({ phase: "working", at: a.now, asked: s.asked + 1, tries: 0, pushed: false, opened: false, resumed, tally: settle(s, seconds, from), last: { tier: ask.tier, verdict, where: from, seconds } }, "answer")
     }
     case "finish":
       return s.phase === "working" && s.asked === ASKS && s.finished === ALL_DONE ? next({ phase: "done", at: a.now }, "finish") : s
@@ -322,18 +335,17 @@ function readoutOf(s: State): string {
       if (!isPlanning(s)) return `${AGENTS.length} agents working`
       return s.auto ? `${name} plans · ${s.auto} lookup${s.auto === 1 ? "" : "s"} auto-approved` : `${name} plans first`
     case "presence":
-      return s.away ? "away · asks go straight to your phone" : `at the desk · notch first, phone after ${PUSH_WINDOW_S} s`
+      return s.away ? "away · asks go straight to your phone" : "at the desk · your phone stays quiet"
+    case "push":
+      return `away · ${name} sent to your phone`
+    case "open":
+      return "face id · question open in pushary"
     case "ask":
       if (ask.kind === "round") return `${name} asks 1 question up front`
       if (s.tries) return `${name} tries ${command} instead`
       return `${name} wants to run ${command}`
-    case "escalate":
-      return s.away ? `away · ${name} sent to your phone` : `no answer in ${PUSH_WINDOW_S} s · sent to your phone`
-    case "recall":
-      return `back at the mac · ${name} on the notch`
     case "timeout":
-      if (s.phase === "waiting") return `no answer · ${who} waits in terminal`
-      return `denied at ${BASH_TIMEOUT_S} s · ${who} burns ${Math.round(RETRY_TURNS * TURN_K_TOKENS)}k tokens`
+      return `no answer in ${s.last?.seconds ?? 0} s · back to the terminal`
     case "answer":
       if (!s.last) return "answered"
       if (s.last.verdict === "picked") return `${last.fork.options[0].toLowerCase()} · ${who} goes ahead`
@@ -359,15 +371,6 @@ function Check({ x, y }: { x: number; y: number }) {
   return <path className="check" d={`M${x - 1.8} ${y}l1.3 1.4 2.6-3`} />
 }
 
-function star(cx: number, cy: number, r: number): string {
-  const points = Array.from({ length: 10 }, (_, k) => {
-    const a = (Math.PI / 5) * k - Math.PI / 2
-    const radius = k % 2 === 0 ? r : r * 0.45
-    return `${(cx + radius * Math.cos(a)).toFixed(2)} ${(cy + radius * Math.sin(a)).toFixed(2)}`
-  })
-  return `M${points.join("L")}Z`
-}
-
 export default function AgentRelay() {
   const [s, dispatch] = useReducer(advance, START)
   const [touched, setTouched] = useState(false)
@@ -381,12 +384,11 @@ export default function AgentRelay() {
   useEffect(() => {
     const now = performance.now()
     const at = (when: number, act: () => void) => timers.current.push(window.setTimeout(act, Math.max(0, when - now)))
-    const send = (type: "ask" | "escalate" | "recall" | "timeout" | "finish" | "auto") => () => dispatch({ type, now: performance.now() })
+    const send = (type: "ask" | "timeout" | "finish" | "auto") => () => dispatch({ type, now: performance.now() })
     const tell = (when: number, name: SoundName) => {
       if (audible.current && when > now - 120) at(when, () => stops.current.push(playSound(name)))
     }
     const asks = asksOf(s.run)
-    const ask = askOf(s)
     if (isActive(s.phase)) {
       if (isPlanning(s) && s.auto < PLAN.facts) at(s.autoAt + AUTO_MS, send("auto"))
       AGENTS.forEach((_, tier) => {
@@ -404,12 +406,9 @@ export default function AgentRelay() {
     }
     if (s.phase === "retrying") at(s.at + RETRY_MS, send("ask"))
     if (s.phase === "asking") {
-      at(shownAt(s) + msFor(ask.kind === "round" ? ASK_TIMEOUT_S : BASH_TIMEOUT_S), send("timeout"))
-      if (s.where === "notch" && s.away) at(s.moved + SWITCH_MS, send("escalate"))
-      if (s.where === "notch" && !s.away) at(Math.max(shownAt(s), s.moved) + NOTCH_MS, send("escalate"))
-      if (s.where === "phone" && !s.away && s.event === "presence") at(s.moved + SWITCH_MS, send("recall"))
+      at(shownAt(s) + HOLD_MS, send("timeout"))
       if (s.event === "ask") tell(shownAt(s), "notify")
-      if (s.event === "escalate" || s.event === "recall") {
+      if (s.event === "push") {
         tell(s.moved, "whoosh")
         tell(s.moved + FLY_MS, "notify")
       }
@@ -455,11 +454,17 @@ export default function AgentRelay() {
     reader()
     start()
   }
-  const answer = (reply: Reply) => {
+  const answer = (reply: Reply, from: Where) => {
     reader()
     hush()
     play(reply === "deny" ? "error" : reply === "steer" || reply === "second" ? "toggle" : "success")
-    dispatch({ type: "answer", reply, now: performance.now() })
+    dispatch({ type: "answer", reply, from, now: performance.now() })
+  }
+  const open = () => {
+    reader()
+    hush()
+    play("toggle")
+    dispatch({ type: "open", now: performance.now() })
   }
   const step = () => {
     reader()
@@ -472,10 +477,10 @@ export default function AgentRelay() {
   const agent = agentAt(ask.tier)
   const command = commandOf(agent, s.tries)
   const runHot = !isActive(s.phase)
-  const card = `${s.run}-${s.asked}-${s.tries}-${s.where}`
+  const card = `${s.run}-${s.asked}-${s.tries}`
   const arrive = s.via === "ask" ? ARRIVE_MS : FLY_MS
   const receipt = s.event === "answer" || s.event === "timeout" ? s.last : null
-  const surface = { s, agent, ask, command, card, arrive, receipt, clip: tile, frame: ids, answer }
+  const surface = { s, agent, ask, command, card, arrive, receipt, clip: tile, frame: ids, answer, open }
 
   return (
     <Plate
@@ -489,7 +494,7 @@ export default function AgentRelay() {
       data-away={s.away}
       fit={[BASE, { x: RACK.x, y: RACK.y, z: 0, w: RACK.w, d: RACK.d, h: CAP.z + CAP.h }, { ...PHONE, z: 0, h: PHONE.z + PHONE.h }, { ...LID, z: 0, h: LID.z + LID.h }, [NOTCH_AT[0], 44, 100]]}
       aspect={1.35}
-      label="Six coding agents in a rack, a Pushary relay, a MacBook with a notch, an iPhone on a stand and a board comparing this run with no Pushary. Press run: the lead agent plans first, settles facts with lookups the relay auto-approves, then asks one question up front on the notch, and on the phone after 20 seconds or when you are away. Risky commands still ask; an unanswered one is denied after 60 seconds and the agent burns tokens on a workaround."
+      label="Six coding agents in a rack, a Pushary relay, a MacBook with a notch, an iPhone on a stand and a board comparing this run with no Pushary. Press run: the lead agent plans first, settles facts with lookups the relay auto-approves, then asks one question up front on the notch. At the desk your phone stays quiet; step away and the question goes to your phone too, and the first answer wins. Risky commands still ask, and one nobody answers goes back to the agent's own terminal prompt."
     >
       <defs>
         <clipPath id={tile} clipPathUnits="objectBoundingBox">
@@ -500,6 +505,9 @@ export default function AgentRelay() {
         </clipPath>
         <clipPath id={`${ids}-menu`}>
           <rect x={MENU.x} y={MENU.y} width={MENU.w} height={MENU.row * 3} rx={4.4} />
+        </clipPath>
+        <clipPath id={`${ids}-sheet`}>
+          <rect x={SHEET.x} y={SHEET.y} width={SHEET.w} height={SHEET.h} rx={8} />
         </clipPath>
         <clipPath id={`${ids}-board`}>
           <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.4} />
@@ -537,7 +545,6 @@ export default function AgentRelay() {
           {isPlanning(s) && s.auto ? <Signal className="auto-pulse" points={TRUNK} duration={300} /> : null}
           {s.event === "ask" ? <Signal points={TRUNK} duration={HOP_MS} /> : null}
           {s.event === "answer" && s.last ? <Signal points={FROM_HUB} delay={s.last.where === "terminal" ? 0 : HOP_MS} duration={HOP_MS} /> : null}
-          {s.event === "timeout" && s.phase === "retrying" ? <Signal points={FROM_HUB} duration={HOP_MS} /> : null}
         </g>
 
         <Box {...LID} r={2} front={<Screen {...surface} glyph={glyph} />} />
@@ -583,16 +590,12 @@ export default function AgentRelay() {
         <Box {...BOARD} r={2.2} front={<Savings s={s} glyph={glyph} clip={`${ids}-board`} />} />
 
         <g key={`air-${s.beat}`}>
-          {s.event === "ask" ? <Signal points={s.where === "phone" ? TO_PHONE : TO_NOTCH} delay={HOP_MS} duration={HOP_MS} /> : null}
+          {s.event === "ask" ? <Signal points={TO_NOTCH} delay={HOP_MS} duration={HOP_MS} /> : null}
+          {s.event === "ask" && s.pushed ? <Signal points={TO_PHONE} delay={HOP_MS} duration={HOP_MS} /> : null}
           {s.event === "answer" && s.last && s.last.where !== "terminal" ? <Signal points={s.last.where === "phone" ? FROM_PHONE : FROM_NOTCH} duration={HOP_MS} /> : null}
-          {s.event === "escalate" ? (
-            <Flight from={NOTCH_AT} to={PHONE_AT} duration={FLY_MS} lift={30}>
-              <AskChip at={NOTCH_AT} agent={agent} clip={tile} />
-            </Flight>
-          ) : null}
-          {s.event === "recall" ? (
-            <Flight from={PHONE_AT} to={NOTCH_AT} duration={FLY_MS} lift={30}>
-              <AskChip at={PHONE_AT} agent={agent} clip={tile} />
+          {s.event === "push" ? (
+            <Flight from={HUB_TOP} to={PHONE_AT} duration={FLY_MS} lift={30}>
+              <AskChip at={HUB_TOP} agent={agent} clip={tile} />
             </Flight>
           ) : null}
         </g>
@@ -714,7 +717,7 @@ function Savings({ s, glyph, clip }: { s: State; glyph: string; clip: string }) 
   )
 }
 
-type SurfaceProps = { s: State; agent: Agent; ask: Ask; command: string; card: string; arrive: number; receipt: Answer | null; clip: string; frame: string; answer: (reply: Reply) => void }
+type SurfaceProps = { s: State; agent: Agent; ask: Ask; command: string; card: string; arrive: number; receipt: Answer | null; clip: string; frame: string; answer: (reply: Reply, from: Where) => void; open: () => void }
 
 const PILL_WORDS: Readonly<Record<Verdict, string>> = {
   picked: "Answered",
@@ -722,13 +725,11 @@ const PILL_WORDS: Readonly<Record<Verdict, string>> = {
   approved: "Approved",
   steered: "Denied",
   denied: "Denied",
-  timeout: "No reply",
-  "gave-up": "In terminal",
+  "gave-up": "Withdrawn",
 }
 
-function Screen({ s, agent, ask, command, card, arrive, receipt, clip, answer, glyph }: SurfaceProps & { glyph: string }) {
-  const onNotch = s.phase === "asking" && s.where === "notch"
-  const onPhone = s.phase === "asking" && s.where === "phone"
+function Screen({ s, agent, ask, command, card, receipt, clip, answer, glyph }: SurfaceProps & { glyph: string }) {
+  const onNotch = s.phase === "asking"
   const waiting = s.phase === "waiting"
   const lead = agentAt(asksOf(s.run)[0]?.tier ?? 0)
   return (
@@ -747,7 +748,7 @@ function Screen({ s, agent, ask, command, card, arrive, receipt, clip, answer, g
         ))}
       </g>
       {waiting ? (
-        <Press className="ik-lift tap" label={ask.kind === "round" ? `Answer ${agent.fork.question} in the terminal` : `Allow ${command} in the terminal`} onPress={() => answer(ask.kind === "round" ? "first" : "approve")} sound={false} data-hot={true}>
+        <Press className="ik-lift tap" label={ask.kind === "round" ? `Answer ${agent.fork.question} in the terminal` : `Allow ${command} in the terminal`} onPress={() => answer(ask.kind === "round" ? "first" : "approve", "terminal")} sound={false} data-hot={true}>
           <g key={`prompt-${card}`} className="prompt">
             <rect className="prompt-row ik-loop" x={PROMPT.x} y={PROMPT.y} width={PROMPT.w} height={PROMPT.h} rx={1.4} />
             <text className="ui-mono prompt-text" x={PROMPT.x + 2.4} y={PROMPT.y + 4.5} fontSize={3.8}>
@@ -758,9 +759,9 @@ function Screen({ s, agent, ask, command, card, arrive, receipt, clip, answer, g
       ) : null}
       <path className="isle" d={islePath(16, 4.6, 2.2, 1.6)} />
       {onNotch ? (
-        <DecisionCard key={`card-${card}`} s={s} agent={agent} ask={ask} command={command} arrive={arrive} clip={clip} answer={answer} />
-      ) : onPhone || waiting ? (
-        <Pill key={`pill-${card}-${s.phase}`} id={agent.id} clip={clip} name={agent.name} status="needs" phone={onPhone} />
+        <DecisionCard key={`card-${card}`} agent={agent} ask={ask} command={command} clip={clip} answer={answer} />
+      ) : waiting ? (
+        <Pill key={`pill-${card}`} id={agent.id} clip={clip} name={agent.name} status="needs" />
       ) : isPlanning(s) ? (
         <Pill key={`plan-${s.run}`} id={lead.id} clip={clip} name={lead.name} status="working" />
       ) : receipt ? (
@@ -800,22 +801,24 @@ function Pill({ id, clip, name, status, phone = false, fade = false }: { id: Age
   )
 }
 
-function DecisionCard({ s, agent, ask, command, arrive, clip, answer }: { s: State; agent: Agent; ask: Ask; command: string; arrive: number; clip: string; answer: (reply: Reply) => void }) {
+function DecisionCard({ agent, ask, command, clip, answer }: { agent: Agent; ask: Ask; command: string; clip: string; answer: (reply: Reply, from: Where) => void }) {
   const left = NOTCH.x - CARD.w / 2 + 4
   const right = NOTCH.x + CARD.w / 2 - 4
   const height = ask.kind === "round" ? CARD.round : CARD.gate
   return (
-    <g className="island card" style={{ "--arrive": ms(arrive) } as CSSProperties}>
+    <g className="island card" style={{ "--arrive": ms(ARRIVE_MS) } as CSSProperties}>
       <path className="isle" d={islePath(CARD.w, height, 4, 8)} />
       <path className="isle-wash" d={islePath(CARD.w, 16, 4, 0)} />
       <g className="island-content">
         <Tile id={agent.id} x={left} y={8.2} size={7} clip={clip} />
-        <text className="isle-text strong" x={left + 9.4} y={11.4} fontSize={3.9}>
+        <text className="isle-text strong" x={left + 9.4} y={ask.kind === "round" ? 13.1 : 11.4} fontSize={3.9}>
           {`${agent.name} - ${agent.project}`}
         </text>
-        <text className="isle-text muted" x={left + 9.4} y={15.4} fontSize={3}>
-          {ask.kind === "round" ? `Plan · 1 question before ${PLAN.steps} steps` : `Bash ${command}`}
-        </text>
+        {ask.kind === "gate" ? (
+          <text className="isle-text muted" x={left + 9.4} y={15.4} fontSize={3}>
+            {`Bash ${command}`}
+          </text>
+        ) : null}
         <rect className="isle-chip" x={right - 17} y={8.4} width={17} height={5.4} rx={1.6} />
         <text className="isle-chip-text" x={right - 8.5} y={12.2} fontSize={2.9} textAnchor="middle">
           Needs you
@@ -825,37 +828,34 @@ function DecisionCard({ s, agent, ask, command, arrive, clip, answer }: { s: Sta
         </text>
         {ask.kind === "round" ? (
           agent.fork.options.map((option, k) => (
-            <Press key={option} className="ik-lift tap" label={k === 0 ? `${option}, recommended` : option} onPress={() => answer(k === 0 ? "first" : "second")} sound={false} data-hot={k === 0}>
+            <Press key={option} className="ik-lift tap" label={`${option}, on the notch`} onPress={() => answer(k === 0 ? "first" : "second", "notch")} sound={false} data-hot={k === 0}>
               <g>
                 <rect className="isle-button quiet" x={left} y={25.2 + k * 8} width={right - left} height={6.6} rx={1.8} />
-                <text className="isle-text" x={(left + right) / 2 - 2} y={29.6 + k * 8} fontSize={3.6} textAnchor="middle">
+                <text className="isle-text" x={(left + right) / 2} y={29.6 + k * 8} fontSize={3.6} textAnchor="middle">
                   {option}
-                </text>
-                <text className="isle-text faint" x={(left + right) / 2 - 2 + option.length * 1 + 3} y={29.6 + k * 8} fontSize={2.8}>
-                  {`⌘${k + 1}`}
                 </text>
               </g>
             </Press>
           ))
         ) : (
           <>
-            <Press className="ik-lift tap" label={`Deny ${command} for ${agent.name}`} onPress={() => answer("deny")} sound={false}>
+            <Press className="ik-lift tap" label={`Deny ${command} for ${agent.name}`} onPress={() => answer("deny", "notch")} sound={false}>
               <g>
                 <rect className="isle-button quiet" x={left} y={25.4} width={(right - left) / 2 - 1.2} height={6.8} rx={1.8} />
                 <text className="isle-text" x={left + (right - left) / 4 - 0.6} y={29.9} fontSize={3.7} textAnchor="middle">
-                  Deny ⌘N
+                  Deny ⌃⌘N
                 </text>
               </g>
             </Press>
-            <Press className="ik-lift tap" label={`Approve ${command} for ${agent.name}`} onPress={() => answer("approve")} sound={false} data-hot={true}>
+            <Press className="ik-lift tap" label={`Approve ${command} for ${agent.name}`} onPress={() => answer("approve", "notch")} sound={false} data-hot={true}>
               <g>
                 <rect className="isle-button approve" x={(left + right) / 2 + 1.2} y={25.4} width={(right - left) / 2 - 1.2} height={6.8} rx={1.8} />
                 <text className="isle-text strong" x={right - (right - left) / 4 + 0.6} y={29.9} fontSize={3.7} textAnchor="middle">
-                  Approve ⌘Y
+                  Approve ⌃⌘Y
                 </text>
               </g>
             </Press>
-            <Press className="ik-lift tap" label={`Deny ${command} with a reason`} onPress={() => answer("steer")} sound={false}>
+            <Press className="ik-lift tap" label={`Deny ${command} with a reason`} onPress={() => answer("steer", "notch")} sound={false}>
               <g>
                 <rect className="link-hit" x={(left + right) / 2 - 16} y={33.4} width={32} height={4.6} />
                 <text className="isle-text muted" x={(left + right) / 2} y={36.6} fontSize={2.9} textAnchor="middle">
@@ -865,7 +865,6 @@ function DecisionCard({ s, agent, ask, command, arrive, clip, answer }: { s: Sta
             </Press>
           </>
         )}
-        {s.away ? null : <rect className="window-bar" x={left} y={height + NOTCH.y - 2.4} width={right - left} height={0.8} rx={0.4} style={{ "--arrive": ms(arrive), "--hold": ms(NOTCH_MS) } as CSSProperties} />}
       </g>
     </g>
   )
@@ -880,23 +879,21 @@ function islePath(w: number, h: number, fillet: number, r: number) {
   return `M${x0 - fillet} ${y0}H${x1 + fillet}Q${x1} ${y0} ${x1} ${y0 + fillet}V${y1 - bottom}Q${x1} ${y1} ${x1 - bottom} ${y1}H${x0 + bottom}Q${x0} ${y1} ${x0} ${y1 - bottom}V${y0 + fillet}Q${x0} ${y0} ${x0 - fillet} ${y0}Z`
 }
 
-function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, frame }: SurfaceProps) {
-  const onPhone = s.phase === "asking" && s.where === "phone"
+const GATE_ROWS: ReadonlyArray<{ label: string; reply: Reply; strong: boolean; destructive: boolean }> = [
+  { label: "Approve", reply: "approve", strong: true, destructive: false },
+  { label: "Deny", reply: "deny", strong: false, destructive: true },
+  { label: "Deny with note", reply: "steer", strong: false, destructive: true },
+]
+
+const rowLabel = (reply: Reply, command: string) => (reply === "approve" ? `Approve ${command} from the phone` : reply === "deny" ? `Deny ${command} from the phone` : `Deny ${command} with a note`)
+
+function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, open, frame }: SurfaceProps) {
+  const onPhone = s.phase === "asking" && s.pushed
   const fromPhone = receipt?.where === "phone" ? receipt : null
   const awake = onPhone || fromPhone != null
+  const unlock = s.event === "open" || (s.event === "answer" && fromPhone?.verdict === "approved")
+  const sheet = onPhone && ask.kind === "round" && s.opened
   const cx = PHONE.w / 2
-  const rows: ReadonlyArray<{ label: string; reply: Reply; strong: boolean; destructive: boolean; aria: string }> =
-    ask.kind === "round"
-      ? [
-          { label: agent.fork.options[0], reply: "first", strong: true, destructive: false, aria: `${agent.fork.options[0]}, recommended, from the phone` },
-          { label: agent.fork.options[1], reply: "second", strong: false, destructive: false, aria: `${agent.fork.options[1]}, from the phone` },
-          { label: "Reply…", reply: "steer", strong: false, destructive: false, aria: "Reply with a note from the phone" },
-        ]
-      : [
-          { label: "Approve", reply: "approve", strong: true, destructive: false, aria: `Approve ${command} from the phone` },
-          { label: "Deny", reply: "deny", strong: false, destructive: true, aria: `Deny ${command} from the phone` },
-          { label: "Deny with note", reply: "steer", strong: false, destructive: true, aria: `Deny ${command} with a note` },
-        ]
   return (
     <>
       <rect className="ik-screen phone-glass" x={2} y={2} width={PHONE.w - 4} height={PHONE.h - 4} rx={8} />
@@ -918,43 +915,85 @@ function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, fra
           9:41
         </text>
       </g>
-      <rect className="phone-island" x={cx - 8} y={4.2} width={16} height={4.8} rx={2.4} />
-      {s.event === "answer" && fromPhone && (fromPhone.verdict === "approved" || fromPhone.verdict === "picked") ? (
-        <g key={`face-${s.beat}`} className="face-id">
-          <path className="face-line" d={`M${cx - 2} 5.4h-1v1M${cx + 2} 5.4h1v1M${cx - 2} 7.8h-1v-1M${cx + 2} 7.8h1v-1M${cx - 0.8} 7.2q.8.5 1.6 0`} />
-        </g>
-      ) : null}
-      {onPhone ? (
+      {onPhone && ask.kind === "gate" ? (
         <g key={`note-${card}`} className="note" style={{ "--arrive": ms(arrive) } as CSSProperties}>
-          <NoteCard clip={`${frame}-note`} title={`${agent.name} is asking`} body={ask.kind === "round" ? `${agent.fork.question} Pick one.` : `Allow bash: ${command}?`} />
+          <NoteCard clip={`${frame}-note`} title={`${agent.name} is asking`} body={`Allow bash: ${command}?`} />
           <g className="menu" clipPath={`url(#${frame}-menu)`}>
             <rect className="menu-card" x={MENU.x} y={MENU.y} width={MENU.w} height={MENU.row * 3} rx={4.4} />
             <path className="menu-rule" d={`M${MENU.x} ${MENU.y + MENU.row}h${MENU.w}M${MENU.x} ${MENU.y + 2 * MENU.row}h${MENU.w}`} />
-            {rows.map((row, k) => (
-              <Press key={row.label} className="ik-lift tap" label={row.aria} onPress={() => answer(row.reply)} sound={false} data-hot={k === 0}>
+            {GATE_ROWS.map((row, k) => (
+              <Press key={row.reply} className="ik-lift tap" label={rowLabel(row.reply, command)} onPress={() => answer(row.reply, "phone")} sound={false} data-hot={k === 0}>
                 <g>
                   <rect className={k === 0 ? "menu-hit primary-row" : "menu-hit"} x={MENU.x} y={MENU.y + k * MENU.row} width={MENU.w} height={MENU.row} />
                   <text className={`ui-text menu-text${row.strong ? " strong" : ""}${row.destructive ? " destructive" : ""}`} x={MENU.label} y={MENU.y + k * MENU.row + 5.6} fontSize={3.6}>
                     {row.label}
                   </text>
-                  {k === 0 ? ask.kind === "gate" ? <FaceIdMark x={MENU.icon} y={MENU.y + MENU.row / 2} /> : <path className="menu-star" d={star(MENU.icon, MENU.y + MENU.row / 2 - 0.3, 1.7)} /> : null}
+                  {k === 0 ? <FaceIdMark x={MENU.icon} y={MENU.y + MENU.row / 2} /> : null}
                 </g>
               </Press>
             ))}
           </g>
         </g>
-      ) : fromPhone ? (
-        <g key={`done-${s.beat}`} className="note receipt">
-          <NoteCard clip={`${frame}-note`} title={agentAt(fromPhone.tier).name} body={receiptLine(fromPhone)} />
+      ) : null}
+      {onPhone && ask.kind === "round" && !s.opened ? (
+        <g key={`note-${card}`} className="note" style={{ "--arrive": ms(arrive) } as CSSProperties}>
+          <Press className="ik-lift tap" label={`Open ${agent.name}'s question on the phone`} onPress={open} sound={false} data-hot={true}>
+            <g>
+              <NoteCard clip={`${frame}-note`} title={`${agent.name} - ${agent.project} is asking`} body={agent.fork.question} />
+              <rect className="note-hit" x={NOTE.x} y={NOTE.y} width={NOTE.w} height={NOTE.h} rx={5} />
+            </g>
+          </Press>
         </g>
       ) : null}
-      <circle className="lock-button" cx={10.6} cy={PHONE.h - 11} r={4} />
-      <path className="status-line" d={`M9.6 ${PHONE.h - 13}h2v1.2l-.5.8v2.4h-1v-2.4l-.5-.8z`} />
-      <circle className="lock-button" cx={PHONE.w - 10.6} cy={PHONE.h - 11} r={4} />
-      <rect className="status-line" x={PHONE.w - 12.4} y={PHONE.h - 12.4} width={3.6} height={2.6} rx={0.6} />
-      <circle className="status-line" cx={PHONE.w - 10.6} cy={PHONE.h - 11.1} r={0.7} />
+      {sheet ? <AnswerSheet key={`sheet-${card}`} agent={agent} frame={frame} answer={answer} /> : null}
+      <rect className="phone-island" x={cx - 8} y={4.2} width={16} height={4.8} rx={2.4} />
+      {unlock ? (
+        <g key={`face-${s.beat}`} className="face-id">
+          <path className="face-line" d={`M${cx - 2} 5.4h-1v1M${cx + 2} 5.4h1v1M${cx - 2} 7.8h-1v-1M${cx + 2} 7.8h1v-1M${cx - 0.8} 7.2q.8.5 1.6 0`} />
+        </g>
+      ) : null}
+      {sheet ? null : (
+        <>
+          <circle className="lock-button" cx={10.6} cy={PHONE.h - 11} r={4} />
+          <path className="status-line" d={`M9.6 ${PHONE.h - 13}h2v1.2l-.5.8v2.4h-1v-2.4l-.5-.8z`} />
+          <circle className="lock-button" cx={PHONE.w - 10.6} cy={PHONE.h - 11} r={4} />
+          <rect className="status-line" x={PHONE.w - 12.4} y={PHONE.h - 12.4} width={3.6} height={2.6} rx={0.6} />
+          <circle className="status-line" cx={PHONE.w - 10.6} cy={PHONE.h - 11.1} r={0.7} />
+        </>
+      )}
       <rect className="status-ink" x={cx - 9} y={PHONE.h - 4.6} width={18} height={1.2} rx={0.6} />
     </>
+  )
+}
+
+function AnswerSheet({ agent, frame, answer }: { agent: Agent; frame: string; answer: (reply: Reply, from: Where) => void }) {
+  const x = SHEET.x + 4
+  return (
+    <g className="sheet">
+      <rect className="app-screen" x={SHEET.x} y={SHEET.y} width={SHEET.w} height={SHEET.h} rx={8} />
+      <g clipPath={`url(#${frame}-sheet)`}>
+        <image href={PUSHARY_ICON} x={x} y={14} width={5.4} height={5.4} />
+        <text className="ui-text strong" x={x + 7.4} y={18} fontSize={3.3}>
+          Pushary
+        </text>
+        <text className="ui-text faint" x={x} y={28} fontSize={3}>
+          {ellipsize(`${agent.name} - ${agent.project} is asking`, 3, SHEET.w - 8)}
+        </text>
+        <text className="ui-text strong" x={x} y={35} fontSize={4.4}>
+          {agent.fork.question}
+        </text>
+        {agent.fork.options.map((option, k) => (
+          <Press key={option} className="ik-lift tap" label={`${option}, on the phone`} onPress={() => answer(k === 0 ? "first" : "second", "phone")} sound={false} data-hot={k === 0}>
+            <g>
+              <rect className="sheet-option" x={x} y={SHEET.option + k * 11} width={SHEET.w - 8} height={8.6} rx={3} />
+              <text className="ui-text sheet-option-text" x={SHEET.x + SHEET.w / 2} y={SHEET.option + 5.6 + k * 11} fontSize={3.6} textAnchor="middle">
+                {option}
+              </text>
+            </g>
+          </Press>
+        ))}
+      </g>
+    </g>
   )
 }
 
@@ -975,32 +1014,13 @@ function NoteCard({ title, body, clip }: { title: string; body: string; clip: st
         <text className="ui-text faint" x={NOTE.x + NOTE.w - 3} y={NOTE.y + 6.6} fontSize={2.9} textAnchor="end">
           now
         </text>
-        <text className="ui-text strong" x={x} y={NOTE.y + 13} fontSize={3.3}>
-          {title}
+        <text className="ui-text strong" x={x} y={NOTE.y + 13} fontSize={3.1}>
+          {ellipsize(title, 3.1, NOTE.w - 6)}
         </text>
         <text className="ui-text" x={x} y={NOTE.y + 18} fontSize={2.9}>
-          {body}
+          {ellipsize(body, 2.9, NOTE.w - 6)}
         </text>
       </g>
     </>
   )
-}
-
-function receiptLine(answer: Answer): string {
-  switch (answer.verdict) {
-    case "picked":
-      return `Answered in ${answer.seconds} s`
-    case "changed":
-      return "Plan changed before work"
-    case "approved":
-      return `Approved in ${answer.seconds} s`
-    case "steered":
-      return "Denied with a note"
-    case "denied":
-      return "Denied, no reason"
-    case "timeout":
-      return `No reply, denied at ${BASH_TIMEOUT_S} s`
-    case "gave-up":
-      return "Withdrawn to the Mac"
-  }
 }
