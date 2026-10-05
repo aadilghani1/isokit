@@ -2,16 +2,19 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { configureSound } from "react-isokit"
 import "react-isokit/styles.css"
-import "./demo.css"
-import "./site/site.css"
-import { Site } from "./site/Site"
+import "./styles/base.css"
+import "./styles/site.css"
+import { Site } from "./app/site"
+import { themeStore } from "./app/theme-store"
 
 configureSound({ defaultOn: true, storageKey: "isokit-demo:sound" })
+themeStore.start()
 
-if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.classList.add("dark")
-
-createRoot(document.getElementById("root") as HTMLElement).render(
-  <StrictMode>
-    <Site />
-  </StrictMode>,
-)
+const root = document.getElementById("root")
+if (root) {
+  createRoot(root).render(
+    <StrictMode>
+      <Site />
+    </StrictMode>,
+  )
+}

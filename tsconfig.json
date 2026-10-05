@@ -16,8 +16,9 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": { "react-isokit": ["./src/index.ts"], "react-isokit/schema": ["./src/schema.ts"] },
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "test", "examples/demo/src", "examples/demo/vite.config.ts", "tsdown.config.mjs", "vitest.config.ts"]
+  "include": ["src", "test", "scripts", "examples/demo/src", "examples/demo/vite.config.ts", "tsdown.config.mjs", "vitest.config.ts"]
 }

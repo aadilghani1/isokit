@@ -1,6 +1,6 @@
 # isokit
 
-> Interactive isometric line figures for React (npm: react-isokit). Rounded boxes, faces you draw on in flat coordinates, parts that press like real keys, optional synthesized interaction sound and zod-validated input. One dependency (zod, loaded only in development), SSR-safe, 2.4 kB core.
+> Interactive isometric line figures for React (npm: react-isokit). Rounded boxes, faces you draw on in flat coordinates, parts that press like real keys, optional synthesized interaction sound and zod-validated input. One dependency (zod, loaded only in development), SSR-safe, 2.7 kB core.
 
 Install: `npm i react-isokit`, then `import "react-isokit/styles.css"` once.
 
@@ -22,13 +22,15 @@ Core API:
 - [Sound](https://aadilghani1.github.io/isokit/#/sound): the thirteen sounds, when to use each, and the figures that do.
 - [Agent API reference](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/api.md): the API in one page.
 - [Rules](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/rules.md): what a finished figure holds to.
+- [Levels](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/levels.md): four levels of complication, from one tap to a small system, with ideas by industry.
+- [AGENTS.md](https://github.com/aadilghani1/isokit/blob/main/AGENTS.md): how to work in the repo, the code rules and the reasons behind them.
 - [Recipes](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/recipes.md): screens, keys, cables, antennas, exploded layers, folders.
 
 ## Examples
-- [Desk computer](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/DeskComputer.tsx): type on it, click it to switch.
-- [Approval pad](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/ApprovalPad.tsx): allow or deny an agent.
-- [Page press](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/PagePress.tsx): blocks drop into place.
-- [Edge box](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/EdgeBox.tsx): pick a folder, read it offline.
+- [Desk computer](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/agents/desk-computer.tsx): type on it, click it to switch.
+- [Approval pad](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/agents/approval-pad.tsx): allow or deny an agent.
+- [Page press](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/agents/page-press.tsx): blocks drop into place.
+- [Edge box](https://github.com/aadilghani1/isokit/blob/main/examples/demo/src/figures/agents/edge-box.tsx): pick a folder, read it offline.
 
 ## Maker
 - isokit is made by Aadil Ghani, maker of [Pushary](https://pushary.com): human-in-the-loop approvals that unblock Claude Code, Codex, Cursor and other agents from your phone.

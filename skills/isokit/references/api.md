@@ -2,8 +2,10 @@
 
 ```tsx
 import { Box, Plate, Press, SoundToggle, configureSound, playSound, path, project, top, front, side, type Box3, type Vec3 } from "react-isokit"
-import "react-isokit/styles.css"   // once, at the app root
+import "react-isokit/styles.css"
 ```
+
+Import the stylesheet once, at the app root.
 
 ## World
 
