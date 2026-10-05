@@ -9,3 +9,5 @@
 .phone .tap { cursor: pointer; }
 .phone .tap[data-down="true"] .button { fill: var(--ik-detail); }
 .phone .tap:focus-visible .button { stroke: var(--ik-live); stroke-width: 1.6; }
+.phone .app-name { letter-spacing: 0.08em; }
+.phone .title { font-weight: 600; }
