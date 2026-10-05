@@ -10,7 +10,7 @@
 
 .fig-agent-relay :is(.ui-text, .isle-text, .isle-chip-text) { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 500; white-space: pre; }
 .fig-agent-relay .ui-mono { font-family: var(--ik-mono); white-space: pre; }
-.fig-agent-relay .strong { font-weight: 650; }
+.fig-agent-relay .strong { font-weight: 560; }
 .fig-agent-relay .faint { fill-opacity: .5; }
 .fig-agent-relay .meter-dim { fill-opacity: .55; }
 
@@ -93,7 +93,7 @@
 .fig-agent-relay .hub-led[data-on="true"] { animation: ar-led 420ms ease-out both; }
 .fig-agent-relay .auto-pulse { stroke: var(--ik-line); stroke-width: 1; }
 
-.fig-agent-relay .board-value { font-weight: 600; }
+.fig-agent-relay .board-value { font-weight: 520; }
 .fig-agent-relay .bar-track { fill: var(--ik-screen-ink); fill-opacity: .1; }
 .fig-agent-relay :is(.bar-without, .bar-with) { transform-box: fill-box; transform-origin: 0 50%; transform: scaleX(0); transition: transform 900ms var(--ik-ease) 200ms; }
 .fig-agent-relay .bar-without { fill: var(--ik-screen-ink); fill-opacity: .35; }
