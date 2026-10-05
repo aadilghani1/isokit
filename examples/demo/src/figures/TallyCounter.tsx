@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Box, Plate, Press, playSound } from "react-isokit"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 6, a tally counter: press the plunger and the count rolls on; the knob
@@ -59,4 +60,17 @@ export function TallyCounter({ theme }: { theme: string }) {
       </Press>
     </Plate>
   )
+}
+
+export const meta: FigureMeta = {
+  slug: "tally-counter",
+  title: "Tally counter",
+  category: "agents",
+  blurb: "Press the plunger and the count rolls on; the side knob resets it.",
+  uses: ["Plate", "Box", "Press"],
+  sounds: ["press", "whoosh"],
+}
+
+export default function TallyCounterFigure() {
+  return <TallyCounter theme="Default" />
 }

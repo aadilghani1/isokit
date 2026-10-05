@@ -1,0 +1,8 @@
+.fig-ground-station .sat-light { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-ground-station svg[data-link="true"] .sat-light { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: 840ms; }
+.fig-ground-station .arrive { fill: none; stroke: var(--ik-live); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; animation: gs-arrive 700ms var(--ik-ease) both; }
+.fig-ground-station .acquire { animation: gs-acquire 840ms steps(1, end) both; }
+.fig-ground-station .key { font-size: 7.4px; }
+.fig-ground-station svg[data-link="false"] .wave { stroke: var(--ik-live); }
+@keyframes gs-arrive { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(3); } }
+@keyframes gs-acquire { from { opacity: 1; } to { opacity: 0; } }

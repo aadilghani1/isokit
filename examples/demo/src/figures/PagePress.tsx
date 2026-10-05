@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { Box, Plate, Press, path, playSound } from "react-isokit"
 import "./PagePress.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 3, a page press: a webpage taken apart into blocks that hover over the
@@ -133,3 +134,14 @@ export function PagePress() {
     </Plate>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "page-press",
+  title: "Page press",
+  category: "agents",
+  blurb: "Press publish: the page blocks drop into place, lowest first, and the address goes live.",
+  uses: ["Plate", "Box", "Press", "path"],
+  sounds: ["cascade", "whoosh"],
+}
+
+export default PagePress

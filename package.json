@@ -116,7 +116,7 @@
     {
       "name": "everything in the main entry",
       "path": "dist/index.js",
-      "limit": "3.5 kB",
+      "limit": "4.5 kB",
       "ignore": [
         "react",
         "react/jsx-runtime",
@@ -142,7 +142,7 @@
     {
       "name": "styles.css",
       "path": "dist/styles.css",
-      "limit": "2 kB",
+      "limit": "2.75 kB",
       "rolldown": false
     }
   ]

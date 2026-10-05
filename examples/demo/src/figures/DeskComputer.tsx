@@ -2,6 +2,7 @@ import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useId, u
 import { Box, curve, Plate, Press, path, playSound, top, type Vec3 } from "react-isokit"
 import { Mark } from "../Mark"
 import "./DeskComputer.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 1, a desk computer: a compact all-in-one on a desk pad, a keyboard in
@@ -274,3 +275,14 @@ export function DeskComputer() {
     </div>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "desk-computer",
+  title: "Desk computer",
+  category: "agents",
+  blurb: "Switch it on, then type on its keys or yours: the prompt appears on its screen.",
+  uses: ["Plate", "Box", "Press", "curve", "path"],
+  sounds: ["boot", "press", "release"],
+}
+
+export default DeskComputer

@@ -1,0 +1,11 @@
+.fig-budget-rack .coin { transition: opacity 0ms linear var(--t); }
+.fig-budget-rack .coin[data-on="false"] { opacity: 0; }
+.fig-budget-rack .art, .fig-budget-rack .pause { transition: opacity 260ms var(--ik-ease); }
+.fig-budget-rack .pause { opacity: 0; }
+.fig-budget-rack .card[data-paused="true"] .art { opacity: .3; }
+.fig-budget-rack .card[data-paused="true"] .pause { opacity: 1; }
+.fig-budget-rack .card[data-lead="true"] .ik-face { stroke: var(--ik-live); transition-delay: 700ms; }
+.fig-budget-rack .day { font-size: 7px; }
+.fig-budget-rack .key { font-size: 6.4px; }
+.fig-budget-rack .letter { font-size: 6px; }
+.fig-budget-rack svg[data-day="launch"] .play { stroke: var(--ik-live); }

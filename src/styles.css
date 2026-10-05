@@ -76,6 +76,29 @@
 @keyframes ik-pulse { 50% { opacity: .35; } }
 @keyframes ik-float { 50% { transform: translateY(-1.6px); } }
 
+/* Guided motion: a ripple says where to press, a cursor presses once, signals and flights carry the effect to the result */
+:where(.ik-ripple, .ik-cursor, .ik-signal, .ik-flight) { pointer-events: none; }
+:where(.ik-ripple) { transform-box: fill-box; transform-origin: center; animation: ik-ripple 2.4s ease-out infinite; }
+:where(.ik-ripple rect, .ik-cursor-ring) { fill: none; stroke: var(--ik-live); vector-effect: non-scaling-stroke; }
+:where(.ik-plate svg[data-demo="press"] .ik-press[data-hot="true"]:not(.ik-lift) > g) { transform: translateY(3px); transition: transform 60ms ease-out; }
+:where(.ik-cursor-arrow path) { fill: var(--ik-top); stroke: var(--ik-ink-hi); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+:where(.ik-cursor-ring) { opacity: 0; }
+:where(.ik-cursor[data-phase="aim"] .ik-cursor-arrow) { animation: ik-cursor-in 320ms cubic-bezier(.2, .8, .2, 1) both; }
+:where(.ik-cursor[data-phase="press"] .ik-cursor-arrow) { transform: scale(.86); transition: transform 90ms ease-out; }
+:where(.ik-cursor[data-phase="release"] .ik-cursor-arrow) { animation: ik-cursor-out 560ms var(--ik-ease) both; }
+:where(.ik-cursor[data-phase="release"] .ik-cursor-ring) { animation: ik-cursor-ring 520ms var(--ik-ease) both; }
+/* No non-scaling stroke here: it measures the dash in screen pixels and ignores pathLength. The dash starts and ends fully off the path, so no cap is left behind. */
+:where(.ik-signal) { fill: none; stroke: var(--ik-live); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 22 130; stroke-dashoffset: 24; animation: ik-signal 320ms ease-in both; }
+:where(.ik-flight) { opacity: 0; animation: ik-flight 520ms cubic-bezier(.45, 0, .55, 1) forwards; }
+:where(.ik-flight-arc) { animation: ik-arc 520ms forwards; animation-delay: inherit; animation-duration: inherit; }
+@keyframes ik-ripple { from { opacity: .9; transform: none; } 70%, to { opacity: 0; transform: scale(1.22); } }
+@keyframes ik-cursor-in { from { opacity: 0; transform: translate(22px, 18px); } }
+@keyframes ik-cursor-out { from { transform: scale(.86); } 30% { opacity: 1; transform: none; } to { opacity: 0; transform: translate(8px, 7px); } }
+@keyframes ik-cursor-ring { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(2.8); } }
+@keyframes ik-signal { to { stroke-dashoffset: -102; } }
+@keyframes ik-flight { from { opacity: 1; transform: none; } 97% { opacity: 1; transform: translateX(var(--ik-dx)); } to { opacity: 0; transform: translateX(var(--ik-dx)); } }
+@keyframes ik-arc { from { transform: none; animation-timing-function: cubic-bezier(.3, .6, .5, 1); } 50% { transform: translateY(calc(var(--ik-dy) / 2 + var(--ik-lift))); animation-timing-function: cubic-bezier(.5, 0, .7, .4); } to { transform: translateY(var(--ik-dy)); } }
+
 /* Loops sleep offscreen (give your own looping animations .ik-loop); reduced motion lands everything at once */
 /* Important, so a figure's own animation shorthand (which resets the play state) still sleeps offscreen. */
 .ik-plate:not([data-awake]) :is(.ik-pulse, .ik-blink, .ik-float, .ik-loop) { animation-play-state: paused !important; }

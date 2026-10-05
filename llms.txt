@@ -12,10 +12,14 @@ Core API:
 - `<Press label onPress>`: wraps one `<g>` of boxes; sinks on press, acts on release; pointer, Enter, Space.
 - `configureSound({ defaultOn })`, `playSound(name)`, `<SoundToggle />`: sound is off until a page opts in.
 - `frame`, `project`, `top`, `front`, `side`, `path`, `curve`, `outline`: the geometry.
+- `useDemoTap(onTap, { delay })`, `<Cursor at phase>`, `<Ripple x y z w d r>`, `<Signal points>`, `<Flight from to>`: guided motion. The figure presses its hot part once on first view, a ripple marks where to press, signals and flights carry the effect from cause to result.
 - `react-isokit/schema`: zod schemas for every input (`box3Schema`, `fitSchema`, `soundConfigSchema`, …) and `describe(error)`; types are inferred from them. Development builds warn about bad input; production skips the checks.
 
 ## Docs
 - [README](https://github.com/aadilghani1/isokit#readme): full API, styling, performance and accessibility.
+- [Components](https://aadilghani1.github.io/isokit/#/components): a page per export with a live example, props and notes.
+- [Figures](https://aadilghani1.github.io/isokit/#/figures): SaaS, deep tech, marketing and agent figures, each under five themes.
+- [Sound](https://aadilghani1.github.io/isokit/#/sound): the thirteen sounds, when to use each, and the figures that do.
 - [Agent API reference](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/api.md): the API in one page.
 - [Rules](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/rules.md): what a finished figure holds to.
 - [Recipes](https://github.com/aadilghani1/isokit/blob/main/skills/isokit/references/recipes.md): screens, keys, cables, antennas, exploded layers, folders.

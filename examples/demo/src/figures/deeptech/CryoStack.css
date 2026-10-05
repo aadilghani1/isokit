@@ -1,0 +1,13 @@
+.fig-cryo-stack .stage { transform: translateY(var(--lift)); transition: transform 700ms var(--ik-ease) calc(var(--j) * 60ms); }
+.fig-cryo-stack svg[data-cold="true"] .stage { transform: translateY(0); transition-delay: calc(var(--i) * 60ms); }
+.fig-cryo-stack svg[data-cold="true"] .ik-float { animation: none; }
+.fig-cryo-stack svg[data-cold="true"] .ring { animation: cryo-seat 640ms ease-out calc(var(--i) * 60ms + 380ms); }
+.fig-cryo-stack .shown { animation: cryo-on 1ms linear var(--on) both; }
+.fig-cryo-stack .shown.passing { animation: cryo-on 1ms linear var(--on) both, cryo-off 1ms linear var(--off) forwards; }
+.fig-cryo-stack .light { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-cryo-stack svg[data-cold="true"] .light { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: 1440ms; }
+.fig-cryo-stack .key { font-size: 7px; }
+.fig-cryo-stack svg[data-cold="false"] .flake { stroke: var(--ik-live); }
+@keyframes cryo-seat { 15%, 45% { stroke: var(--ik-live); } }
+@keyframes cryo-on { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cryo-off { to { opacity: 0; } }

@@ -1,0 +1,8 @@
+.fig-battery-stack .key { font-size: 6.4px; }
+.fig-battery-stack .tag, .fig-battery-stack .spec { font-size: 5.5px; }
+.fig-battery-stack svg[data-charged="false"] .bolt { stroke: var(--ik-live); }
+.fig-battery-stack .seg { fill: var(--ik-screen-ink); opacity: .12; transition: opacity 200ms var(--ik-ease) var(--t); }
+.fig-battery-stack .seg[data-on="true"] { opacity: .85; }
+.fig-battery-stack .plug { transition: transform 700ms var(--ik-ease); }
+.fig-battery-stack svg[data-charged="true"] .plug { transform: translate(var(--seat-x), var(--seat-y)); }
+.fig-battery-stack svg[data-charged="true"] .bus .ik-face { stroke: var(--ik-live); transition-delay: 680ms; }

@@ -14,7 +14,7 @@ export default defineConfig({
   clean: true,
   hash: false,
   fixedExtension: false,
-  // Every module here is a client module; the sound engine and the dev-only validator stay their own chunks.
-  outputOptions: { banner: '"use client";' },
+  // Only the main entry is a client module. The schemas stay importable from server code, where validating JSON usually happens.
+  outputOptions: { banner: (chunk) => (chunk.isEntry && chunk.name === "index" ? '"use client";' : "") },
   copy: [{ from: "src/styles.css", to: "dist" }],
 })

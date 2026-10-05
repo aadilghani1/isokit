@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Box, configureSound, Plate, Press, playSound, SoundToggle } from "react-isokit"
+import { useState } from "react"
+import { Box, Plate, Press, playSound } from "react-isokit"
 import { ApprovalPad } from "./figures/ApprovalPad"
 import { DeskComputer } from "./figures/DeskComputer"
 import { EdgeBox } from "./figures/EdgeBox"
@@ -7,12 +7,9 @@ import { PagePress } from "./figures/PagePress"
 import { Phone } from "./figures/Phone"
 import { SoundBoard } from "./figures/SoundBoard"
 import { TallyCounter } from "./figures/TallyCounter"
-import { Mark } from "./Mark"
-
-configureSound({ defaultOn: true, storageKey: "isokit-demo:sound" })
+import { PUSHARY_HOME, SiteFooter, SiteHeader } from "./site/SiteChrome"
 
 const PUSHARY = "https://pushary.com/sign-up?from=agent&utm_source=isokit&utm_medium=referral&utm_campaign=landing"
-const PUSHARY_HOME = "https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=landing"
 
 const SNIPPET = `import { useState } from "react"
 import { Box, Plate, Press } from "react-isokit"
@@ -54,18 +51,6 @@ function Copy({ text, label }: { text: string; label?: string }) {
   )
 }
 
-function ThemeToggle() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"))
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark)
-  }, [dark])
-  return (
-    <button type="button" className="pill" onClick={() => setDark(!dark)} aria-pressed={dark}>
-      {dark ? "Dark" : "Light"}
-    </button>
-  )
-}
-
 const KEY = { x: 0, y: 0, z: 0, w: 60, d: 60, h: 14 }
 
 function TinyKey() {
@@ -92,25 +77,11 @@ const STEPS: ReadonlyArray<{ title: string; body: string; command?: string }> = 
 export function App() {
   return (
     <>
-      <header className="bar">
-        <a className="brand" href="./">
-          <svg viewBox="-10 -11 20 22" width="18" height="20" aria-hidden="true">
-            <Mark className="mark" />
-          </svg>
-          isokit
-        </a>
-        <nav>
-          <a href="#agent">With your agent</a>
-          <a href="https://github.com/aadilghani1/isokit#readme">Docs</a>
-          <a href="https://github.com/aadilghani1/isokit">GitHub</a>
-          <SoundToggle className="pill" />
-          <ThemeToggle />
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main>
         <section className="hero">
-          <p className="eyebrow">react-isokit · MIT · 2.4 kB core</p>
+          <p className="eyebrow">react-isokit · MIT · 2.5 kB core</p>
           <h1>
             Isometric figures
             <br />
@@ -255,17 +226,7 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
         </section>
       </main>
 
-      <footer>
-        <span>
-          MIT · made by <a href="https://github.com/aadilghani1">Aadil Ghani</a>, maker of{" "}
-          <a href={PUSHARY_HOME} target="_blank" rel="noopener">
-            Pushary
-          </a>
-        </span>
-        <span>
-          Standing on <a href="https://hairline.lucasmarkes.com">Hairline</a> and <a href="https://github.com/MrBongoC/ai-iso-skill">iso-figure</a>.
-        </span>
-      </footer>
+      <SiteFooter />
     </>
   )
 }
