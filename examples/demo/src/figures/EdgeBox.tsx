@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { Box, curve, front, Plate, Press, path, playSound, side } from "react-isokit"
 import "./EdgeBox.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 4, an edge box: a small computer that reads files where they sit, its
@@ -148,3 +149,14 @@ export function EdgeBox() {
     </Plate>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "edge-box",
+  title: "Edge box",
+  category: "agents",
+  blurb: "Pick a folder from the stepped sorter: it lifts and the box reads it offline.",
+  uses: ["Plate", "Box", "Press", "curve", "path"],
+  sounds: ["paper", "process", "done"],
+}
+
+export default EdgeBox

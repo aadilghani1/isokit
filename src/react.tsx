@@ -9,11 +9,10 @@ import {
   useState,
   useSyncExternalStore,
 } from "react"
+import { cx } from "./cx"
 import { check, DEV } from "./dev"
 import { type Box3, frame, front, outline, radius, side, top, type Vec3 } from "./iso"
 import { playSound, primeSound, soundPreference } from "./sound"
-
-const cx = (...names: Array<string | false | undefined>) => names.filter(Boolean).join(" ")
 
 /* ---------- Plate ---------- */
 
@@ -64,7 +63,8 @@ export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, nam
   if (DEV && !viewBox && !fit?.length) check("fit", undefined, `<Plate label="${label}"> needs a fit (boxes or points) or a viewBox`)
   const box = viewBox ?? frame(fit ?? [], aspect, pad)
   const head = fig != null || name != null
-  const foot = hint != null || readout != null
+  // Present whenever a readout is passed at all, even as null at first, so the live region exists before its first announcement.
+  const foot = hint !== undefined || readout !== undefined
   return (
     <div ref={ref} className={cx("ik-plate", className)} style={style} data-theme={theme} data-awake={awake || undefined} onPointerEnter={primeSound} onFocusCapture={primeSound}>
       {head && (
@@ -155,7 +155,7 @@ const activates = (e: KeyboardEvent) => e.key === "Enter" || e.key === " "
  * up on release and acts on release. Pointer, Enter and Space all work. Wrap
  * the boxes that should sink in one `<g>` inside it.
  */
-export function Press({ label, onPress, sound = true, disabled, className, children, onBlur, ...rest }: PressProps): ReactNode {
+export function Press({ label, onPress, sound = true, disabled, className, children, onBlur, onPointerDown, onPointerUp, onPointerLeave, onPointerCancel, ...rest }: PressProps): ReactNode {
   const [down, setDown] = useState(false)
   const push = () => {
     if (disabled) return
@@ -174,14 +174,23 @@ export function Press({ label, onPress, sound = true, disabled, className, child
       aria-label={label}
       aria-disabled={disabled || undefined}
       data-down={down}
+      // Your own pointer handlers run after the part's, instead of replacing them.
       onPointerDown={(e) => {
         if (e.button === 0) push()
+        onPointerDown?.(e)
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
         if (down) lift()
+        onPointerUp?.(e)
       }}
-      onPointerLeave={() => setDown(false)}
-      onPointerCancel={() => setDown(false)}
+      onPointerLeave={(e) => {
+        setDown(false)
+        onPointerLeave?.(e)
+      }}
+      onPointerCancel={(e) => {
+        setDown(false)
+        onPointerCancel?.(e)
+      }}
       // A key released after focus has moved on would otherwise stay down.
       onBlur={(e) => {
         setDown(false)
@@ -199,7 +208,7 @@ export function Press({ label, onPress, sound = true, disabled, className, child
         if (!activates(e) || !down) return
         e.preventDefault()
         lift()
-        onPress()
+        if (!disabled) onPress()
       }}
       {...rest}
     >

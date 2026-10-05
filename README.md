@@ -10,7 +10,7 @@ Rounded boxes, faces you can draw on, keys that click back, and sound you can he
 A small, typed React kit, and a skill your coding agent uses to draw with it.
 
 [![npm](https://img.shields.io/npm/v/react-isokit?color=161616&label=npm)](https://www.npmjs.com/package/react-isokit)
-[![size](https://img.shields.io/badge/core-2.4%20kB-161616)](#performance)
+[![size](https://img.shields.io/badge/core-2.5%20kB-161616)](#performance)
 [![types](https://img.shields.io/badge/types-strict%20%2B%20zod-161616)](#validation)
 [![CI](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml/badge.svg)](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/aadilghani1/isokit?color=161616)](LICENSE)
@@ -31,7 +31,7 @@ Most product illustrations are pictures. These are objects: the key goes down wh
 - **Presses that feel physical.** Down on press, up on release, acts on release. Pointer, touch, Enter and Space.
 - **Sound, done properly.** Twelve synthesized interaction sounds, no audio files, loaded only when someone reaches for a figure, silent until the page opts in.
 - **Typed and validated.** Every public type is inferred from a zod schema. In development, bad input is explained in the console; in production it is clamped and costs nothing.
-- **Light on the page.** 2.4 kB core, the sound engine is a separate 1.6 kB chunk, loops sleep offscreen, server rendering works.
+- **Light on the page.** 2.5 kB core, the sound engine is a separate 1.6 kB chunk, loops sleep offscreen, server rendering works.
 
 ## Quick start
 
@@ -115,6 +115,20 @@ A part you can press. It goes down on press, comes up on release, and calls `onP
 
 `label` (required), `onPress` (required), `sound` (default `true`), `disabled`, `className`. Add the class `ik-lift` for parts that lift instead of sinking.
 
+#### Guided motion: `useDemoTap`, `<Cursor>`, `<Ripple>`, `<Signal>`, `<Flight>`
+
+A first-time reader should see what to press and what pressing does. These five pieces do that; each has a page with a live example on the [components site](https://aadilghani1.github.io/isokit/#/components).
+
+| Piece | |
+| --- | --- |
+| `useDemoTap(onTap, { delay, threshold })` | Presses the part marked `data-hot` once, silently, the first time the figure is mostly in view, then hands it over. Returns `{ ref, phase, dismiss, plate }`: `ref` on a group inside the svg, `plate` spread onto `Plate`, `phase` for `Cursor`. Cancelled by scrolling away before the press; never plays after the reader presses or types in the figure, under reduced motion, or without IntersectionObserver. |
+| `<Cursor at phase size>` | The pointer the demo presses with, landing on a world point. Draw it last. |
+| `<Ripple x y z w d r>` | A ring breathing out from a footprint: the part to press. Show it until the first press. |
+| `<Signal points delay duration>` | A dash that runs once along world points, from the cause to the result. New `key` to run again. |
+| `<Flight from to delay duration lift>` | Carries its children along an arc between two world points and hides them as they land. |
+
+All five ignore the pointer, sleep offscreen and calm down under reduced motion. `delay` and `duration` are milliseconds; sound options are seconds.
+
 #### `<SoundToggle>`
 
 A small switch for interaction sound that remembers the reader's choice. Takes any `<button>` prop; its children replace the "Sound" label.
@@ -182,9 +196,9 @@ Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `
 
 ## Performance
 
-- **2.4 kB** for `Plate`, `Box`, `Press` and the math, 3.1 kB for the whole entry, minified and brotlied. **1.8 kB** of CSS. Budgets are enforced in CI.
+- **2.5 kB** for `Plate`, `Box`, `Press` and the math, 4.1 kB for the whole entry with guided motion, minified and brotlied; unused pieces tree-shake away. **2.5 kB** of CSS. Budgets are enforced in CI.
 - **Validation costs nothing in production.** The schemas (zod/mini, 7.4 kB) load only in development builds, or when you import `react-isokit/schema` yourself.
-- **Sound costs nothing until it is used.** The 1.6 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again after four quiet seconds.
+- **Sound costs nothing until it is used.** The 1.6 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again once the longest scheduled sound has finished and four quiet seconds have passed.
 - **Loops sleep offscreen.** Each plate watches itself with one `IntersectionObserver`.
 - **Server rendering.** Everything renders to static SVG; the package ships `"use client"` for the Next.js App Router.
 - **Reduced motion** lands every transition at once and stops every loop.

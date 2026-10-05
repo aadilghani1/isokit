@@ -1,0 +1,15 @@
+.fig-channel-dock .card { transition: transform 700ms var(--ik-ease); }
+.fig-channel-dock .seat[data-on="true"] .card { transform: translateY(18px); }
+.fig-channel-dock .seat:not([data-on="true"]) .bob { animation: ik-float 3.6s ease-in-out infinite; }
+.fig-channel-dock .guide { transition: opacity 260ms var(--ik-ease); }
+.fig-channel-dock .guide[data-on="true"] { opacity: 0; }
+.fig-channel-dock .light { fill: var(--ik-detail); transition: fill 260ms var(--ik-ease) 420ms; }
+.fig-channel-dock .light[data-on="true"] { fill: var(--ik-ink-hi); animation: channel-dock-flash 900ms ease-out 420ms both; }
+.fig-channel-dock svg[data-live="true"] .light { animation: channel-dock-flash-all 900ms ease-out calc(700ms + var(--i) * 120ms) both; }
+.fig-channel-dock .name { font-size: 5.6px; }
+.fig-channel-dock .glyph { transition: stroke 260ms var(--ik-ease); }
+.fig-channel-dock .seat[data-on="true"] .glyph, .fig-channel-dock .seat[data-on="true"] .contact { stroke: var(--ik-ink-hi); fill-opacity: 1; }
+.fig-channel-dock .seat[data-on="true"] .contact { fill: var(--ik-ink-hi); transition: fill 200ms var(--ik-ease) 420ms; }
+.fig-channel-dock .seat[data-hot="true"] .glyph { stroke: var(--ik-live); }
+@keyframes channel-dock-flash { 0%, 40% { fill: var(--ik-live); } }
+@keyframes channel-dock-flash-all { 0%, 50% { fill: var(--ik-live); } }

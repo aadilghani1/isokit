@@ -42,3 +42,10 @@ What a finished figure holds to. Each one came from a mistake that was easy to m
 
 22. **Text fits at every width.** Screens hold a few short words; measure monospace at 0.6 em per character. If it does not fit, shorten the words before you shrink the font.
 23. **Legibility over decoration.** Screen text at least about 6 units; anything smaller is texture, not content.
+
+## Guided motion
+
+24. **Show it once, then hand it over.** A figure presses its own primary part once, the first time it is in view (`useDemoTap`), silently, and never again after the reader touches it.
+25. **Coral says "press here".** At rest the one live thing is the part to press, with a `Ripple` under it until the first press. After a press the live stroke moves to the result or to the next part to press, never to two places.
+26. **Motion runs from the cause to the result.** A signal leaves the key and reaches the screen; a part flies from where it was to where it goes. The result confirms where it lands, and in the read-out.
+27. **Nothing moves that is not news.** Every loop is a waiting signal (`ik-loop`); every transition reports a change of state.

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { Box, curve, Plate, Press, path, playSound } from "react-isokit"
 import "./Phone.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 7, a phone in its dock: an agent has stopped to ask for permission and
@@ -162,3 +163,14 @@ export function Phone() {
     </div>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "phone",
+  title: "Phone",
+  category: "agents",
+  blurb: "An agent asks for permission on the lock screen; approve it and the next question arrives.",
+  uses: ["Plate", "Box", "Press", "curve", "path"],
+  sounds: ["success", "error", "notify"],
+}
+
+export default Phone

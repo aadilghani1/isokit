@@ -1,0 +1,10 @@
+.fig-feature-flags .ff-slide { transition: transform 700ms var(--ik-ease); }
+.fig-feature-flags .ff-light { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease) 240ms, stroke 260ms var(--ik-ease) 240ms; }
+.fig-feature-flags .ff-light[data-on="true"] { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-feature-flags .ff-light[data-on="true"][data-last="true"] { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-feature-flags .ff-user { fill: var(--ik-screen-ink); opacity: .14; transition: opacity 260ms var(--ik-ease) calc(280ms + var(--i) * 45ms); }
+.fig-feature-flags .ff-user[data-on="true"] { opacity: .9; }
+.fig-feature-flags .ff-power { fill: var(--ik-detail); }
+.fig-feature-flags .ff-name { font-size: 6.4px; }
+.fig-feature-flags .ff-pct { font-size: 5.6px; }
+.fig-feature-flags .ff-tag { font-size: 5.6px; }

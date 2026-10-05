@@ -1,0 +1,12 @@
+.fig-campaign-hub .name { font-size: 5px; }
+.fig-campaign-hub .key { font-size: 6.4px; }
+.fig-campaign-hub .wire .solid { opacity: 0; transition: opacity 200ms var(--ik-ease); transition-delay: inherit; }
+.fig-campaign-hub .wire .draft { transition: opacity 200ms var(--ik-ease); transition-delay: inherit; }
+.fig-campaign-hub svg[data-live="true"] .wire .solid { opacity: 1; }
+.fig-campaign-hub svg[data-live="true"] .wire .draft { opacity: 0; }
+.fig-campaign-hub .wire[data-focus="true"] .solid { stroke: var(--ik-live); stroke-width: 1.4; transition: stroke 200ms var(--ik-ease), opacity 200ms var(--ik-ease); transition-delay: 0ms; }
+.fig-campaign-hub .dot { fill: var(--ik-ink-hi); animation: campaign-hub-dot 900ms ease-out both; }
+.fig-campaign-hub .hub-light { fill: var(--ik-detail); transition: fill 260ms var(--ik-ease); }
+.fig-campaign-hub svg[data-live="true"]:not([data-focus]) .hub-light { fill: var(--ik-live); animation: ik-pulse 1.8s ease-in-out infinite; }
+.fig-campaign-hub svg[data-live="true"][data-focus] .hub-light { fill: var(--ik-ink-hi); }
+@keyframes campaign-hub-dot { 0%, 60% { fill: var(--ik-live); } }

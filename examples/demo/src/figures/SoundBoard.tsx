@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Box, Plate, Press, playSound, type SoundName, useSoundEnabled } from "react-isokit"
 import "./SoundBoard.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 5, a sound board: every sound isokit can make, one pad each, in three
@@ -67,3 +68,14 @@ export function SoundBoard() {
     </Plate>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "sound-board",
+  title: "Sound board",
+  category: "agents",
+  blurb: "Every sound the kit can make, one pad each: press a pad to hear it.",
+  uses: ["Plate", "Box", "Press", "playSound"],
+  sounds: ["press", "release", "toggle", "boot", "success", "error", "notify", "complete", "cascade", "whoosh", "paper", "process", "done"],
+}
+
+export default SoundBoard

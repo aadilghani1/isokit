@@ -1,0 +1,8 @@
+.fig-metrics-board .slab { transition: opacity 0ms linear var(--t); }
+.fig-metrics-board .slab[data-on="false"] { opacity: 0; }
+.fig-metrics-board .range[data-on="true"]:not([data-down="true"]) > g { transform: translateY(1.5px); }
+.fig-metrics-board .led { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-metrics-board .range[data-on="true"] .led { fill: var(--ik-line); stroke: var(--ik-line); }
+.fig-metrics-board svg[data-chosen="true"] .range[data-on="true"] .led { fill: var(--ik-live); stroke: var(--ik-live); }
+.fig-metrics-board .key { font-size: 7px; }
+.fig-metrics-board .range-label { font-size: 6px; }

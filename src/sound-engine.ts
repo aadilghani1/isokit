@@ -16,6 +16,7 @@ let ctx: AudioContext | null = null
 let master: GainNode | null = null
 let hiss: AudioBuffer
 let idle = 0
+let quietAt = 0
 let volume = 0.55
 
 export function setVolume(v: number) {
@@ -173,11 +174,13 @@ export function play(name: SoundName, options: SoundOptions = {}): () => void {
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches
     const length = recipe(c, bus, c.currentTime + 0.005, 1 + (Math.random() - 0.5) * 0.06, opts, still)
     window.setTimeout(() => bus.disconnect(), (length + 0.2) * 1000)
+    // Suspend only once the longest sound still scheduled has finished: a delayed cascade can outlast four seconds.
+    quietAt = Math.max(quietAt, c.currentTime + length)
+    window.clearTimeout(idle)
+    idle = window.setTimeout(() => { if (c.state === "running") c.suspend() }, Math.max(4, quietAt - c.currentTime + 0.5) * 1000)
   }
   if (c.state === "running") start()
   else c.resume().then(start, () => {})
-  window.clearTimeout(idle)
-  idle = window.setTimeout(() => { if (c.state === "running") c.suspend() }, 4000)
   return () => {
     if (done) return
     done = true

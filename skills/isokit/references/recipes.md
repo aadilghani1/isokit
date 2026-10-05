@@ -73,3 +73,24 @@ Thin `front`-plane paths with a tab, standing on a stepped stand so each one fur
 ## A plug that is not plugged in
 
 A small box a few units away from an empty `ik-well` port, with its cable lying on the ground (z ≈ 1.5). It says "offline" without a word.
+
+## Show the press once (guided motion)
+
+```tsx
+const [touched, setTouched] = useState(false)
+const demo = useDemoTap(() => publish(false), { delay: 600 })
+const press = () => { demo.dismiss(); setTouched(true); publish(true) }
+
+<Plate {...demo.plate} …>
+  <g ref={demo.ref}>
+    …
+    {!touched && demo.phase !== "aim" && demo.phase !== "press" && <Ripple {...KEY} r={6} />}
+    <Press label="Publish the page" onPress={press} data-hot={!live}><g><Box {...KEY} r={6} /></g></Press>
+    <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
+  </g>
+</Plate>
+```
+
+## A part that moves between places
+
+Keep both ends drawn and switch them with `transition: opacity 0ms linear var(--t)`, where `--t` is the take-off time for the end it leaves and the landing time for the end it reaches; draw `<Flight key={step} from to delay>` last. No timers.

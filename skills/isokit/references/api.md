@@ -55,3 +55,16 @@ All input types come from zod schemas in `react-isokit/schema` (`box3Schema`, `v
 - `playSound(name, options?)` returns `stop()`. Names: `press release toggle boot success error notify complete cascade whoosh paper process done`.
 - `playSound("cascade", { count, stagger, delay })` lands `count` rising tocks `stagger` seconds apart starting at `delay`, then a small bell: match it to a staggered CSS animation.
 - Sounds asked for before the reader has interacted with the page are dropped, never queued.
+
+## Guided motion, for first-time readers
+
+```tsx
+import { Cursor, Flight, Ripple, Signal, useDemoTap } from "react-isokit"
+```
+
+- `useDemoTap(onTap, { delay, threshold })` → `{ ref, phase, dismiss, plate }`. The first time the figure is mostly in view, a cursor presses the part marked `data-hot` and calls `onTap` (keep it silent). Put `ref` on a `<g>` inside the svg, spread `plate` onto `Plate`, pass `phase` to `Cursor`. The reader pressing or typing anywhere in the figure dismisses it; call `dismiss()` from your press handlers too. It never plays under reduced motion or without IntersectionObserver, and scrolling away before the press cancels it. Stagger `delay` for figures shown side by side.
+- `<Cursor at={[x, y, z]} phase size />`: the pointer. A fixed world point on the part (the middle of its lid). Draw it last.
+- `<Ripple x y z w d r />`: a ring breathing out from a footprint at height z, drawn just before the key it marks. Render it until the reader's first press and hide it while `phase` is `aim` or `press`.
+- `<Signal points delay duration />`: a dash that runs once from the first world point to the last. New `key` to run again; the result lands at `delay + duration`.
+- `<Flight from to delay duration lift>children</Flight>`: carries children drawn at `from` along an arc to `to`, then hides them. Hide the part at `from` at `delay` and show it at `to` at `delay + duration` with a CSS `transition-delay`, not a timer.
+- All of them ignore the pointer, sleep offscreen and calm down under reduced motion. `delay` and `duration` are milliseconds here; sound options are seconds.

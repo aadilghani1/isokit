@@ -1,0 +1,13 @@
+.fig-api-key-vault .card { transition: opacity 0ms linear var(--t); }
+.fig-api-key-vault .card[data-on="false"] { opacity: 0; }
+.fig-api-key-vault .card[data-live="true"] .ik-face { stroke: var(--ik-live); transition: stroke 260ms var(--ik-ease) var(--t), fill 260ms var(--ik-ease); }
+.fig-api-key-vault .gone { animation: akv-gone 600ms ease-in both; }
+.fig-api-key-vault .pip { fill: var(--ik-screen-ink); opacity: .14; }
+.fig-api-key-vault .pip[data-on="true"] { opacity: .85; }
+.fig-api-key-vault .blip { animation: akv-blip 1100ms var(--ik-ease) both; }
+.fig-api-key-vault .key { font-size: 7px; }
+.fig-api-key-vault .suffix { font-size: 6px; }
+.fig-api-key-vault .card-tag { font-size: 4.6px; }
+.fig-api-key-vault svg[data-fresh="true"] .spin { stroke: var(--ik-live); }
+@keyframes akv-gone { 35% { opacity: 1; } to { opacity: 0; } }
+@keyframes akv-blip { 0%, 70% { opacity: .85; } }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Box, Plate, Press, playSound, project } from "react-isokit"
 import "./ApprovalPad.css"
+import type { FigureMeta } from "../site/registry"
 
 /**
  * Fig 2, an approval pad: an agent's request waits on a small screen with its
@@ -143,3 +144,14 @@ export function ApprovalPad() {
     </Plate>
   )
 }
+
+export const meta: FigureMeta = {
+  slug: "approval-pad",
+  title: "Approval pad",
+  category: "agents",
+  blurb: "An agent request waits on the screen; press allow or deny and the next one arrives.",
+  uses: ["Plate", "Box", "Press"],
+  sounds: ["success", "error", "notify", "complete"],
+}
+
+export default ApprovalPad
