@@ -1,5 +1,4 @@
 import type { ReactNode } from "react"
-import { CopyCommand } from "../app/copy-command"
 import { pusharyFrom } from "../app/links"
 import { href } from "../app/route-store"
 import { docSlugForExport } from "../catalog/component-docs"
@@ -46,10 +45,9 @@ function PusharyCredit({ slug }: { slug: string }): ReactNode {
         <p>{line}</p>
       </div>
       <div className="cta">
-        <a className="button" href={pusharyFrom("figure", slug)} target="_blank" rel="noopener">
+        <a className="button button-secondary" href={pusharyFrom("figure", slug)} target="_blank" rel="noopener">
           See Pushary →
         </a>
-        <CopyCommand text="npx pushary@latest setup" />
       </div>
     </aside>
   )

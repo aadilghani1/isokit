@@ -44,5 +44,6 @@ describe("figure catalog", () => {
     const html = renderToString(<Figure />)
     expect(html).toContain('role="group"')
     expect(html).toContain('role="button"')
+    expect(html.match(/class="ik-credit"/g)).toHaveLength(1)
   })
 })

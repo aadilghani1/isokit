@@ -34,7 +34,7 @@ export const DOCS: readonly ComponentDoc[] = [
     kind: "Component",
     group: "Drawing",
     summary: "The numbered plate a figure sits on, and the svg it is drawn in. It frames what you give it, puts captions in its corners and wakes looping animations only near the viewport.",
-    signature: "<Plate label fit aspect pad viewBox fig name hint readout theme>",
+    signature: "<Plate label fit aspect pad viewBox fig name hint readout credit theme>",
     props: [
       { name: "label", type: "string", about: "Required. The accessible name: what the figure is and how to use it." },
       { name: "fit", type: "Array<Box3 | Vec3>", about: "Boxes and points to frame. Include the most extreme pose, so nothing leaves the plate when it moves." },
@@ -42,6 +42,7 @@ export const DOCS: readonly ComponentDoc[] = [
       { name: "pad", type: "number", fallback: "0.07", about: "Padding around fit, as a share of its size." },
       { name: "viewBox", type: "string", about: "Your own viewBox instead of fit." },
       { name: "fig, name, hint, readout", type: "ReactNode", about: "The four corner captions. readout is a polite live region: write it on every interaction." },
+      { name: "credit", type: "boolean", fallback: "true", about: "Shows a small Made with isokit · pushary.com link beneath the captions. Set false to omit it." },
       { name: "theme", type: '"light" | "dark" | "system"', about: "Unset follows a .dark or [data-theme=dark] ancestor." },
       { name: "...svg", type: "SVGProps", about: "Anything else lands on the svg. Put state there as data-* attributes and style descendants from CSS." },
     ],

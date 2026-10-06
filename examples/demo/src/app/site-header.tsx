@@ -31,16 +31,18 @@ export function SiteHeader({ current }: { current?: string | undefined }): React
         </svg>
         isokit
       </a>
-      <nav aria-label="Site">
+      <nav className="site-nav" aria-label="Site">
         {NAV_LINKS.map((link) => (
           <a key={link.to} href={href(link.to)} aria-current={current === link.to ? "page" : undefined}>
             {link.label}
           </a>
         ))}
-        <a href={GITHUB_REPO}>GitHub</a>
+      </nav>
+      <div className="site-controls">
+        <a className="github-link" href={GITHUB_REPO}>GitHub</a>
         <SoundToggle className="pill" />
         <ThemeToggle />
-      </nav>
+      </div>
     </header>
   )
 }
