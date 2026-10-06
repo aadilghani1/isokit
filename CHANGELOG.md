@@ -1,5 +1,11 @@
 # react-isokit
 
+## 0.5.0
+
+### Minor Changes
+
+- [#24](https://github.com/aadilghani1/isokit/pull/24) [`a075f8d`](https://github.com/aadilghani1/isokit/commit/a075f8deefe52a2e1f0c355e5a25b0d5fb77a80e) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Add a small linked maker credit to Plate by default. Use credit={false} to omit it. Keep the drawing in its own grid row so plates without captions retain the correct layout.
+
 ## 0.4.0
 
 ### Minor Changes
