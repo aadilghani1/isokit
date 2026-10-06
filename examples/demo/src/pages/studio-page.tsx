@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { CopyCommand } from "../app/copy-command"
+import { Folder } from "../app/folder"
 import { href } from "../app/route-store"
 import { FIGURES, figureBySlug } from "../catalog/figure-registry"
 import { type Brief, INDUSTRIES, type IndustryEntry } from "../catalog/industries"
@@ -39,12 +40,15 @@ function LevelCard({ level }: { level: LevelEntry }): ReactNode {
       <p className="eyebrow">Level {level.level}</p>
       <h3>{level.name}</h3>
       <p>{level.promise}</p>
-      <ul className="level-ingredients">
-        {level.ingredients.map((ingredient) => (
-          <li key={ingredient}>{ingredient}</li>
-        ))}
-      </ul>
-      <p className="level-timing">{level.timing}</p>
+      <details className="level-recipe">
+        <summary>What you need</summary>
+        <ul className="level-ingredients">
+          {level.ingredients.map((ingredient) => (
+            <li key={ingredient}>{ingredient}</li>
+          ))}
+        </ul>
+        <p className="level-timing">{level.timing}</p>
+      </details>
       <ul className="chips">
         {level.examples.map((slug) => {
           const figure = figureBySlug.get(slug)
@@ -90,13 +94,13 @@ export function StudioPage(): ReactNode {
           Studio · {INDUSTRIES.length} industries · {BRIEF_COUNT} briefs · {FIGURES.length} built
         </p>
         <h1>Make the next figure.</h1>
-        <p className="lede">Pick an industry and a level, open a brief and copy its scaffold command. You get a working figure at that level, already wired into the gallery, ready to be redrawn as the real object.</p>
+        <p className="lede">Pick an idea and copy its starter command. You get a working drawing to change, with the buttons already connected.</p>
       </header>
 
       <section className="figure-section" aria-labelledby="levels">
         <div className="section-head">
-          <h2 id="levels">Four levels of complication</h2>
-          <p>Each level adds one idea to the one before. Start at the lowest level that tells the story.</p>
+          <h2 id="levels">Start simple.</h2>
+          <p>Choose how much your drawing needs to do. One button is often enough.</p>
         </div>
         <div className="level-grid">
           {LEVELS.map((level) => (
@@ -105,11 +109,36 @@ export function StudioPage(): ReactNode {
         </div>
       </section>
 
+      <section className="figure-section" aria-labelledby="briefs">
+        <div className="section-head">
+          <h2 id="briefs">Find your next idea.</h2>
+          <p>Open a folder to browse. Finished drawings link to an example; unfinished ideas include a starter command to run in this repository.</p>
+        </div>
+        <div className="brief-matrix">
+          {MATRIX.map(({ industry, byLevel }) => (
+            <Folder key={industry.id} title={industry.title} description={industry.blurb} count={`${industry.briefs.length} ideas`}>
+              <div className="brief-row">
+                {LEVELS.map((level) => {
+                  const briefs = byLevel.get(level.level) ?? NO_BRIEFS
+                  return (
+                    <div key={level.level} className="brief-level" data-empty={briefs.length === 0 || undefined}>
+                      <p className="brief-level-name">
+                        L{level.level} · {level.name}
+                      </p>
+                      <BriefCell industry={industry} briefs={briefs} />
+                    </div>
+                  )
+                })}
+              </div>
+            </Folder>
+          ))}
+        </div>
+      </section>
       <section className="figure-section" aria-labelledby="making">
         <div className="section-head">
           <h2 id="making">How a figure is made</h2>
         </div>
-        <ol className="steps">
+        <ol className="steps making-steps">
           {MAKING_STEPS.map((step, index) => (
             <li key={step.title}>
               <span className="n">{String(index + 1).padStart(2, "0")}</span>
@@ -117,46 +146,9 @@ export function StudioPage(): ReactNode {
                 <h3>{step.title}</h3>
                 <p>{step.body}</p>
               </div>
-              <span />
             </li>
           ))}
         </ol>
-      </section>
-
-      <section className="figure-section" aria-labelledby="briefs">
-        <div className="section-head">
-          <h2 id="briefs">Briefs by industry and level</h2>
-          <p>Built figures link to the gallery. Open briefs carry the command that scaffolds them.</p>
-        </div>
-        <div className="brief-matrix">
-          <div className="brief-row brief-head" aria-hidden="true">
-            <span>Industry</span>
-            {LEVELS.map((level) => (
-              <span key={level.level}>
-                L{level.level} · {level.name}
-              </span>
-            ))}
-          </div>
-          {MATRIX.map(({ industry, byLevel }) => (
-            <section key={industry.id} className="brief-row" aria-labelledby={`brief-${industry.id}`}>
-              <div className="brief-industry">
-                <h3 id={`brief-${industry.id}`}>{industry.title}</h3>
-                <span>{industry.blurb}</span>
-              </div>
-              {LEVELS.map((level) => {
-                const briefs = byLevel.get(level.level) ?? NO_BRIEFS
-                return (
-                  <div key={level.level} className="brief-level" data-empty={briefs.length === 0 || undefined}>
-                    <p className="brief-level-name">
-                      L{level.level} · {level.name}
-                    </p>
-                    <BriefCell industry={industry} briefs={briefs} />
-                  </div>
-                )
-              })}
-            </section>
-          ))}
-        </div>
       </section>
     </main>
   )

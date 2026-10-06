@@ -13,9 +13,11 @@ Import the stylesheet once, at the app root.
 - A box is `{ x, y, z, w, d, h }`: its back-left-bottom corner and its size along x, y and z.
 - `project(x, y, z)` gives the screen point `[sx, sy]` in viewBox units.
 
-## `<Plate label fit aspect pad viewBox fig name hint readout theme>`
+## `<Plate label fit aspect pad viewBox fig name hint readout credit theme>`
 
 The plate and its `<svg>`, a group named by `label` (required; pass `role="img"` for a figure with nothing to press). `fit` takes boxes and `[x, y, z]` points and frames them; `aspect` is width over height (default 1.25). `fig`, `name`, `hint`, `readout` are the four corner captions; `readout` is a polite live region. Any other prop lands on the `<svg>`: put state there as `data-*` attributes and style descendants from CSS (`.my-figure svg[data-live="true"] .block { … }`). `theme`: unset follows a `.dark` / `[data-theme="dark"]` ancestor, or `"light"`, `"dark"`, `"system"`.
+
+`credit` defaults to `true`: the plate includes a small linked “Made with isokit · pushary.com” footer. Use `credit={false}` to omit it. It stays outside the SVG and live region; capture the whole plate when sharing its rendered appearance.
 
 ## `<Box x y z w d h r className top front side>`
 

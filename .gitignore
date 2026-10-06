@@ -4,3 +4,5 @@ examples/demo/dist
 *.tgz
 .DS_Store
 coverage
+.impeccable/hook.cache.json
+.impeccable/config.local.json

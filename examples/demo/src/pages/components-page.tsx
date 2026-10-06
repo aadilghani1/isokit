@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { NavigationPicker } from "../app/navigation-picker"
 import { href } from "../app/route-store"
 import { type ComponentDoc, DOC_GROUPS, DOCS, docBySlug, docsByGroup } from "../catalog/component-docs"
 import { NO_FIGURES } from "../catalog/figure-registry"
@@ -6,6 +7,10 @@ import { figuresByDocSlug } from "../catalog/figures-by-doc"
 import { EXAMPLES_BY_SLUG } from "../component-examples/examples-by-slug"
 
 const NO_DOCS: readonly ComponentDoc[] = []
+const NAVIGATION_GROUPS = [
+  { label: "Start here", links: [{ label: "Overview", href: href("components") }] },
+  ...DOC_GROUPS.map((group) => ({ label: group, links: (docsByGroup.get(group) ?? NO_DOCS).map((doc) => ({ label: doc.name, href: href("components", doc.slug) })) })),
+]
 
 function Sidebar({ current }: { current: string | undefined }): ReactNode {
   return (
@@ -49,7 +54,7 @@ function Detail({ doc }: { doc: ComponentDoc }): ReactNode {
         </div>
       ) : null}
       <h2>{doc.kind === "Hook" ? "Arguments and result" : "Props"}</h2>
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label={`${doc.name} properties`} tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -106,7 +111,7 @@ function Overview(): ReactNode {
     <article className="docs-detail">
       <p className="eyebrow">Components · {DOCS.length} pages</p>
       <h1>Everything in the kit.</h1>
-      <p className="lede">Three components draw a figure, five guide a first-time reader through it, and a few functions do the projection underneath. Each page has a live example, its props and the rules that keep a figure honest.</p>
+      <p className="lede">The pieces behind the drawings. Start with Plate, Box and Press, then add motion or sound. Each page includes a working example and the code to use it.</p>
       <div className="docs-cards">
         {DOCS.map((doc) => (
           <a key={doc.slug} className="docs-card" href={href("components", doc.slug)}>
@@ -124,6 +129,9 @@ export function ComponentsPage({ slug }: { slug: string | undefined }): ReactNod
   const doc = slug ? docBySlug.get(slug) : undefined
   return (
     <main className="page docs">
+      <div className="docs-picker">
+        <NavigationPicker label="Components" current={{ label: doc?.name ?? "Overview", href: doc ? href("components", doc.slug) : href("components") }} groups={NAVIGATION_GROUPS} />
+      </div>
       <Sidebar current={doc?.slug} />
       {doc ? <Detail key={doc.slug} doc={doc} /> : <Overview />}
     </main>

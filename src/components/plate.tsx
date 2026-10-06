@@ -16,6 +16,7 @@ export type PlateProps = {
   name?: ReactNode
   hint?: ReactNode
   readout?: ReactNode
+  credit?: boolean
   theme?: "light" | "dark" | "system"
   className?: string
   style?: CSSProperties
@@ -40,7 +41,7 @@ function useNearViewport(): [RefObject<HTMLDivElement | null>, boolean] {
   return [plate, near]
 }
 
-export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, name, hint, readout, theme, className, style, children, ...svg }: PlateProps): ReactNode {
+export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, name, hint, readout, credit = true, theme, className, style, children, ...svg }: PlateProps): ReactNode {
   const [plate, awake] = useNearViewport()
   if (DEV && !viewBox && !fit?.length) check("fit", undefined, `<Plate label="${label}"> needs a fit (boxes or points) or a viewBox`)
   const box = viewBox ?? frame(fit ?? [], aspect, pad)
@@ -57,12 +58,17 @@ export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, nam
       <svg viewBox={box} role="group" aria-label={label} {...svg}>
         {children}
       </svg>
-      {hasFooter && (
-        <div className="ik-cap">
-          <span>{hint}</span>
-          <span className="ik-cap-hi" aria-live="polite">
-            {readout}
-          </span>
+      {(hasFooter || credit) && (
+        <div className="ik-footer">
+          {hasFooter && (
+            <div className="ik-cap">
+              <span>{hint}</span>
+              <span className="ik-cap-hi" aria-live="polite">
+                {readout}
+              </span>
+            </div>
+          )}
+          {credit && <a className="ik-credit" href="https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=figure-credit" target="_blank" rel="noopener noreferrer">Made with isokit · pushary.com</a>}
         </div>
       )}
     </div>

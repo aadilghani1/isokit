@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from "react"
 import { Box, Plate, Press } from "react-isokit"
 import { CopyCommand } from "../app/copy-command"
-import { PUSHARY_HOME, PUSHARY_SIGN_UP } from "../app/links"
+import { GITHUB_REPO, pusharyFrom } from "../app/links"
 import { href } from "../app/route-store"
 import { SiteFooter } from "../app/site-footer"
 import { SiteHeader } from "../app/site-header"
@@ -9,9 +9,9 @@ import { ApprovalPad } from "../figures/agents/approval-pad"
 import { DeskComputer } from "../figures/agents/desk-computer"
 import { EdgeBox } from "../figures/agents/edge-box"
 import { PagePress } from "../figures/agents/page-press"
-import { Phone } from "../figures/agents/phone"
 import { SoundBoard } from "../figures/agents/sound-board"
 import { TallyCounter } from "../figures/agents/tally-counter"
+import { PUSHARY_ICON } from "../logos/agent-logos"
 
 const SNIPPET = `import { useState } from "react"
 import { Box, Plate, Press } from "react-isokit"
@@ -45,12 +45,10 @@ function TinyKey(): ReactNode {
   )
 }
 
-const STEPS: ReadonlyArray<{ title: string; body: string; command?: string }> = [
-  { title: "Teach your agent", body: "Add the isokit skill. Claude Code, Codex, Cursor and any agent that reads skills can use it.", command: "npx skills add aadilghani1/isokit" },
-  { title: "Add the kit to your app", body: "One package, one stylesheet. Server rendering and the App Router work out of the box.", command: "npm i react-isokit" },
-  { title: "Ask for a figure", body: "Name an object and what pressing it should do. The skill decides the output first, then lays out the boxes.", command: "/isokit a coffee grinder with a dial that sets the grind" },
-  { title: "It draws, looks and fixes", body: "Your agent writes the component, screenshots it in light and dark at desktop and phone width, and fixes what it sees." },
-  { title: "Approve from your phone", body: "When it stops to install a package or start the dev server, Pushary sends the question to your phone. Tap approve and it keeps working." },
+const STEPS: ReadonlyArray<{ title: string; body: string; command: string }> = [
+  { title: "Add it to your React app", body: "Install the drawing kit in your project.", command: "npm i react-isokit" },
+  { title: "Give your coding agent the instructions", body: "The isokit skill works with Claude Code, Codex, Cursor and other agents that support skills.", command: "npx skills add aadilghani1/isokit" },
+  { title: "Describe what you want", body: "Say what to draw and what should happen when someone clicks it. Your agent writes the code for you.", command: "/isokit a coffee grinder with a dial that sets the grind" },
 ]
 
 export function HomePage(): ReactNode {
@@ -60,59 +58,74 @@ export function HomePage(): ReactNode {
 
       <main>
         <section className="hero">
-          <p className="eyebrow">react-isokit · MIT · 2.5 kB core</p>
+          <p className="eyebrow">Free and open source · React</p>
           <h1>
-            Isometric figures
+            Little drawings.
             <br />
-            you can press.
+            Made to be clicked.
           </h1>
-          <p className="lede">Rounded boxes, faces you can draw on, keys that click back and sound you can hear. A small React kit, and a skill your coding agent uses to draw with it.</p>
-          <div className="commands">
-            <CopyCommand text="npm i react-isokit" />
-            <CopyCommand text="npx skills add aadilghani1/isokit" />
+          <p className="lede">Add interactive illustrations to your website. Start with an example, or ask your coding agent to draw one. Change the colours, add sound, and make it yours.</p>
+          <div className="cta">
+            <a className="button" href={href("figures")}>Explore the examples <span aria-hidden="true">→</span></a>
+            <a className="button button-secondary" href="#agent">Make your own</a>
           </div>
-          <p className="maker">
-            Made by the maker of{" "}
-            <a href={PUSHARY_HOME} target="_blank" rel="noopener">
-              Pushary
-            </a>
-            , the control panel that unblocks your coding agents from your phone.
-          </p>
+          <p className="maker">A small React library. Free for personal and commercial projects. No account needed.</p>
         </section>
 
         <figure className="wide">
           <DeskComputer />
+          <figcaption className="demo-caption"><span>Try it. Click the computer to switch it on, then type.</span><a href={href("figures", "desk-computer")}>Open this example →</a></figcaption>
         </figure>
 
         <div className="grid">
           <figure>
             <ApprovalPad />
             <figcaption>
-              <strong>Approval pad</strong>
-              <span>Allow or deny an agent, with a light that waits.</span>
+              <strong><a href={href("figures", "approval-pad")}>Approval pad</a></strong>
+              <span>Press a button to approve or stop a task.</span>
             </figcaption>
           </figure>
           <figure>
             <PagePress />
             <figcaption>
-              <strong>Page press</strong>
-              <span>Blocks click into place, lowest first.</span>
+              <strong><a href={href("figures", "page-press")}>Page builder</a></strong>
+              <span>Press to build a page, one block at a time.</span>
             </figcaption>
           </figure>
           <figure>
             <EdgeBox />
             <figcaption>
-              <strong>Edge box</strong>
-              <span>Folders lift; the box reads them offline.</span>
+              <strong><a href={href("figures", "edge-box")}>File reader</a></strong>
+              <span>Pick a folder and watch it load.</span>
             </figcaption>
           </figure>
         </div>
+
+        <section className="agent" id="agent">
+          <div className="section-head">
+            <p className="eyebrow">Make your own</p>
+            <h2>Describe it. Then try it.</h2>
+            <p>You need a React project and a coding agent. Prefer to write the code yourself? <a href={href("components")}>Read the component docs</a>.</p>
+          </div>
+          <ol className="steps">
+            {STEPS.map((s, i) => (
+              <li key={s.title}>
+                <span className="n">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <h3>{s.title}</h3>
+                  <p>{s.body}</p>
+                </div>
+                <CopyCommand text={s.command} />
+              </li>
+            ))}
+          </ol>
+        </section>
 
         <section className="split">
           <div>
             <p className="eyebrow">Sound</p>
             <h2>Thirteen sounds, no files.</h2>
-            <p>Every sound is synthesized in the browser from a shaped tone and a band of noise. The engine is a 1.6 kB chunk fetched when someone reaches for a figure, nothing plays until your page opts in, and the audio device is released after four quiet seconds.</p>
+            <p>Give a button a click, a switch a tick, or a finished task a chime. The browser makes the sounds, so there are no audio files to download. Sound is optional.</p>
             <pre>
               <code>{`configureSound({ defaultOn: true })
 playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
@@ -125,7 +138,7 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
           <div className="section-head">
             <p className="eyebrow">Theming</p>
             <h2>Same figure, your colours.</h2>
-            <p>Sixteen custom properties at zero specificity. Set them on any ancestor and the figure follows; it follows your dark mode on its own.</p>
+            <p>Match your website with a few CSS colour settings. Light and dark themes are included. Try the same counter in three different styles.</p>
           </div>
           <div className="grid">
             <div className="theme-paper">
@@ -140,64 +153,13 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
           </div>
         </section>
 
-        <section className="agent" id="agent">
-          <div className="section-head">
-            <p className="eyebrow">End to end</p>
-            <h2>From a sentence to a figure, with your agent.</h2>
-          </div>
-          <ol className="steps">
-            {STEPS.map((s, i) => (
-              <li key={s.title}>
-                <span className="n">{String(i + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3>{s.title}</h3>
-                  <p>{s.body}</p>
-                </div>
-                {s.command ? <CopyCommand text={s.command} /> : <span />}
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <aside className="pushary" aria-labelledby="pushary-title">
-          <div className="pushary-copy">
-            <p className="eyebrow">
-              From the maker of isokit · <span>Pushary</span>
-            </p>
-            <h2 id="pushary-title">Your agent froze, waiting for your yes.</h2>
-            <p>Pushary sends the question to your phone. Tap approve and it keeps working, in Claude Code, Codex, Cursor, Windsurf, Gemini CLI or any MCP agent.</p>
-            <ul className="plans">
-              <li>
-                <strong>Agent</strong>
-                <span className="price">$9.99/mo</span>
-                <span>5,000 notifications · 3-day free trial</span>
-              </li>
-              <li>
-                <strong>Agent Pro</strong>
-                <span className="price">$19.99/mo</span>
-                <span>Unlimited · budgets · up to 5 users</span>
-              </li>
-            </ul>
-            <div className="cta">
-              <a className="button" href={PUSHARY_SIGN_UP} target="_blank" rel="noopener">
-                Start your free trial →
-              </a>
-              <CopyCommand text="npx pushary@latest setup" />
-            </div>
-            <p className="fine">
-              Setup finds your agents and pairs your phone in under two minutes. <a href={href("figures", "agent-relay")}>See the whole flow in the agent relay figure →</a>
-            </p>
-          </div>
-          <Phone />
-        </aside>
 
         <section className="split code">
           <div>
-            <p className="eyebrow">The whole API</p>
-            <h2>Fifteen lines to a key.</h2>
+            <p className="eyebrow">A little code</p>
+            <h2>One key. Three components.</h2>
             <p>
-              Describe boxes in world units. <code>Plate</code> frames them, <code>Box</code> draws one with rounded corners and faces you can draw on, and <code>Press</code> makes it sink and click. Paint back to front and you are done. Bad input is
-              explained in development by zod schemas you can also import yourself.
+              <code>Plate</code> holds the drawing. <code>Box</code> draws a shape. <code>Press</code> makes it clickable. Put them together and you have your first interactive illustration.
             </p>
             <pre>
               <code>{SNIPPET}</code>
@@ -205,6 +167,26 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
           </div>
           <TinyKey />
         </section>
+        <section className="questions" aria-labelledby="questions-title">
+          <h2 id="questions-title">A few things to know.</h2>
+          <dl>
+            <div><dt>What is isokit?</dt><dd>A free React library for interactive isometric illustrations: small drawings with a 3D look. Use them in websites, docs and product demos.</dd></div>
+            <div><dt>Can I use it in a paid project?</dt><dd>Yes. isokit is MIT licensed. You can use and change it in personal or commercial projects. <a href={`${GITHUB_REPO}/blob/main/LICENSE`}>Read the license</a>.</dd></div>
+            <div><dt>Do I need an AI agent or Pushary?</dt><dd>No. You can write the React code yourself. The coding skill is there to help, and Pushary is a separate, optional tool from the same maker.</dd></div>
+          </dl>
+        </section>
+
+        <aside className="pushary" aria-labelledby="pushary-title">
+          <div className="pushary-brand"><img src={PUSHARY_ICON} alt="" width={36} height={36} /><span>Pushary</span><span className="pushary-note">From the maker of isokit</span></div>
+          <div className="pushary-body">
+            <div className="pushary-copy">
+              <h2 id="pushary-title">Step away. Stay in the loop.</h2>
+              <p>When your coding agent needs an answer, Pushary sends the question to your phone. Approve or decline, and get back to your day.</p>
+            </div>
+            <a className="button button-secondary" href={pusharyFrom("landing", "maker-card")} target="_blank" rel="noopener">See Pushary <span aria-hidden="true">↗</span></a>
+          </div>
+          <p className="fine">A separate tool. isokit is free to use with or without it.</p>
+        </aside>
       </main>
 
       <SiteFooter />

@@ -37,13 +37,16 @@ function FigureCard({ figure }: { figure: FigureEntry }): ReactNode {
 
 function FilterRow<Value extends string | number>({ label, options, value, onChange }: { label: string; options: ReadonlyArray<{ id: Value; title: string }>; value: Value; onChange: (next: Value) => void }): ReactNode {
   return (
-    <div className="filters" role="group" aria-label={label}>
-      {options.map((option) => (
-        <button key={option.id} type="button" className="pill" aria-pressed={value === option.id} onClick={() => onChange(option.id)}>
-          {option.title}
-        </button>
-      ))}
-    </div>
+    <fieldset className="filter-group">
+      <legend>{label}</legend>
+      <div className="filters">
+        {options.map((option) => (
+          <button key={option.id} type="button" className="pill" aria-pressed={value === option.id} onClick={() => onChange(option.id)}>
+            {option.title}
+          </button>
+        ))}
+      </div>
+    </fieldset>
   )
 }
 
@@ -68,10 +71,13 @@ export function FiguresPage(): ReactNode {
           Figures · {FIGURES.length} · <a href={href("studio")}>make your own</a>
         </p>
         <h1>Press any of them.</h1>
-        <p className="lede">Every figure here is a plain React component built from the kit. Each one shows you what to press, presses it once for you when it first comes into view, and then hands it over.</p>
+        <p className="lede">Try a drawing, then open it to see how it works. Every example is a React component you can use and change.</p>
+      </header>
+      <div className="filter-panel">
         <FilterRow label="Industry" options={INDUSTRY_OPTIONS} value={industry} onChange={setIndustry} />
         <FilterRow label="Level" options={LEVEL_OPTIONS} value={level} onChange={setLevel} />
-      </header>
+        <p className="filter-count" role="status">{shownCount} {shownCount === 1 ? "example" : "examples"}</p>
+      </div>
       {sections.map(({ entry, figures }) =>
         figures.length ? (
           <section key={entry.id} className="figure-section" aria-labelledby={`industry-${entry.id}`}>

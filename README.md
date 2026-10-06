@@ -99,6 +99,7 @@ The numbered plate a figure sits on, and the `<svg>` it is drawn in.
 | `pad` | `number` | Padding around `fit`, as a share of its size. Default `0.07`. |
 | `viewBox` | `string` | Your own viewBox instead of `fit`. |
 | `fig`, `name`, `hint`, `readout` | `ReactNode` | The four corner captions. `readout` is announced to screen readers. |
+| `credit` | `boolean` | Shows the small “Made with isokit · pushary.com” link. Default `true`; set `false` to omit it. |
 | `theme` | `"light" \| "dark" \| "system"` | Unset follows a `.dark` or `[data-theme="dark"]` ancestor. |
 
 Any other prop goes to the `<svg>`, so `data-*` attributes there can drive your CSS.
@@ -236,7 +237,6 @@ Then ask for a figure:
 2. **Add the kit.** `npm i react-isokit` and `import "react-isokit/styles.css"` once.
 3. **Ask for a figure.** `/isokit a coffee grinder with a dial that sets the grind`. The skill decides what pressing produces, then lays out the boxes.
 4. **It draws, looks and fixes.** Your agent writes the component, screenshots it in light and dark at desktop and phone width with the skill's checker, and fixes what it sees.
-5. **Approve from your phone.** When your agent stops to install a package or start the dev server, [Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme) sends the question to your phone. Tap approve and it keeps working.
 
 ## Examples
 
@@ -246,11 +246,15 @@ The studio's figures are in [`examples/demo/src/figures`](examples/demo/src/figu
 
 ## Made by the maker of Pushary
 
-isokit is built by [Aadil Ghani](https://github.com/aadilghani1), who also makes **[Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme)**, the control panel for AI agents. Your agent froze, waiting for your yes: Pushary sends the question to your phone, Mac or Slack, and one tap puts it back to work. It works with Claude Code, Codex, Cursor, Windsurf, Gemini CLI and any MCP agent; `npx pushary@latest setup` connects them in under two minutes. The approval pad, the phone and the [agent relay](https://aadilghani1.github.io/isokit/#/figures/agent-relay) in the studio are drawn from it; the agent relay shows it end to end.
+isokit is built by [Aadil Ghani](https://github.com/aadilghani1), who also makes **[Pushary](https://pushary.com/?utm_source=isokit&utm_medium=referral&utm_campaign=readme)**. When your coding agent needs an answer, Pushary sends the question to your phone. You can approve or decline from there. The [agent relay example](https://aadilghani1.github.io/isokit/#/figures/agent-relay) shows how it works.
+
+Pushary is a separate, optional tool. isokit is free to use with or without it.
 
 ## Contributing
 
 Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Please keep to the [code of conduct](CODE_OF_CONDUCT.md).
+
+For website changes, use the [design system](docs/design-system.md) and its live examples at `#/design-system` in the studio.
 
 ## Credits
 
