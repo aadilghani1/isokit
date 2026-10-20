@@ -45,7 +45,7 @@ Light coming off something that is switched on. It draws its children twice more
 
 - `<Dimension from to offset label>`: a dimension line between two world points, standing off by `offset` (world units), with witness lines and arrowheads. Its end and label slide on `--ik-t-move` when `to` moves along the same line, so the label can be a read-out (`h 42` → `h 64`). Labels always read left to right or bottom to top.
 - `<Callout at dx dy label>`: a dot on a world point, a leader to `(dx, dy)` in viewBox units, a short shelf and a label.
-- Both carry `ik-drafting` and show only when `--ik-drafting` is set, which `themes.css` does in blueprint. Draw them last.
+- Both carry `ik-drafting` and show only when `--ik-drafting` is set, which `themes.css` does in blueprint. Draw them last. Labels are 5.5 units; set `--ik-drafting-size` on the plate for a large figure.
 
 ## Planes, for drawing outside a box
 

@@ -43,6 +43,6 @@
 :where(.ik-plate[data-look="phosphor"], [data-look="phosphor"] .ik-plate) > svg { filter: drop-shadow(0 0 1.2px color-mix(in oklab, var(--ik-glow) 60%, transparent)); }
 
 :where(.ik-dimension-line, .ik-dimension-witness) { fill: none; stroke: var(--ik-line); stroke-width: var(--ik-weight-fine); vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
-:where(.ik-dimension-text) { fill: var(--ik-line); font: 500 5.5px/1 var(--ik-mono); letter-spacing: .04em; }
+:where(.ik-dimension-text) { fill: var(--ik-line); font: 500 var(--ik-drafting-size, 5.5px)/1 var(--ik-mono); letter-spacing: .04em; }
 :where(.ik-callout-dot) { fill: var(--ik-line); }
 :where(.ik-dimension-run, .ik-dimension-end, .ik-dimension-label) { transition: transform var(--ik-t-move) var(--ik-ease); }

@@ -25,7 +25,7 @@ for (const theme of ["light", "dark"]) for (const width of [1280, 390]) {
   await page.goto(url, { waitUntil: "domcontentloaded" })
   await page.waitForSelector(".ik-plate svg", { timeout: 10000 }).catch(() => {})
   await page.waitForTimeout(120)
-  await page.evaluate(() => { for (const svg of document.querySelectorAll(".ik-plate svg")) svg.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", bubbles: true })) })
+  await page.evaluate(() => { for (const svg of document.querySelectorAll(".ik-plate svg")) svg.dispatchEvent(new PointerEvent("pointerdown", { button: 2, bubbles: true })) })
   await page.waitForLoadState("networkidle")
   await page.evaluate((t) => document.documentElement.classList.toggle("dark", t === "dark"), theme)
   const plates = page.locator(selector)
