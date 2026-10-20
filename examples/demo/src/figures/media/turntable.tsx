@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, playSound, Ripple, top, useDemoTap } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, playSound, Ripple, top, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./turntable.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Turntable",
   industry: "media",
   level: 2,
-  blurb: "Press start: the tonearm swings over, drops onto the next track and the platter spins up to 33⅓.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "top"],
-  sounds: ["press", "release", "process", "done", "whoosh"],
+  blurb: "Press start: the power lamp lights, the motor hums the platter up to 33⅓ while the tonearm swings over and drops onto the next track.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "top", "Callout"],
+  sounds: ["press", "release", "motor", "done", "whoosh"],
 } satisfies FigureMeta
 
 const PLINTH = { x: 0, y: 0, z: 4, w: 176, d: 136, h: 16 }
@@ -40,11 +41,30 @@ const PITCH = { x: 160, y: 88, z: DECK_Z, w: 10, d: 7, h: 3 }
 const KEY = { x: 12, y: 116, z: DECK_Z, w: 40, d: 14, h: 4 }
 const GROOVES = [46, 44, 39, 37, 32, 30, 25, 23] as const
 const STROBE = Array.from({ length: 60 }, (_, k) => (k * Math.PI) / 30)
-const LAND_MS = 1000
+const LAMP = { x: 102, y: 123.5 }
+const SKATE_TICKS = Array.from({ length: 9 }, (_, k) => {
+  const a = ((150 + k * 15) * Math.PI) / 180
+  const inner = k % 4 === 0 ? 6.6 : 7.6
+  return `M${(10 + inner * Math.cos(a)).toFixed(3)} ${(10 + inner * Math.sin(a)).toFixed(3)}L${(10 + 9 * Math.cos(a)).toFixed(3)} ${(10 + 9 * Math.sin(a)).toFixed(3)}`
+}).join("")
+const RIM_AT = [CENTER.x + (PLATTER_R - 2) * Math.cos((7 * Math.PI) / 6), CENTER.y + (PLATTER_R - 2) * Math.sin((7 * Math.PI) / 6), PLATTER.z + PLATTER.h] as const
+const SWING_MS = 700
+const DROP_MS = 300
+const LAND_MS = SWING_MS + DROP_MS
 const SPEED = 200
+const TURN_MS = (360 / SPEED) * 1000
 const SPIN_UP_MS = 1800
 const SPIN_WAIT_MS = 150
 const PLAYS = 8
+const TIMING = {
+  "--swing": `${SWING_MS}ms`,
+  "--drop": `${DROP_MS}ms`,
+  "--land": `${LAND_MS}ms`,
+  "--spin-up": `${SPIN_UP_MS}ms`,
+  "--turn": `${TURN_MS}ms`,
+  "--wait": `${SPIN_WAIT_MS}ms`,
+} as CSSProperties
+const noop = () => {}
 
 function swingTo(r: number): number {
   const dx = PIVOT.x - CENTER.x
@@ -79,7 +99,8 @@ function readoutOf(presses: number): string {
 
 export default function Turntable() {
   const [deck, setDeck] = useState<Deck>(REST_DECK)
-  const stop = useRef(() => {})
+  const stop = useRef(noop)
+  const stopMotor = useRef(noop)
   const timer = useRef(0)
   const playedAt = useRef(0)
   const spin = useRef<SVGGElement>(null)
@@ -87,6 +108,7 @@ export default function Turntable() {
     () => () => {
       window.clearTimeout(timer.current)
       stop.current()
+      stopMotor.current()
     },
     [],
   )
@@ -96,6 +118,9 @@ export default function Turntable() {
   const toggle = (audible: boolean) => {
     window.clearTimeout(timer.current)
     stop.current()
+    stopMotor.current()
+    stop.current = noop
+    stopMotor.current = noop
     const presses = (deck.presses % PLAYS) + 1
     const from = angleOf(spin.current)
     if (playing) {
@@ -108,9 +133,8 @@ export default function Turntable() {
     }
     playedAt.current = performance.now()
     if (audible) {
-      stop.current = playSound("process")
+      stopMotor.current = playSound("motor", { duration: (SPIN_WAIT_MS + SPIN_UP_MS) / 1000 })
       timer.current = window.setTimeout(() => {
-        stop.current()
         stop.current = playSound("done")
       }, LAND_MS)
     }
@@ -129,7 +153,6 @@ export default function Turntable() {
     "--from": `${deck.from}deg`,
     "--coast": `${deck.coast}deg`,
     "--coast-ms": `${deck.coastMs}ms`,
-    "--wait": `${SPIN_WAIT_MS}ms`,
   } as CSSProperties
 
   return (
@@ -140,10 +163,11 @@ export default function Turntable() {
       hint={playing ? "Press to stop" : "Press start"}
       readout={readoutOf(deck.presses)}
       className="fig-turntable"
+      style={TIMING}
       data-playing={playing}
       fit={[{ ...PLINTH, z: 0, h: DECK_Z }, PLATTER, GIMBAL, [PIVOT.x, PIVOT.y - 24, ARM_Z]]}
       aspect={1.3}
-      label="A turntable with a record on its platter, a tonearm at rest beside it and a start key. Press start to swing the arm onto the next track and spin the platter up; press again to stop."
+      label="A turntable with a record on its platter, a tonearm at rest beside it, a power lamp and a start key. Press start: the motor spins the platter up while the arm swings onto the next track; press again to stop."
     >
       <g ref={demo.ref}>
         {FEET.map((foot) => (
@@ -166,7 +190,9 @@ export default function Turntable() {
                   </text>
                 </g>
               ))}
-              <circle className="ik-fill" cx={102} cy={123.5} r={1.4} />
+              <Glow on={playing}>
+                <circle className="tt-lamp" data-on={playing} cx={LAMP.x} cy={LAMP.y} r={1.6} />
+              </Glow>
             </>
           }
           front={Array.from({ length: 3 }, (_, k) => (
@@ -213,14 +239,23 @@ export default function Turntable() {
           }
         />
         <Box {...SPINDLE} r={1.5} />
-        <Box {...PIVOT_BASE} r={PIVOT_BASE.w / 2} top={<circle className="ik-detail" cx={10} cy={10} r={7} />} />
+        <Box
+          {...PIVOT_BASE}
+          r={PIVOT_BASE.w / 2}
+          top={
+            <>
+              <circle className="ik-detail" cx={10} cy={10} r={6} />
+              <path className="ik-detail" d={SKATE_TICKS} />
+            </>
+          }
+        />
         <Box {...GIMBAL} r={GIMBAL.w / 2} />
         <Box {...CUE} r={2} top={<path className="ik-line ik-thick" d={`M${CUE.w / 2} 2.5v7`} />} />
         <Box {...REST} r={2} top={<path className="ik-detail" d="M1 3h4" />} />
         <Box {...PITCH} r={1.5} top={<path className="ik-detail" d={`M2 ${PITCH.d / 2}h${PITCH.w - 4}`} />} />
 
         {deck.presses || aiming ? null : <Ripple {...KEY} r={3} />}
-        <Press label={playing ? "Stop the record" : "Start the record"} onPress={press} data-hot={!playing}>
+        <Press label={playing ? "Stop the record" : "Start the record"} material="plastic" onPress={press} data-hot={!playing}>
           <g>
             <Box
               {...KEY}
@@ -242,7 +277,7 @@ export default function Turntable() {
             <g className="tt-swing" style={{ transform: `rotate(${playing ? track.angle : 0}deg)` }}>
               <rect className="ik-face ik-top" x={-6} y={-24} width={12} height={13} rx={3} />
               <path className="ik-detail" d="M-6 -20.5h12M-6 -17.5h12M-6 -14.5h12" />
-              <rect className="ik-face ik-top" x={-1.6} y={-11} width={3.2} height={ARM - 14} rx={1.6} />
+              <rect className="ik-face ik-top" x={-1.6} y={-11} width={3.2} height={ARM - 4} rx={1.6} />
               <circle className="ik-face ik-top" r={4.6} />
               <circle className="ik-fill" r={1.4} />
               <g transform={`translate(0 ${ARM})`}>
@@ -255,6 +290,7 @@ export default function Turntable() {
           </g>
         </g>
 
+        <Callout at={RIM_AT} dx={-24} dy={-22} label="33⅓ rpm" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>
