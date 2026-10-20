@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useReducer, useRef } from "react"
-import { Box, Cursor, Flight, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, Flight, Glow, Plate, Press, path, playSound, project, Ripple, type SoundName, type SoundOptions, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./container-crane.css"
 
@@ -8,15 +9,16 @@ export const meta = {
   title: "Container crane",
   industry: "logistics",
   level: 4,
-  blurb: "Press hoist, then trolley: the spreader lifts the next box off the ship and carries it along the boom onto the truck, six boxes to a cycle.",
-  uses: ["Plate", "Box", "Press", "Flight", "Ripple", "Cursor", "useDemoTap", "path", "project"],
-  sounds: ["press", "release", "process", "toggle", "done", "complete", "whoosh"],
+  blurb: "Press hoist, then trolley: the hoist motor lowers the spreader, its twistlocks latch onto the next box, and the trolley motor carries it along the boom onto the truck, six boxes to a cycle.",
+  uses: ["Plate", "Box", "Press", "Glow", "Flight", "Ripple", "Cursor", "useDemoTap", "path", "project", "Callout"],
+  sounds: ["press", "release", "motor", "latch", "done", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type Stage = "ready" | "hoisting" | "hoisted" | "moving" | "landed"
 type State = { stage: Stage; moved: number; trip: number; swaps: number; reset: boolean }
 type Action = { type: "hoist" } | { type: "lifted" } | { type: "trolley" } | { type: "land" }
 type Spot = { y: number; z: number }
+type Lock = "open" | "turn" | "locked" | "release"
 
 const QUAY = { x: 0, y: 0, z: 0, w: 196, d: 70, h: 10 }
 const WATER = { x: 0, y: QUAY.d, z: 0, w: 196, d: 66, h: 3 }
@@ -56,6 +58,7 @@ const HOIST_KEY = { x: 144, y: 48, z: CONSOLE.z + CONSOLE.h, w: 22, d: 12, h: 3 
 const TROLLEY_KEY = { x: 168, y: 48, z: CONSOLE.z + CONSOLE.h, w: 22, d: 12, h: 3 }
 const SCREEN = { x: 4, y: 3, w: 42, h: 14 }
 const TOTAL = 6
+const CYCLE = 12
 const SWAP_SHIFT = 30
 const RETURN_MS = 760
 const LOWER_MS = 560
@@ -63,24 +66,41 @@ const GRAB_MS = 200
 const LIFT_MS = 620
 const FLY_MS = 1000
 const RISE_DELAY_MS = 160
-const RESET_STAGGER_MS = 70
+const RISE_MS = 560
+const TIMING = {
+  "--return-ms": `${RETURN_MS}ms`,
+  "--lower-ms": `${LOWER_MS}ms`,
+  "--lift-ms": `${LIFT_MS}ms`,
+  "--fly-ms": `${FLY_MS}ms`,
+  "--rise-ms": `${RISE_MS}ms`,
+} as CSSProperties
+const RETURN_MOTOR = { duration: RETURN_MS / 1000 }
+const LOWER_MOTOR = { duration: LOWER_MS / 1000 }
+const LIFT_MOTOR = { duration: LIFT_MS / 1000 }
+const FLY_MOTOR = { duration: FLY_MS / 1000 }
+const RISE_MOTOR = { duration: RISE_MS / 1000 }
+const CASTINGS = [1.6, CONT.w - 1.6].flatMap((cx) => [1.6, CONT.d - 1.6].map((cy) => [cx, cy] as const))
+const TWIST = { x: CONT.x - 1, y: -7, w: CONT.w + 2, d: 14, h: 3 }
+const TROLLEY_WHEELS = [3.5, 12.5] as const
+const PIPS = Array.from({ length: TOTAL }, (_, k) => ({ x: SCREEN.x + SCREEN.w - 8.6 + (k % 2) * 2.6, y: SCREEN.y + 1.6 + Math.floor(k / 2) * 2.6 }))
 
 const SPOTS: readonly Spot[] = Array.from({ length: TOTAL }, (_, k) => ({ y: (ROW_YS[k % 3] ?? 0) + CONT.d / 2, z: TIERS[k < 3 ? 1 : 0] ?? DECK }))
 const PAINTED_SPOTS = SPOTS.map((spot, k) => ({ spot, k })).sort((a, b) => a.spot.z - b.spot.z || a.spot.y - b.spot.y)
 const RESET_ORDER: ReadonlyMap<number, number> = new Map(PAINTED_SPOTS.map(({ k }, order) => [k, order]))
 const START: State = { stage: "ready", moved: 0, trip: 0, swaps: 0, reset: false }
+const cycle = (count: number) => (count % CYCLE) + 1
 
 function advance(state: State, action: Action): State {
   switch (action.type) {
     case "hoist":
-      if (state.stage === "ready") return { ...state, stage: "hoisting", trip: state.trip + 1, reset: false }
+      if (state.stage === "ready") return { ...state, stage: "hoisting", trip: cycle(state.trip), reset: false }
       if (state.stage !== "landed") return state
-      if (state.moved === TOTAL) return { ...state, stage: "ready", moved: 0, trip: state.trip + 1, swaps: state.swaps + 1, reset: true }
-      return { ...state, stage: "hoisting", trip: state.trip + 1, swaps: state.swaps + 1 }
+      if (state.moved === TOTAL) return { ...state, stage: "ready", moved: 0, trip: cycle(state.trip), swaps: cycle(state.swaps), reset: true }
+      return { ...state, stage: "hoisting", trip: cycle(state.trip), swaps: cycle(state.swaps) }
     case "lifted":
       return state.stage === "hoisting" ? { ...state, stage: "hoisted" } : state
     case "trolley":
-      return state.stage === "hoisted" ? { ...state, stage: "moving", trip: state.trip + 1 } : state
+      return state.stage === "hoisted" ? { ...state, stage: "moving", trip: cycle(state.trip) } : state
     case "land":
       return state.stage === "moving" ? { ...state, stage: "landed", moved: state.moved + 1 } : state
   }
@@ -146,14 +166,16 @@ function Crate({ x, y, z }: { x: number; y: number; z: number }) {
       d={CONT.d}
       h={CONT.h}
       r={0.8}
-      top={[1.6, CONT.w - 1.6].flatMap((cx) => [1.6, CONT.d - 1.6].map((cy) => <circle key={`${cx}-${cy}`} className="ik-fill" cx={cx} cy={cy} r={0.7} />))}
+      top={CASTINGS.map(([cx, cy]) => (
+        <circle key={`${cx}-${cy}`} className="ik-fill" cx={cx} cy={cy} r={0.7} />
+      ))}
       front={<path className="ik-detail" d={Array.from({ length: 10 }, (_, k) => `M${2.6 + k * 2.5} 1.4v9.2`).join("")} />}
       side={<path className="ik-detail" d="M6 1.2v9.6M2.6 1.6v8.8M4.4 1.6v8.8M7.6 1.6v8.8M9.4 1.6v8.8" />}
     />
   )
 }
 
-function Spreader({ y, carrying }: { y: number; carrying: "always" | "grab" | "never" }) {
+function Spreader({ y, carrying, lock }: { y: number; carrying: "always" | "grab" | "never"; lock: Lock }) {
   return (
     <>
       {ROPES.map(([dx, dy]) => (
@@ -165,7 +187,28 @@ function Spreader({ y, carrying }: { y: number; carrying: "always" | "grab" | "n
         </g>
       )}
       <g className="cc-spreader-frame">
-        <Box x={CONT.x - 1} y={y - 7} z={SPREAD_Z} w={CONT.w + 2} d={14} h={3} r={1} front={<path className="ik-detail" d="M3 1.5h24" />} />
+        <Box
+          x={TWIST.x}
+          y={y + TWIST.y}
+          z={SPREAD_Z}
+          w={TWIST.w}
+          d={TWIST.d}
+          h={TWIST.h}
+          r={1}
+          top={
+            <>
+              <path className="ik-detail" d={`M8 2v${TWIST.d - 4}M${TWIST.w - 8} 2v${TWIST.d - 4}`} />
+              {CASTINGS.map(([cx, cy]) => (
+                <g key={`${cx}-${cy}`} transform={`translate(${cx + 1} ${cy + 1})`}>
+                  <g className="cc-twist" data-lock={lock}>
+                    <path className="ik-line" d="M-2.2 0h4.4" />
+                  </g>
+                </g>
+              ))}
+            </>
+          }
+          front={<path className="ik-detail" d="M3 1.5h24" />}
+        />
       </g>
       <Box x={LANE_X - 4} y={y - 4} z={SPREAD_Z + 3} w={8} d={8} h={3} r={1.5} />
     </>
@@ -253,40 +296,37 @@ export default function ContainerCrane() {
   const hoistHot = stage === "ready" || stage === "landed"
   const trolleyHot = stage === "hoisted"
   const later = (wait: number, step: () => void) => timers.current.push(window.setTimeout(step, wait))
-  const sound = (audible: boolean, name: Parameters<typeof playSound>[0]) => {
-    if (audible) stops.current.push(playSound(name))
-  }
-  const hush = () => {
-    for (const stop of stops.current) stop()
-    stops.current = []
-  }
+  const sound = (name: SoundName, options?: SoundOptions) => stops.current.push(playSound(name, options))
+  const cue = (wait: number, name: SoundName, options?: SoundOptions) => (wait > 0 ? later(wait, () => sound(name, options)) : sound(name, options))
 
   const hoist = (audible: boolean) => {
     if (!hoistHot) return
     release(timers, stops)
     if (full) {
-      sound(audible, "whoosh")
+      if (audible) {
+        sound("whoosh")
+        sound("motor", RETURN_MOTOR)
+      }
       dispatch({ type: "hoist" })
       return
     }
     const lead = stage === "ready" ? 0 : RETURN_MS
-    sound(audible, "process")
-    later(lead + LOWER_MS, () => sound(audible, "toggle"))
-    later(lead + LOWER_MS + GRAB_MS + LIFT_MS, () => {
-      hush()
-      dispatch({ type: "lifted" })
-    })
+    if (audible) {
+      if (lead > 0) sound("motor", RETURN_MOTOR)
+      cue(lead, "motor", LOWER_MOTOR)
+      cue(lead + LOWER_MS, "latch")
+      cue(lead + LOWER_MS + GRAB_MS, "motor", LIFT_MOTOR)
+    }
+    later(lead + LOWER_MS + GRAB_MS + LIFT_MS, () => dispatch({ type: "lifted" }))
     dispatch({ type: "hoist" })
   }
-  const trolley = (audible: boolean) => {
+  const trolley = () => {
     if (!trolleyHot) return
     release(timers, stops)
-    sound(audible, "process")
-    later(FLY_MS, () => {
-      hush()
-      sound(audible, moved + 1 === TOTAL ? "complete" : "done")
-      dispatch({ type: "land" })
-    })
+    sound("motor", FLY_MOTOR)
+    cue(FLY_MS, moved + 1 === TOTAL ? "complete" : "done")
+    cue(FLY_MS + RISE_DELAY_MS, "motor", RISE_MOTOR)
+    later(FLY_MS, () => dispatch({ type: "land" }))
     dispatch({ type: "trolley" })
   }
   const demo = useDemoTap(() => {
@@ -298,7 +338,7 @@ export default function ContainerCrane() {
   }
   const pressTrolley = () => {
     demo.dismiss()
-    trolley(true)
+    trolley()
   }
 
   const phase = stage === "hoisting" || stage === "hoisted" ? "hoist" : stage === "moving" || stage === "landed" ? "carry" : state.reset ? "reset" : "park"
@@ -313,14 +353,15 @@ export default function ContainerCrane() {
   const trolleyStyle = travelVars(trolleyFrom, trolleyTo) as CSSProperties
   const spreaderStyle = {
     "--drop": px(phase === "carry" ? SPREAD_Z - BED_Z - CONT.h : SPREAD_Z - spot.z - CONT.h),
-    "--lower": ms(lead),
-    "--grab": ms(grabAt),
-    "--lift": ms(grabAt + GRAB_MS),
-    "--land": ms(FLY_MS),
-    "--rise": ms(FLY_MS + RISE_DELAY_MS),
+    "--lower-at": ms(lead),
+    "--grab-at": ms(grabAt),
+    "--lift-at": ms(grabAt + GRAB_MS),
+    "--land-at": ms(FLY_MS),
+    "--rise-at": ms(FLY_MS + RISE_DELAY_MS),
   } as CSSProperties
   const shipVisible = (k: number) => (stage === "ready" ? true : k + 1 > (holding ? moved + 1 : moved))
-  const shipDelay = (k: number) => (phase === "hoist" && k + 1 === box ? grabAt : phase === "reset" ? 300 + (RESET_ORDER.get(k) ?? 0) * RESET_STAGGER_MS : 0)
+  const shipDelay = (k: number) =>
+    phase === "hoist" && k + 1 === box ? ms(grabAt) : phase === "reset" ? `calc(var(--ik-t-state) + ${RESET_ORDER.get(k) ?? 0} * var(--ik-stagger))` : "0ms"
   const swapped = swaps > 0 && (phase === "hoist" || phase === "reset")
   const [enterX, enterY] = project(-SWAP_SHIFT, 0, 0)
   const [leaveX, leaveY] = project(SWAP_SHIFT, 0, 0)
@@ -336,6 +377,7 @@ export default function ContainerCrane() {
       hint={full ? "Press to reset" : trolleyHot ? "Press trolley" : stage === "hoisting" ? "Then press trolley" : "Press hoist"}
       readout={readoutOf(state, box)}
       className="fig-container-crane"
+      style={TIMING}
       fit={[QUAY, WATER, BOOM, MACHINERY, APEX]}
       aspect={1.25}
       label="A quay crane straddling a truck lane, its boom reaching out over a container ship stacked with six boxes. Press hoist to lower the spreader onto the next box and lift it, then trolley to carry it along the boom onto the truck; after six boxes, hoist resets the ship."
@@ -413,7 +455,7 @@ export default function ContainerCrane() {
           }
         />
         {PAINTED_SPOTS.map(({ spot: at, k }) => (
-          <g key={k} className="cc-stowed" data-on={shipVisible(k)} style={{ "--t": ms(shipDelay(k)) } as CSSProperties}>
+          <g key={k} className="cc-stowed" data-on={shipVisible(k)} style={{ "--t": shipDelay(k) } as CSSProperties}>
             <Crate x={CONT.x} y={at.y - CONT.d / 2} z={at.z} />
           </g>
         ))}
@@ -436,12 +478,12 @@ export default function ContainerCrane() {
         <g clipPath={`url(#${clip}-below-boom)`}>
           <g key={`rig-${trip}`} className={trolleyClass} style={trolleyStyle}>
             <g className={`cc-spreader cc-${phase}`} style={spreaderStyle}>
-              <Spreader y={TRUCK_Y} carrying={phase === "hoist" ? "grab" : "never"} />
+              <Spreader y={TRUCK_Y} carrying={phase === "hoist" ? "grab" : "never"} lock={phase === "hoist" ? "turn" : phase === "carry" ? "release" : "open"} />
             </g>
           </g>
           {phase === "carry" ? (
             <Flight key={`fly-${trip}`} from={[CONT.x, spot.y - CONT.d / 2, HELD_Z]} to={[CONT.x, TRUCK_Y - CONT.d / 2, BED_Z]} duration={FLY_MS} lift={8}>
-              <Spreader y={spot.y} carrying="always" />
+              <Spreader y={spot.y} carrying="always" lock="locked" />
             </Flight>
           ) : null}
         </g>
@@ -480,6 +522,9 @@ export default function ContainerCrane() {
             r={1.5}
             top={<path className="ik-detail" d="M4 3v10M12 3v10" />}
             front={<path className="ik-detail" d="M3 2.5h10" />}
+            side={TROLLEY_WHEELS.map((cx) => (
+              <circle key={cx} className="ik-face cc-wheel" cx={cx} cy={3.2} r={1.5} />
+            ))}
           />
         </g>
         <path className="ik-line ik-thick" d={RIGHT_FRAME} />
@@ -492,23 +537,27 @@ export default function ContainerCrane() {
           front={
             <>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
-              <g key={`screen-${stage}-${box}`} className="ik-enter">
-                <text className="ik-screen-text ik-dim" x={SCREEN.x + 3} y={SCREEN.y + 5.6} fontSize={4.4}>
-                  {screenSmall}
-                </text>
-                <text className="ik-screen-text" x={SCREEN.x + 3} y={SCREEN.y + 12} fontSize={6}>
-                  {BIG[stage]}
-                </text>
-              </g>
-              {[0, 1, 2, 3, 4, 5].map((k) => (
-                <rect key={k} className="cc-pip" data-on={k < moved} x={SCREEN.x + SCREEN.w + 1.4 + (k % 2) * 2.6 - 10} y={SCREEN.y + 1.6 + Math.floor(k / 2) * 2.6} width={1.8} height={1.8} rx={0.4} />
+              <Glow>
+                <g key={`screen-${stage}-${box}`} className="ik-enter">
+                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 3} y={SCREEN.y + 5.6} fontSize={4.4}>
+                    {screenSmall}
+                  </text>
+                  <text className="ik-screen-text" x={SCREEN.x + 3} y={SCREEN.y + 12} fontSize={6}>
+                    {BIG[stage]}
+                  </text>
+                </g>
+              </Glow>
+              {PIPS.map((pip, k) => (
+                <Glow key={k} on={k < moved}>
+                  <rect className="cc-pip" data-on={k < moved} x={pip.x} y={pip.y} width={1.8} height={1.8} rx={0.4} />
+                </Glow>
               ))}
             </>
           }
           side={<path className="ik-detail" d="M4 5h12M4 8h12M4 11h12" />}
         />
         {trip || aiming ? null : <Ripple {...HOIST_KEY} r={3} />}
-        <Press label={full ? "Reset the ship" : "Hoist the next box"} onPress={pressHoist} disabled={!hoistHot} data-hot={hoistHot}>
+        <Press label={full ? "Reset the ship" : "Hoist the next box"} material="metal" onPress={pressHoist} disabled={!hoistHot} data-hot={hoistHot}>
           <g>
             <Box
               {...HOIST_KEY}
@@ -524,7 +573,7 @@ export default function ContainerCrane() {
             />
           </g>
         </Press>
-        <Press label="Trolley the box to the truck" onPress={pressTrolley} disabled={!trolleyHot} data-hot={trolleyHot}>
+        <Press label="Trolley the box to the truck" material="metal" onPress={pressTrolley} disabled={!trolleyHot} data-hot={trolleyHot}>
           <g>
             <Box
               {...TROLLEY_KEY}
@@ -541,6 +590,7 @@ export default function ContainerCrane() {
           </g>
         </Press>
 
+        <Callout at={[MACHINERY.x + MACHINERY.w, MACHINERY.y + MACHINERY.d / 2, MACHINERY.z + MACHINERY.h - 3]} dx={16} dy={-10} label="hoist drive" />
         <Cursor at={[HOIST_KEY.x + HOIST_KEY.w / 2, HOIST_KEY.y + HOIST_KEY.d / 2, HOIST_KEY.z + HOIST_KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

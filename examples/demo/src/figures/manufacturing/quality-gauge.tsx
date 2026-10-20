@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, playSound, project, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, playSound, project, Ripple, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./quality-gauge.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Quality gauge",
   industry: "manufacturing",
   level: 2,
-  blurb: "Press check: the next part slides along the gauge, drops through the go slot into pass or rides off the end into reject.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "project"],
-  sounds: ["press", "release", "process", "success", "error"],
+  blurb: "Press check: the next part slides under the dial indicator, its needle swings to the reading and settles, and the part drops through the go slot into pass or rides off the end into reject.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "project", "Callout"],
+  sounds: ["press", "release", "process", "tick", "success", "error"],
 } satisfies FigureMeta
 
 type Run = { lot: number; n: number; passed: number; step: number }
@@ -50,11 +51,21 @@ const SLOT_X = SLOT.x + SLOT.w / 2
 const REJECT_X = REJECT_BIN.x + REJECT_BIN.w / 2
 const RISE = TUBE.z - DECK
 const DROP = DECK - BIN_TOP
+const DIAL_POST = { x: 86, y: 44, z: DECK, w: 4, d: 3, h: 24 }
+const HEAD = { x: 78, y: 47, z: 68, w: 20, d: 11, h: 22 }
+const PLUNGER = { x: 87, y: TRACK_Y - 1, z: 64, w: 2, d: 2, h: HEAD.z - 64 }
+const STEM_CAP = { ...PLUNGER, z: HEAD.z + HEAD.h, h: 3 }
+const DIAL = { cx: HEAD.w / 2, cy: 11, r: 8.5 }
+const NEEDLE_STOP = -66
+const TOLERANCE = 20
+const OVER = 56
 const LAND_MS = 1000
+const SWING_MS = 360
 const LOT_SIZE = 40
 const START: Run = { lot: 3, n: 33, passed: 32, step: 0 }
 
 const goes = (n: number) => n % 7 !== 0
+const reading = (n: number) => (goes(n) ? (((n * 5) % 7) - 3) * 4 : OVER)
 const pct = (run: Run) => Math.round((run.passed / run.n) * 100)
 const px = (n: number) => `${Math.round(n * 1000) / 1000}px`
 const shift = (dx: number) => project(dx, 0, 0)
@@ -70,7 +81,15 @@ const RIDE_REJECT = {
   "--rise": px(-RISE),
   "--drop": px(DROP),
 } as CSSProperties
-const LANDING = { "--land": `${LAND_MS}ms` } as CSSProperties
+const TIMING = { "--land": `${LAND_MS}ms`, "--swing": `${SWING_MS}ms` } as CSSProperties
+const SLOTS = [0, 1] as const
+
+const radial = (deg: number, inner: number, outer: number) => {
+  const a = ((deg - 90) * Math.PI) / 180
+  return `M${(Math.cos(a) * inner).toFixed(3)} ${(Math.sin(a) * inner).toFixed(3)}L${(Math.cos(a) * outer).toFixed(3)} ${(Math.sin(a) * outer).toFixed(3)}`
+}
+const SCALE_MARKS = [-60, -45, -30, -15, 0, 15, 30, 45, 60].map((deg) => radial(deg, 6.2, 7.5)).join("")
+const BAND_MARKS = [-TOLERANCE, TOLERANCE].map((deg) => radial(deg, 4.6, 7.5)).join("")
 
 function advance(run: Run): Run {
   const rolled = run.n >= LOT_SIZE
@@ -111,7 +130,25 @@ function Resting({ go }: { go: boolean }) {
   )
 }
 
-function Tote({ bin, name, on, step, pile }: { bin: typeof PASS_BIN; name: string; on: boolean; step: number; pile: readonly (readonly [number, number])[] }) {
+function Dial({ turn, from, step }: { turn: number; from: number; step: number }) {
+  return (
+    <g transform={`translate(${DIAL.cx} ${DIAL.cy})`}>
+      <circle className="ik-well" r={DIAL.r} />
+      <path className="ik-detail" d={SCALE_MARKS} />
+      <path className="ik-detail ik-thick" d={BAND_MARKS} />
+      <g
+        key={step}
+        className={step === 0 ? "qg-needle" : "qg-needle qg-measure"}
+        style={{ "--turn": `${turn}deg`, "--from": `${from}deg`, "--stop": `${NEEDLE_STOP}deg` } as CSSProperties}
+      >
+        <path className="ik-line ik-thick" d="M0 2V-6.8" />
+      </g>
+      <circle className="ik-fill" r={0.9} />
+    </g>
+  )
+}
+
+function Tote({ bin, name, lit, step, pile }: { bin: typeof PASS_BIN; name: string; lit: boolean; step: number; pile: readonly (readonly [number, number])[] }) {
   return (
     <Box
       {...bin}
@@ -129,7 +166,15 @@ function Tote({ bin, name, on, step, pile }: { bin: typeof PASS_BIN; name: strin
           <text className="ik-label qg-bin-name" x={4} y={13.4}>
             {name}
           </text>
-          <circle key={step} className="qg-lamp" data-on={on} style={LANDING} cx={bin.w - 4.5} cy={4.4} r={1.8} />
+          <circle className="ik-well" cx={bin.w - 4.5} cy={4.4} r={1.8} />
+          {SLOTS.map((slot) => {
+            const on = lit && step % 2 === slot
+            return (
+              <Glow key={slot} on={on} className="qg-lamp-glow">
+                <circle className="ik-dot qg-lamp" data-on={on} cx={bin.w - 4.5} cy={4.4} r={1.8} />
+              </Glow>
+            )
+          })}
         </>
       }
       side={<path className="ik-detail" d={`M5 4h${bin.d - 10}`} />}
@@ -166,9 +211,12 @@ export default function QualityGauge() {
     if (audible) {
       stop.current = playSound("process")
       timer.current = window.setTimeout(() => {
-        stop.current()
-        stop.current = playSound(go ? "success" : "error")
-      }, LAND_MS)
+        playSound("tick")
+        timer.current = window.setTimeout(() => {
+          stop.current()
+          stop.current = playSound(go ? "success" : "error")
+        }, SWING_MS)
+      }, LAND_MS - SWING_MS)
     }
     setRun(next)
   }
@@ -186,7 +234,8 @@ export default function QualityGauge() {
   const { step } = run
   const fresh = step === 0
   const go = goes(run.n)
-  const previousGo = goes(run.n === 1 ? LOT_SIZE : run.n - 1)
+  const previous = run.n === 1 ? LOT_SIZE : run.n - 1
+  const previousGo = goes(previous)
   const settled = step > 1
   const aiming = demo.phase === "aim" || demo.phase === "press"
   const readout = fresh ? `lot ${run.lot} · ${run.n} checked` : `${pct(run)}% pass · lot ${run.lot} · #${run.n} ${go ? "go" : "no-go"}`
@@ -199,9 +248,10 @@ export default function QualityGauge() {
       hint="Press check"
       readout={readout}
       className="fig-quality-gauge"
+      style={TIMING}
       fit={[BASE, { ...TUBE, z: 0, h: TUBE.z + TUBE.h }, { ...POST, z: 0, h: POST.z + POST.h }]}
       aspect={1.3}
-      label="A go/no-go gauge over two bins, fed by a magazine of bushings and run from a console. Press check to push the next bushing along the gauge: a good one drops through the go slot into the pass bin, an oversize one rides off the end into reject."
+      label="A go/no-go gauge over two bins, with a dial indicator over the go slot, fed by a magazine of bushings and run from a console. Press check to push the next bushing along the gauge: the dial needle swings to its reading and settles, then a good one drops through the go slot into the pass bin and an oversize one rides off the end into reject."
     >
       <g ref={demo.ref}>
         <Box
@@ -216,9 +266,9 @@ export default function QualityGauge() {
         />
         <Box {...POST} r={2} front={<path className="ik-detail" d={`M${POST.w / 2} 6v${POST.h - 50}`} />} />
         <Box {...LEGS[0]} r={2} />
-        <Tote bin={PASS_BIN} name="PASS" on={!fresh && go} step={step} pile={PASS_PILE} />
+        <Tote bin={PASS_BIN} name="PASS" lit={!fresh && go} step={step} pile={PASS_PILE} />
         <Box {...LEGS[1]} r={2} />
-        <Tote bin={REJECT_BIN} name="REJECT" on={!fresh && !go} step={step} pile={REJECT_PILE} />
+        <Tote bin={REJECT_BIN} name="REJECT" lit={!fresh && !go} step={step} pile={REJECT_PILE} />
         <Box {...CLAMP} r={1.5} />
         <Box
           {...CHUTE}
@@ -231,6 +281,7 @@ export default function QualityGauge() {
         </g>
         <Box {...GAUGE_IN} r={1.5} />
         <Box {...GAUGE_BACK} r={0.8} />
+        <Box {...DIAL_POST} r={1} />
 
         {settled && previousGo ? <Resting key={`old-${step}`} go /> : null}
         {!fresh && go ? <Riding key={`new-${step}`} go /> : null}
@@ -259,6 +310,16 @@ export default function QualityGauge() {
         {settled && !previousGo ? <Resting key={`old-${step}`} go={false} /> : null}
         {!fresh && !go ? <Riding key={`new-${step}`} go={false} /> : null}
 
+        <Box {...PLUNGER} r={1} />
+        <Box
+          {...HEAD}
+          r={3}
+          top={<path className="ik-detail" d={`M3 3h${HEAD.w - 6}`} />}
+          front={<Dial turn={reading(run.n)} from={reading(previous)} step={step} />}
+          side={<path className="ik-detail" d={`M2.5 4v${HEAD.h - 8}`} />}
+        />
+        <Box {...STEM_CAP} r={1} />
+
         <Box
           {...TUBE}
           r={TUBE.w / 2}
@@ -284,17 +345,19 @@ export default function QualityGauge() {
               </defs>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
               <g clipPath={`url(#${clip}-screen)`}>
-                <g key={step} className="ik-enter" style={{ animationDelay: fresh ? "0ms" : `${LAND_MS}ms` }}>
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 6} fontSize={5}>
-                    {`lot ${run.lot} · #${run.n}`}
-                  </text>
-                  <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 13.6} fontSize={7}>
-                    {fresh ? "ready" : go ? "GO" : "NO-GO"}
-                  </text>
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + SCREEN.w - 4} y={SCREEN.y + 13.6} fontSize={6} textAnchor="end">
-                    {`${pct(run)}%`}
-                  </text>
-                </g>
+                <Glow>
+                  <g key={step} className="ik-enter" style={{ animationDelay: fresh ? "0ms" : "var(--land)" }}>
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 6} fontSize={5}>
+                      {`lot ${run.lot} · #${run.n}`}
+                    </text>
+                    <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 13.6} fontSize={7}>
+                      {fresh ? "ready" : go ? "GO" : "NO-GO"}
+                    </text>
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + SCREEN.w - 4} y={SCREEN.y + 13.6} fontSize={6} textAnchor="end">
+                      {`${pct(run)}%`}
+                    </text>
+                  </g>
+                </Glow>
               </g>
             </>
           }
@@ -303,7 +366,7 @@ export default function QualityGauge() {
           ))}
         />
         {fresh && !aiming ? <Ripple {...KEY} r={5} /> : null}
-        <Press label="Check the next part" onPress={press} data-hot={fresh}>
+        <Press label="Check the next part" material="rubber" onPress={press} data-hot={fresh}>
           <g>
             <Box
               {...KEY}
@@ -319,6 +382,7 @@ export default function QualityGauge() {
             />
           </g>
         </Press>
+        <Callout at={[HEAD.x + HEAD.w, HEAD.y + HEAD.d / 2, HEAD.z + HEAD.h - 6]} dx={14} dy={-10} label="dial indicator" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

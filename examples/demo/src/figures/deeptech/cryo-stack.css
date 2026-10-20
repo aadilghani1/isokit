@@ -6,7 +6,7 @@
 .fig-cryo-stack .shown.passing { animation: cryo-on 1ms linear var(--on) both, cryo-off 1ms linear var(--off) forwards; }
 .fig-cryo-stack .light { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-cryo-stack svg[data-cold="true"] .light { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: var(--stable); }
-.fig-cryo-stack svg[data-cold="true"] .light-glow > .ik-halo { transition-delay: var(--stable); }
+.fig-cryo-stack svg[data-cold="true"] .light-glow { --ik-glow-delay: var(--stable); }
 .fig-cryo-stack .rotor { transform-origin: 0 0; }
 .fig-cryo-stack svg[data-cold="true"] .rotor { animation: cryo-spin var(--stable) var(--ik-ease-move) both; }
 .fig-cryo-stack .needle { transform: rotate(var(--turn)); transform-origin: 0 0; transition: transform var(--ik-t-move) var(--ik-ease-out); }

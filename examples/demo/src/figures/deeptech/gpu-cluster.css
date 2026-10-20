@@ -6,8 +6,7 @@
 .fig-gpu-cluster .lamp { fill: var(--ik-detail); }
 .fig-gpu-cluster .lamp[data-on="true"] { fill: var(--ik-live); animation: gpu-cluster-lamp-on var(--ik-t-state) var(--ik-ease) var(--t) both; }
 .fig-gpu-cluster .lamp[data-off="true"] { animation: gpu-cluster-lamp-off var(--ik-t-state) var(--ik-ease) var(--u) both; }
-.fig-gpu-cluster .lamp-glow[data-on="true"] > .ik-halo { transition-delay: var(--t); }
-.fig-gpu-cluster .lamp-glow[data-on="false"] > .ik-halo { transition-delay: var(--u); }
+.fig-gpu-cluster .lamp-glow { --ik-glow-delay: var(--t); --ik-glow-fade-delay: var(--u); }
 .fig-gpu-cluster .axis { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .3; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .fig-gpu-cluster .curve { fill: none; stroke: var(--ik-screen-ink); stroke-width: .9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100 100; stroke-dashoffset: 100; transition: stroke-dashoffset var(--ik-t-state) var(--ik-ease); }
 .fig-gpu-cluster .curve[data-on="true"] { stroke-dashoffset: 0; transition: stroke-dashoffset var(--draw) var(--ik-ease) var(--draw-at); }

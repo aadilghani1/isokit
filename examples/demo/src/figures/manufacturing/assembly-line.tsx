@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, playSound, Ripple, side, useDemoTap } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, playSound, Ripple, side, useDemoTap } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./assembly-line.css"
 
@@ -8,14 +9,15 @@ export const meta = {
   title: "Assembly line",
   industry: "manufacturing",
   level: 3,
-  blurb: "Press run: a truck chassis rides down the line and three stations lower in its battery, its body and its cab.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "side"],
-  sounds: ["press", "release", "cascade", "complete"],
+  blurb: "Press run: the conveyor motor indexes a truck chassis down the line, three stations lower in its battery, its body and its cab, and the built counter rolls on a unit.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "side", "Dimension"],
+  sounds: ["press", "release", "motor", "cascade", "roll", "complete"],
 } satisfies FigureMeta
 
 type PartId = "battery" | "body" | "cab"
 type Part = { id: PartId; x: number; y: number; z: number; w: number; d: number; h: number }
-type Run = { unit: number; step: number }
+type Run = { unit: number; from: number; step: number }
+type Wheel = { digit: string; before: string; rank: number }
 
 const BASE = { x: 0, y: 0, z: 0, w: 204, d: 104, h: 8 }
 const CONSOLE = { x: 8, y: 74, z: 8, w: 66, d: 22, h: 18 }
@@ -38,6 +40,17 @@ const ARM = { y: 12, z: COLUMN.z + COLUMN.h, w: 12, d: 50, h: 8 }
 const GRIP = { w: 12, d: 8, h: 5 }
 const ROD = 4
 const KEY = { x: 15, y: 76, z: CONSOLE.z + CONSOLE.h, w: 50, d: 14, h: 5 }
+const MOTOR = { x: 155, y: BELT.y + BELT.d + 1, z: BASE.h, w: 15, d: 15, h: 13 }
+const GEARBOX = { x: MOTOR.x + MOTOR.w, y: BELT.y + BELT.d, z: BASE.h, w: 20, d: 10, h: 10 }
+const FAN = { cx: MOTOR.w / 2, cy: MOTOR.d / 2, r: 5.4 }
+const VANES = Array.from({ length: 6 }, (_, k) => {
+  const a = (k * Math.PI) / 3
+  return `M${(Math.cos(a) * 1.4).toFixed(3)} ${(Math.sin(a) * 1.4).toFixed(3)}L${(Math.cos(a + 0.45) * 4.4).toFixed(3)} ${(Math.sin(a + 0.45) * 4.4).toFixed(3)}`
+}).join("")
+const ROLLERS = Array.from({ length: 16 }, (_, k) => 8 + k * 11.8)
+const COUNTER = { x: SCREEN.x + 4, y: SCREEN.y + 11.9, size: 6.4, char: 3.84, places: 2 }
+const WHEELS_X = COUNTER.x + "built ".length * COUNTER.char
+const ROLL_STAGGER_MS = 50
 const FEED_MS = 200
 const HOP_MS = 320
 const DOWN_MS = 140
@@ -46,7 +59,10 @@ const PITCH_MS = HOP_MS + WORK_MS
 const arriveAt = (k: number) => FEED_MS + HOP_MS + k * PITCH_MS
 const landAt = (k: number) => arriveAt(k) + DOWN_MS
 const DONE_MS = arriveAt(DOCKS.length - 1) + WORK_MS + HOP_MS
-const START: Run = { unit: 11, step: 0 }
+const HOPS = Array.from({ length: DOCKS.length + 1 }, (_, k) => FEED_MS + k * PITCH_MS)
+const START: Run = { unit: 11, from: 11, step: 0 }
+const LAST = 99
+const TIMING = { "--feed": `${FEED_MS}ms`, "--work": `${WORK_MS}ms`, "--run": `${DONE_MS}ms` } as CSSProperties
 const PROGRESS = [
   { text: "loading", on: 0, off: landAt(0) },
   { text: "station 1", on: landAt(0), off: landAt(1) },
@@ -54,8 +70,103 @@ const PROGRESS = [
   { text: "station 3", on: landAt(2), off: DONE_MS },
 ] as const
 
+const unitNumber = (unit: number) => String(unit).padStart(COUNTER.places, "0")
+
+function wheelsOf(from: number, to: number): { wheels: Wheel[]; turning: number } {
+  const before = unitNumber(from).split("")
+  const after = unitNumber(to).split("")
+  const wheels: Wheel[] = []
+  let turning = 0
+  for (let index = after.length - 1; index >= 0; index--) {
+    const digit = after[index] ?? "0"
+    const was = before[index] ?? "0"
+    wheels[index] = { digit, before: was, rank: digit === was ? -1 : turning }
+    if (digit !== was) turning++
+  }
+  return { wheels, turning }
+}
+
 const place = (part: Omit<Part, "id">, cx: number) => ({ x: cx + part.x, y: CY + part.y, z: part.z, w: part.w, d: part.d, h: part.h })
 const ms = (n: number) => `${n}ms`
+
+function Counter({ unit, from, clip }: { unit: number; from: number; clip: string }) {
+  return (
+    <g clipPath={`url(#${clip})`}>
+      {wheelsOf(from, unit).wheels.map(({ digit, before, rank }, index) => {
+        const x = WHEELS_X + index * COUNTER.char
+        return (
+          <g key={`${index}-${unit}`} style={{ "--roll-at": `${Math.max(0, rank) * ROLL_STAGGER_MS}ms` } as CSSProperties}>
+            {rank >= 0 ? (
+              <text className="ik-screen-text al-roll-out" x={x} y={COUNTER.y} fontSize={COUNTER.size}>
+                {before}
+              </text>
+            ) : null}
+            <text className={rank >= 0 ? "ik-screen-text al-roll-in" : "ik-screen-text"} x={x} y={COUNTER.y} fontSize={COUNTER.size}>
+              {digit}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+function Rollers({ running }: { running: boolean }) {
+  return (
+    <g className={running ? "al-indexing" : undefined}>
+      {ROLLERS.map((cx) => (
+        <g key={cx} transform={`translate(${cx} 6)`}>
+          <g className="al-spin al-roller">
+            <circle className="ik-detail" r={2.4} />
+            <path className="ik-detail" d="M-1.6 0H1.6" />
+          </g>
+        </g>
+      ))}
+    </g>
+  )
+}
+
+function Drive({ running }: { running: boolean }) {
+  return (
+    <>
+      <Box
+        {...MOTOR}
+        r={4}
+        top={
+          <g className={running ? "al-indexing" : undefined}>
+            <circle className="ik-well" cx={FAN.cx} cy={FAN.cy} r={FAN.r} />
+            <g transform={`translate(${FAN.cx} ${FAN.cy})`}>
+              <g className="al-spin al-fan">
+                <path className="ik-detail" d={VANES} />
+              </g>
+              <circle className="ik-fill" r={1} />
+            </g>
+          </g>
+        }
+        front={Array.from({ length: 4 }, (_, k) => (
+          <path key={k} className="ik-detail" d={`M${4 + k * 2.4} 3v${MOTOR.h - 5}`} />
+        ))}
+        side={Array.from({ length: 4 }, (_, k) => (
+          <path key={k} className="ik-detail" d={`M${4 + k * 2.4} 3v${MOTOR.h - 5}`} />
+        ))}
+      />
+      <Box
+        {...GEARBOX}
+        r={2.5}
+        top={<path className="ik-detail" d={`M3 3h${GEARBOX.w - 6}`} />}
+        front={
+          <>
+            <circle className="ik-detail" cx={GEARBOX.w - 6} cy={5} r={3} />
+            <circle className="ik-fill" cx={GEARBOX.w - 6} cy={5} r={1} />
+            <circle className="ik-fill" cx={3.5} cy={3} r={0.8} />
+            <circle className="ik-fill" cx={3.5} cy={7.4} r={0.8} />
+          </>
+        }
+        side={<path className="ik-detail" d={`M3 3h${GEARBOX.d - 6}`} />}
+      />
+    </>
+  )
+}
 
 function Wheels() {
   return (
@@ -111,7 +222,13 @@ function PartBox({ part, cx, z = part.z, built }: { part: Part; cx: number; z?: 
     <Box
       {...box}
       r={2}
-      top={<circle className="al-beacon" data-on={built !== undefined} style={built === undefined ? undefined : ({ "--t": built } as CSSProperties)} cx={part.w / 2} cy={part.d / 2} r={1.8} />}
+      top={
+        <g style={built === undefined ? undefined : ({ "--t": built } as CSSProperties)}>
+          <Glow on={built !== undefined} className="al-beacon-glow">
+            <circle className="al-beacon" data-on={built !== undefined} cx={part.w / 2} cy={part.d / 2} r={1.8} />
+          </Glow>
+        </g>
+      }
       front={
         <>
           <rect className="ik-well" x={2} y={2} width={part.w - 4} height={4.6} rx={1} />
@@ -178,8 +295,8 @@ function Column({ k, running }: { k: number; running: boolean }) {
       r={2}
       front={
         <>
-          <circle className="al-lamp" data-run={running} style={{ "--t": ms(arriveAt(k)) } as CSSProperties} cx={COLUMN.w / 2} cy={6} r={2} />
-          <text className="ik-label al-tag" x={COLUMN.w / 2} y={16} textAnchor="middle">
+          <circle className="al-lamp" data-run={running} style={{ "--t": ms(arriveAt(k)) } as CSSProperties} cx={COLUMN.w / 2} cy={12} r={2} />
+          <text className="ik-label al-tag" x={COLUMN.w / 2} y={22} textAnchor="middle">
             {k + 1}
           </text>
         </>
@@ -192,26 +309,34 @@ export default function AssemblyLine() {
   const [run, setRun] = useState<Run>(START)
   const [built, setBuilt] = useState(true)
   const stops = useRef<Array<() => void>>([])
-  const timer = useRef(0)
-  const clip = useId().replace(/:/g, "")
+  const timers = useRef<number[]>([])
+  const clip = useId().replace(/[^\w-]/g, "")
   useEffect(
     () => () => {
-      window.clearTimeout(timer.current)
+      for (const timer of timers.current) window.clearTimeout(timer)
       for (const stop of stops.current) stop()
     },
     [],
   )
 
   const start = (audible: boolean) => {
-    window.clearTimeout(timer.current)
+    const next = run.unit >= LAST ? 1 : run.unit + 1
+    for (const timer of timers.current) window.clearTimeout(timer)
     for (const stop of stops.current) stop()
     stops.current = []
-    if (audible) stops.current.push(playSound("cascade", { count: DOCKS.length, stagger: PITCH_MS / 1000, delay: landAt(0) / 1000 }))
-    timer.current = window.setTimeout(() => {
-      setBuilt(true)
-      if (audible) stops.current.push(playSound("complete"))
-    }, DONE_MS)
-    setRun({ unit: run.unit >= 99 ? 1 : run.unit + 1, step: run.step + 1 })
+    timers.current = []
+    if (audible) {
+      const { turning } = wheelsOf(run.unit, next)
+      stops.current.push(playSound("cascade", { count: DOCKS.length, stagger: PITCH_MS / 1000, delay: landAt(0) / 1000 }))
+      timers.current = HOPS.map((at) => window.setTimeout(() => stops.current.push(playSound("motor", { duration: HOP_MS / 1000 })), at))
+      timers.current.push(
+        window.setTimeout(() => {
+          stops.current.push(playSound("roll", { count: turning, stagger: ROLL_STAGGER_MS / 1000 }), playSound("complete"))
+        }, DONE_MS),
+      )
+    }
+    timers.current.push(window.setTimeout(() => setBuilt(true), DONE_MS))
+    setRun({ unit: next, from: run.unit, step: run.step + 1 })
     setBuilt(false)
   }
   const demo = useDemoTap(
@@ -238,9 +363,10 @@ export default function AssemblyLine() {
       hint="Press run"
       readout={readout}
       className="fig-assembly-line"
+      style={TIMING}
       fit={[BASE, { x: DOCKS[0] - ARM.w / 2, y: ARM.y, z: 0, w: DOCKS[2] - DOCKS[0] + ARM.w, d: ARM.d, h: ARM.z + ARM.h }, { ...CONSOLE, z: 0, h: KEY.z + KEY.h }]}
       aspect={1.35}
-      label="A short assembly line: a conveyor with three stations and a console with a line screen and a run key. Press run to send a truck chassis down the line; the first station lowers in the battery, the second the body and the third the cab."
+      label="A short assembly line: a conveyor with a drive motor, three stations and a console with a line screen and a run key. Press run to index a truck chassis down the line; the first station lowers in the battery, the second the body and the third the cab, and the built counter rolls on by one."
     >
       <g ref={demo.ref}>
         <Box
@@ -262,45 +388,49 @@ export default function AssemblyLine() {
                 <clipPath id={`${clip}-screen`}>
                   <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
                 </clipPath>
+                <clipPath id={`${clip}-counter`}>
+                  <rect x={WHEELS_X - 0.6} y={COUNTER.y - 5.4} width={COUNTER.places * COUNTER.char + 1.2} height={6.8} />
+                </clipPath>
               </defs>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
               <g clipPath={`url(#${clip}-screen)`}>
-                <g key={`line-${step}`}>
-                  {running ? (
-                    <>
-                      {PROGRESS.map((row) => (
-                        <text key={row.text} className="ik-screen-text ik-dim al-window" x={SCREEN.x + 4} y={SCREEN.y + 5.6} fontSize={4.6} style={{ "--on": ms(row.on), "--span": ms(row.off - row.on) } as CSSProperties}>
-                          {row.text}
+                <Glow>
+                  <g key={`line-${step}`}>
+                    {running ? (
+                      <>
+                        {PROGRESS.map((row) => (
+                          <text key={row.text} className="ik-screen-text ik-dim al-window" x={SCREEN.x + 4} y={SCREEN.y + 5.2} fontSize={4.6} style={{ "--on": ms(row.on), "--span": ms(row.off - row.on) } as CSSProperties}>
+                            {row.text}
+                          </text>
+                        ))}
+                        <text className="ik-screen-text ik-dim al-shown" x={SCREEN.x + 4} y={SCREEN.y + 5.2} fontSize={4.6} style={{ "--on": ms(DONE_MS) } as CSSProperties}>
+                          done
                         </text>
-                      ))}
-                      <text className="ik-screen-text ik-dim al-shown" x={SCREEN.x + 4} y={SCREEN.y + 5.6} fontSize={4.6} style={{ "--on": ms(DONE_MS) } as CSSProperties}>
-                        built
+                      </>
+                    ) : (
+                      <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 5.2} fontSize={4.6}>
+                        ready
                       </text>
-                    </>
-                  ) : (
-                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 5.6} fontSize={4.6}>
-                      ready
-                    </text>
-                  )}
-                  <g className="ik-enter">
-                    <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 11.6} fontSize={6.4}>
-                      {`unit ${unit}`}
-                    </text>
+                    )}
+                    {DOCKS.map((dock, k) => (
+                      <rect
+                        key={dock}
+                        className="al-pip"
+                        data-on={running}
+                        style={{ "--t": ms(landAt(k)) } as CSSProperties}
+                        x={SCREEN.x + 44.5 + k * 4}
+                        y={SCREEN.y + 2.6}
+                        width={2.6}
+                        height={2.6}
+                        rx={0.6}
+                      />
+                    ))}
                   </g>
-                  {DOCKS.map((dock, k) => (
-                    <rect
-                      key={dock}
-                      className="al-pip"
-                      data-on={running}
-                      style={{ "--t": ms(landAt(k)) } as CSSProperties}
-                      x={SCREEN.x + 44.5 + k * 4}
-                      y={SCREEN.y + 2.6}
-                      width={2.6}
-                      height={2.6}
-                      rx={0.6}
-                    />
-                  ))}
-                </g>
+                  <text className="ik-screen-text" x={COUNTER.x} y={COUNTER.y} fontSize={COUNTER.size}>
+                    built
+                  </text>
+                  <Counter unit={unit} from={run.from} clip={`${clip}-counter`} />
+                </Glow>
               </g>
             </>
           }
@@ -322,11 +452,10 @@ export default function AssemblyLine() {
               ))}
             </>
           }
-          front={Array.from({ length: 16 }, (_, k) => (
-            <circle key={k} className="ik-detail" cx={8 + k * 11.8} cy={6} r={2.4} />
-          ))}
+          front={<Rollers key={step} running={running} />}
           side={<path className="ik-detail" d={`M4 6h${BELT.d - 8}`} />}
         />
+        <Drive key={`drive-${step}`} running={running} />
 
         <g key={`out-${step}`} className={running ? "al-exit" : undefined}>
           <Truck cx={OUT} />
@@ -347,7 +476,7 @@ export default function AssemblyLine() {
         ))}
 
         {!running && !aiming ? <Ripple {...KEY} r={6} /> : null}
-        <Press label="Run the line" onPress={press} data-hot={!running}>
+        <Press label="Run the line" material="plastic" onPress={press} data-hot={!running}>
           <g>
             <Box
               {...KEY}
@@ -363,6 +492,7 @@ export default function AssemblyLine() {
             />
           </g>
         </Press>
+        <Dimension from={[DOCKS[1], ARM.y, ARM.z + ARM.h]} to={[DOCKS[2], ARM.y, ARM.z + ARM.h]} offset={[0, 0, 8]} label={`pitch ${DOCKS[2] - DOCKS[1]}`} />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

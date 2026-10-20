@@ -14,14 +14,14 @@
 }
 
 :where(.ik-plate[data-look], [data-look] .ik-plate) {
-  --ik-paper: var(--ik-paper-light); --ik-pen: var(--ik-pen-light); --ik-live: var(--ik-live-light); --ik-glow: var(--ik-glow-light); --ik-accent: var(--ik-accent-light); --ik-glow-strength: var(--ik-strength-light);
+  --ik-paper: color-mix(in oklab, var(--ik-paper-light), var(--ik-paper-light)); --ik-pen: color-mix(in oklab, var(--ik-pen-light), var(--ik-pen-light)); --ik-live: color-mix(in oklab, var(--ik-live-light), var(--ik-live-light)); --ik-glow: color-mix(in oklab, var(--ik-glow-light), var(--ik-glow-light)); --ik-accent: color-mix(in oklab, var(--ik-accent-light), var(--ik-accent-light)); --ik-glow-strength: var(--ik-strength-light);
 }
 :where(.dark, [data-theme="dark"]) :where(.ik-plate[data-look]:not([data-theme="light"]):not([data-theme="system"]), [data-look] .ik-plate:not([data-theme="light"]):not([data-theme="system"])), :where(.ik-plate[data-look][data-theme="dark"], [data-look] .ik-plate[data-theme="dark"]) {
-  --ik-paper: var(--ik-paper-dark); --ik-pen: var(--ik-pen-dark); --ik-live: var(--ik-live-dark); --ik-glow: var(--ik-glow-dark); --ik-accent: var(--ik-accent-dark); --ik-glow-strength: var(--ik-strength-dark);
+  --ik-paper: color-mix(in oklab, var(--ik-paper-dark), var(--ik-paper-dark)); --ik-pen: color-mix(in oklab, var(--ik-pen-dark), var(--ik-pen-dark)); --ik-live: color-mix(in oklab, var(--ik-live-dark), var(--ik-live-dark)); --ik-glow: color-mix(in oklab, var(--ik-glow-dark), var(--ik-glow-dark)); --ik-accent: color-mix(in oklab, var(--ik-accent-dark), var(--ik-accent-dark)); --ik-glow-strength: var(--ik-strength-dark);
 }
 @media (prefers-color-scheme: dark) {
   :where(.ik-plate[data-look][data-theme="system"], [data-look] .ik-plate[data-theme="system"]) {
-    --ik-paper: var(--ik-paper-dark); --ik-pen: var(--ik-pen-dark); --ik-live: var(--ik-live-dark); --ik-glow: var(--ik-glow-dark); --ik-accent: var(--ik-accent-dark); --ik-glow-strength: var(--ik-strength-dark);
+    --ik-paper: color-mix(in oklab, var(--ik-paper-dark), var(--ik-paper-dark)); --ik-pen: color-mix(in oklab, var(--ik-pen-dark), var(--ik-pen-dark)); --ik-live: color-mix(in oklab, var(--ik-live-dark), var(--ik-live-dark)); --ik-glow: color-mix(in oklab, var(--ik-glow-dark), var(--ik-glow-dark)); --ik-accent: color-mix(in oklab, var(--ik-accent-dark), var(--ik-accent-dark)); --ik-glow-strength: var(--ik-strength-dark);
   }
 }
 :where(.ik-plate[data-look], [data-look] .ik-plate) {

@@ -1,5 +1,6 @@
-import { useState } from "react"
-import { Box, Cursor, front, Plate, Press, Ripple, useDemoTap } from "react-isokit"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { Box, Cursor, front, Glow, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./crossing-light.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Crossing light",
   industry: "mobility",
   level: 1,
-  blurb: "Press the call button: the red figure goes dark and the green walking figure lights for twelve seconds of crossing.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "front"],
-  sounds: ["press", "release"],
+  blurb: "Press the call button: the controller's relay clicks, the red figure goes dark and the green walking figure lights with a beep for twelve seconds of crossing.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "front", "Callout"],
+  sounds: ["press", "release", "relay", "beep"],
 } satisfies FigureMeta
 
 type Phase = "rest" | "walk" | "stop"
@@ -26,10 +27,17 @@ const LAMP = { x: 3, w: 20, h: 18, rest: 3, walk: 25 }
 const VISORS = [LAMP.rest, LAMP.walk].map((v) => ({ x: HEAD.x + 2, y: HEAD.y + HEAD.d, z: HEAD.z + HEAD.h - v, w: 22, d: 4, h: 1.6 }))
 const BUTTON_BOX = { x: 60, y: HEAD.y, z: 32, w: 18, d: 8, h: 26 }
 const PAD = { x: 63, y: BUTTON_BOX.y + BUTTON_BOX.d, z: 36, w: 12, d: 2.5, h: 12 }
+const CABINET = { x: 100, y: 12, z: KERB_Z, w: 26, d: 14, h: 38 }
+const PLINTH = { x: 98, y: 10, z: KERB_Z, w: 30, d: 18, h: 2 }
+const WINDOW = { x: 5, y: 6, w: 16, h: 11 }
+const ARMATURE = { x: 7.5, y: 14.5, length: 8 }
 const CROSSING = { x: 84, w: 32 }
 const BARS = [58, 67, 76, 85, 94] as const
 const TACTILE = Array.from({ length: 32 }, (_, i) => ({ i, x: CROSSING.x - PAVEMENT.x + 2 + (i % 8) * 4, y: 38 + Math.floor(i / 8) * 3.6 }))
 const RING = 3
+const LAMP_MS = 160
+const TIMING = { "--lamp": `${LAMP_MS}ms` } as CSSProperties
+const RELAY_AT = [CABINET.x + ARMATURE.x + ARMATURE.length / 2, CABINET.y + CABINET.d, CABINET.z + CABINET.h - ARMATURE.y] as const
 const READOUTS: Readonly<Record<Phase, string>> = {
   rest: "don't walk · press to cross",
   walk: "walk · 12 s",
@@ -57,8 +65,35 @@ function WalkingFigure() {
   )
 }
 
+function Relay() {
+  return (
+    <>
+      <rect className="ik-well" x={WINDOW.x} y={WINDOW.y} width={WINDOW.w} height={WINDOW.h} rx={1.5} />
+      <rect className="ik-detail" x={WINDOW.x + 2.5} y={WINDOW.y + 1.8} width={6} height={4.4} rx={0.8} />
+      <path className="ik-detail" d={`M${WINDOW.x + 4} ${WINDOW.y + 1.8}v4.4M${WINDOW.x + 5.5} ${WINDOW.y + 1.8}v4.4M${WINDOW.x + 7} ${WINDOW.y + 1.8}v4.4`} />
+      <path className="ik-detail" d={`M${ARMATURE.x + ARMATURE.length + 1.4} ${ARMATURE.y - 2.6}v3.2`} />
+      <g transform={`translate(${ARMATURE.x} ${ARMATURE.y})`}>
+        <g className="cl-armature">
+          <path className="ik-line" d={`M0 0h${ARMATURE.length}`} />
+        </g>
+        <circle className="ik-fill" r={0.9} />
+      </g>
+    </>
+  )
+}
+
 export default function CrossingLight() {
   const [phase, setPhase] = useState<Phase>("rest")
+  const stop = useRef(() => {})
+  const lamp = useRef(0)
+  useEffect(
+    () => () => {
+      window.clearTimeout(lamp.current)
+      stop.current()
+    },
+    [],
+  )
+
   const walk = phase === "walk"
   const demo = useDemoTap(
     () => {
@@ -68,6 +103,13 @@ export default function CrossingLight() {
   )
   const press = () => {
     demo.dismiss()
+    window.clearTimeout(lamp.current)
+    stop.current()
+    stop.current = playSound("relay")
+    if (!walk)
+      lamp.current = window.setTimeout(() => {
+        stop.current = playSound("beep")
+      }, LAMP_MS)
     setPhase(walk ? "stop" : "walk")
   }
   const aiming = demo.phase === "aim" || demo.phase === "press"
@@ -80,10 +122,11 @@ export default function CrossingLight() {
       hint={walk ? "Press to end the walk" : "Press the call button"}
       readout={READOUTS[phase]}
       className="fig-crossing-light"
+      style={TIMING}
       data-walk={walk}
       fit={[BASE, HEAD, ...VISORS, { ...CAP, z: 0, h: CAP.z + CAP.h }]}
       aspect={1.2}
-      label="A pedestrian crossing light on a pole at the kerb, with a call button box below the signal head and a zebra crossing on the road. Press the button and the green walking figure lights; press again to give the road back to the cars."
+      label="A pedestrian crossing light on a pole at the kerb, with a call button box below the signal head, a controller cabinet on the pavement and a zebra crossing on the road. Press the button: the controller's relay clicks and the green walking figure lights; press again to give the road back to the cars."
     >
       <g ref={demo.ref}>
         <Box
@@ -114,6 +157,25 @@ export default function CrossingLight() {
             </>
           }
         />
+        <Box {...PLINTH} r={2} />
+        <Box
+          {...CABINET}
+          r={2.5}
+          top={<path className="ik-detail" d={`M4 ${CABINET.d / 2}H${CABINET.w - 4}`} />}
+          front={
+            <>
+              <rect className="ik-detail" x={2.5} y={2.5} width={CABINET.w - 5} height={CABINET.h - 5} rx={1.5} />
+              <Relay />
+              <circle className="ik-well" cx={CABINET.w - 6} cy={22} r={1.4} />
+              {[0, 1, 2, 3].map((k) => (
+                <path key={k} className="ik-detail" d={`M6 ${26 + k * 2.4}H${CABINET.w - 6}`} />
+              ))}
+            </>
+          }
+          side={[0, 1, 2, 3, 4].map((k) => (
+            <path key={k} className="ik-detail" d={`M3 ${8 + k * 3}H${CABINET.d - 3}`} />
+          ))}
+        />
         <Box {...FOOT} r={FOOT.w / 2} />
         <Box {...POLE} r={POLE.w / 2} />
         <Box {...CAP} r={CAP.w / 2} />
@@ -139,7 +201,7 @@ export default function CrossingLight() {
             <Ripple inFace x={0} y={0} w={PAD.w + 2 * RING} d={PAD.h + 2 * RING} r={4} />
           </g>
         ) : null}
-        <Press className="ik-lift cl-push" label={walk ? "End the walk phase" : "Call the green figure"} onPress={press} data-hot={!walk}>
+        <Press className="ik-lift cl-push" label={walk ? "End the walk phase" : "Call the green figure"} material="metal" onPress={press} data-hot={!walk}>
           <g>
             <Box
               {...PAD}
@@ -162,8 +224,12 @@ export default function CrossingLight() {
             <>
               <rect className="ik-well cl-lens" x={LAMP.x} y={LAMP.rest} width={LAMP.w} height={LAMP.h} rx={3} />
               <rect className="ik-well cl-lens" x={LAMP.x} y={LAMP.walk} width={LAMP.w} height={LAMP.h} rx={3} />
-              <StandingFigure />
-              <WalkingFigure />
+              <Glow on={!walk} className="cl-glow">
+                <StandingFigure />
+              </Glow>
+              <Glow on={walk} className="cl-glow">
+                <WalkingFigure />
+              </Glow>
             </>
           }
           side={<path className="ik-detail" d={`M3 6V${HEAD.h - 6}`} />}
@@ -172,6 +238,7 @@ export default function CrossingLight() {
           <Box key={visor.z} {...visor} r={1} />
         ))}
 
+        <Callout at={RELAY_AT} dx={20} dy={-24} label="relay" />
         <Cursor at={[PAD.x + PAD.w / 2, PAD.y + PAD.d, PAD.z + PAD.h / 2]} phase={demo.phase} />
       </g>
     </Plate>

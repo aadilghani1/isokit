@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, curve, front, Plate, Press, path, playSound, Ripple, Signal, useDemoTap } from "react-isokit"
+import { Box, Cursor, curve, front, Glow, Plate, Press, path, playSound, Ripple, Signal, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./checkout-till.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Checkout till",
   industry: "retail",
   level: 2,
-  blurb: "Press total: the till shows the sum, a signal runs down the cable and the receipt feeds out of the printer.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "front"],
-  sounds: ["press", "release", "process", "paper"],
+  blurb: "Press total: the till shows the sum, a signal runs down the cable, the printer's motor turns the paper roll and the receipt feeds out.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "front", "Callout"],
+  sounds: ["press", "release", "paper", "process", "motor"],
 } satisfies FigureMeta
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -38,6 +39,17 @@ const CABLE = curve([JACK.x + JACK.w, JACK.y + 3, JACK.z + 3], [JACK.x + 14, JAC
 const SIGNAL_DELAY_MS = 80
 const SIGNAL_MS = 460
 const ARRIVE_MS = SIGNAL_DELAY_MS + SIGNAL_MS
+const FEED_MS = 900
+const TIMING = { "--arrive": `${ARRIVE_MS}ms`, "--feed": `${FEED_MS}ms` } as CSSProperties
+const ROLL_WINDOW = { x: 37, y: 11, r: 7.4 }
+const ROLL = { paper: 5.8, core: 2.2 }
+const SPOKES = [0, 120, 240]
+  .map((deg) => {
+    const a = (deg * Math.PI) / 180
+    return `M${(Math.cos(a) * ROLL.core).toFixed(3)} ${(Math.sin(a) * ROLL.core).toFixed(3)}L${(Math.cos(a) * (ROLL.paper - 1.2)).toFixed(3)} ${(Math.sin(a) * (ROLL.paper - 1.2)).toFixed(3)}`
+  })
+  .join("")
+const ROLL_AT = [PRINTER.x + PRINTER.w, PRINTER.y + PRINTER.d - ROLL_WINDOW.x, PRINTER.z + PRINTER.h - ROLL_WINDOW.y - ROLL.paper] as const
 const SALES: readonly Sale[] = [
   { id: "0412", items: 4, total: "€18.40" },
   { id: "0413", items: 2, total: "€6.90" },
@@ -72,6 +84,22 @@ function Receipt({ sale, clip }: { sale: Sale; clip: string }) {
   )
 }
 
+function PaperRoll({ step, feeding }: { step: Step; feeding: boolean }) {
+  return (
+    <>
+      <circle className="ik-well" cx={ROLL_WINDOW.x} cy={ROLL_WINDOW.y} r={ROLL_WINDOW.r} />
+      <g transform={`translate(${ROLL_WINDOW.x} ${ROLL_WINDOW.y})`}>
+        <circle className="ik-detail" r={ROLL.paper} />
+        <g key={step} className={feeding ? "ct-roll" : undefined}>
+          <path className="ik-detail" d={SPOKES} />
+          <path className="ik-line" d={`M${ROLL.core} 0H${ROLL.paper}`} />
+        </g>
+        <circle className="ik-fill" r={ROLL.core - 0.6} />
+      </g>
+    </>
+  )
+}
+
 function readoutOf(step: Step): string {
   const sale = saleOf(step)
   return step === 0 ? `${sale.items} items · open` : `${sale.items} items · ${sale.total}`
@@ -94,10 +122,15 @@ export default function CheckoutTill() {
     window.clearTimeout(timer.current)
     stop.current()
     if (audible) {
-      stop.current = playSound("process")
+      const tearing = step > 0 ? playSound("paper") : () => {}
+      const travelling = playSound("process")
+      stop.current = () => {
+        tearing()
+        travelling()
+      }
       timer.current = window.setTimeout(() => {
-        stop.current()
-        stop.current = playSound("paper")
+        travelling()
+        stop.current = playSound("motor", { duration: FEED_MS / 1000 })
       }, ARRIVE_MS)
     }
     setStep(NEXT[step])
@@ -126,6 +159,7 @@ export default function CheckoutTill() {
       hint={printed ? "Press total for the next sale" : "Press total"}
       readout={readoutOf(step)}
       className="fig-checkout-till"
+      style={TIMING}
       data-printed={printed}
       fit={[BASE, { ...DISPLAY, z: 0, h: DISPLAY.z + DISPLAY.h }, [PAPER.x, PAPER.y, PAPER.z + TALLEST + 2], [PAPER.x + PAPER.w, PAPER.y, PAPER.z + TALLEST + 2]]}
       aspect={1.3}
@@ -156,16 +190,18 @@ export default function CheckoutTill() {
           front={
             <>
               <rect className="ik-screen" x={5} y={5} width={DISPLAY.w - 10} height={22} rx={3} />
-              <g key={`small-${step}`} className="ik-enter">
-                <text className="ik-screen-text ik-dim" x={10} y={12.6} fontSize={5.6}>
-                  #{sale.id} · {printed ? "total" : "open"}
-                </text>
-              </g>
-              <g key={`big-${step}`} className="ik-enter">
-                <text className="ik-screen-text" x={10} y={23.6} fontSize={10}>
-                  {printed ? sale.total : `${sale.items} items`}
-                </text>
-              </g>
+              <Glow>
+                <g key={`small-${step}`} className="ik-enter">
+                  <text className="ik-screen-text ik-dim" x={10} y={12.6} fontSize={5.6}>
+                    #{sale.id} · {printed ? "total" : "open"}
+                  </text>
+                </g>
+                <g key={`big-${step}`} className="ik-enter">
+                  <text className="ik-screen-text" x={10} y={23.6} fontSize={10}>
+                    {printed ? sale.total : `${sale.items} items`}
+                  </text>
+                </g>
+              </Glow>
               <circle className="ik-fill" cx={DISPLAY.w - 8} cy={29.5} r={1.2} />
             </>
           }
@@ -185,7 +221,7 @@ export default function CheckoutTill() {
         ))}
 
         {step === 0 && !aiming ? <Ripple {...TOTAL} r={4} /> : null}
-        <Press label="Total the sale" onPress={press} data-hot={!printed}>
+        <Press label="Total the sale" material="plastic" onPress={press} data-hot={!printed}>
           <g>
             <Box
               {...TOTAL}
@@ -217,7 +253,10 @@ export default function CheckoutTill() {
           }
           front={
             <>
-              <circle key={`led-${step}`} className="ct-led" data-on={printed} style={{ "--t": `${ARRIVE_MS}ms` } as CSSProperties} cx={7} cy={7} r={2.2} />
+              <circle className="ct-led" cx={7} cy={7} r={2.2} />
+              <Glow key={`led-${step}`} on={printed} className="ct-led-glow">
+                <circle className="ct-led-lit" data-on={printed} cx={7} cy={7} r={2.2} />
+              </Glow>
               <rect className="ik-well" x={13} y={4.5} width={11} height={5} rx={2.5} />
               <text className="ik-label ct-tag" x={13.4} y={16.5}>
                 FEED
@@ -232,7 +271,7 @@ export default function CheckoutTill() {
               {Array.from({ length: 6 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M${10 + k * 3.4} 6v10`} />
               ))}
-              <rect className="ik-well" x={40} y={11} width={6} height={5} rx={1} />
+              <PaperRoll step={step} feeding={printed} />
             </>
           }
         />
@@ -253,7 +292,7 @@ export default function CheckoutTill() {
               const shown = saleOf(receipt.step)
               return (
                 <g key={receipt.step} className="ct-receipt" data-state={receipt.state}>
-                  <g className="ct-feed" style={{ "--rh": `${heightOf(shown)}px`, "--t": `${ARRIVE_MS}ms` } as CSSProperties}>
+                  <g className="ct-feed" style={{ "--rh": `${heightOf(shown)}px` } as CSSProperties}>
                     <Receipt sale={shown} clip={`${clip}-paper`} />
                   </g>
                 </g>
@@ -262,6 +301,7 @@ export default function CheckoutTill() {
           </g>
         </g>
 
+        <Callout at={ROLL_AT} dx={14} dy={26} label="paper roll" />
         <Cursor at={[TOTAL.x + TOTAL.w / 2, TOTAL.y + TOTAL.d / 2, TOTAL.z + TOTAL.h]} phase={demo.phase} />
       </g>
     </Plate>

@@ -1,5 +1,6 @@
 import { type CSSProperties, type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, front, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, front, Glow, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./vending-machine.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Vending machine",
   industry: "retail",
   level: 3,
-  blurb: "Press B2: the coil turns, the cans step forward, the front one drops into the tray and the tray light comes on.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "path", "project", "front"],
-  sounds: ["press", "release", "cascade", "complete", "whoosh"],
+  blurb: "Press B2: the motor turns the coil, the cans step forward, the front one falls into the tray with a thunk and the tray light comes on.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "path", "project", "front", "Callout"],
+  sounds: ["press", "release", "motor", "latch", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type Run = 0 | 1 | 2 | 3 | 4
@@ -55,7 +56,9 @@ const FRAMES = 8
 const TURN_MS = 600
 const DROP_MS = 1040
 const LAND_MS = Math.round(DROP_MS * 0.92)
-const STEP_MS = 60
+const SENSE_MS = 140
+const LIT_MS = LAND_MS + SENSE_MS
+const TIMING = { "--turn": `${TURN_MS}ms`, "--lit": `${LIT_MS}ms` } as CSSProperties
 const KEY = { w: 9.6, d: 5.4, h: 2.2 }
 const KEY_ROWS = ["A", "B", "C"] as const
 const KEYS = KEY_ROWS.flatMap((row, r) => [1, 2, 3].map((n, c) => ({ id: `${row}${n}`, x: LEDGE.x + 2.4 + c * 11, y: LEDGE.y + 2.4 + r * 6.6, z: LEDGE.z + LEDGE.h, ...KEY })))
@@ -113,6 +116,8 @@ const TO_BOUNCE = offset([0, SPOTS[0]!, B2_Z], [0, EDGE_Y, BIN_FLOOR + 2])
 const DROP_STYLE = { "--ex": TO_EDGE.x, "--ey": TO_EDGE.y, "--fy": TO_TRAY.y, "--by": TO_BOUNCE.y, "--d": `${DROP_MS}ms` } as CSSProperties
 const FRAME_MS = TURN_MS / FRAMES
 const PIPS = [0, TURN_MS, LAND_MS] as const
+const PIP_TIMING = new Map(PIPS.map((at) => [at, { "--t": `${at}ms` } as CSSProperties]))
+const COIL_AT = [B2_X + RADIUS, COIL_Y0 + PITCH * 2, axisOf(ROW_B.z)] as const
 
 function Product({ kind, cx, cy, z }: { kind: Kind; cx: number; cy: number; z: number }): ReactNode {
   if (kind === "bag") {
@@ -189,9 +194,12 @@ export default function VendingMachine() {
     stops.current = []
     if (audible && next === 4) stops.current.push(playSound("whoosh"))
     if (audible && next !== 4) {
-      stops.current.push(playSound("cascade", { count: STOCK[run], stagger: STEP_MS / 1000, delay: TURN_MS / 1000 }))
+      stops.current.push(playSound("motor", { duration: TURN_MS / 1000 }))
       timer.current = window.setTimeout(() => {
-        stops.current.push(playSound("complete"))
+        stops.current.push(playSound("latch"))
+        timer.current = window.setTimeout(() => {
+          stops.current.push(playSound("complete"))
+        }, SENSE_MS)
       }, LAND_MS)
     }
     setRun(next)
@@ -278,6 +286,7 @@ export default function VendingMachine() {
       hint={run === 3 ? "Press B2 to restock" : idle ? "Press B2" : "Press B2 again"}
       readout={readoutOf(run)}
       className="fig-vending-machine"
+      style={TIMING}
       fit={[BASE, { x: MX, y: MY, z: 0, w: W, d: D, h: HEADER.z + HEADER.h }, LEDGE]}
       aspect={0.86}
       label="A vending machine with a glass front over three rows of product coils, a screen, a keypad and a delivery tray. Press B2 to buy a can: the coil turns, the can drops into the tray and the tray light comes on."
@@ -299,7 +308,11 @@ export default function VendingMachine() {
           front={
             <>
               <rect className="ik-well" x={BIN.x} y={BIN.y} width={BIN.w} height={BIN.h} rx={3} />
-              <rect key={`tray-${run}`} className="vm-tray" data-on={vending} style={{ "--t": `${LAND_MS}ms` } as CSSProperties} x={BIN.x + 8} y={2.6} width={BIN.w - 16} height={1.4} rx={0.7} />
+              <rect className="vm-tray" x={BIN.x + 8} y={2.6} width={BIN.w - 16} height={1.4} rx={0.7} />
+              <Glow key={`tray-${run}`} on={vending} className="vm-tray-glow">
+                <rect className="vm-tray-lit" data-on={vending} x={BIN.x + 8} y={2.6} width={BIN.w - 16} height={1.4} rx={0.7} />
+              </Glow>
+              <path className="ik-detail" d={`M${BIN.x + 3} ${BIN.y + 3}h${BIN.w - 6}`} />
               {Array.from({ length: 9 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M${96 + k * 3.6} 9v12`} />
               ))}
@@ -351,31 +364,37 @@ export default function VendingMachine() {
           front={
             <>
               <rect className="ik-screen" x={4} y={6} width={COLUMN.w - 8} height={24} rx={3} />
-              <g key={`small-${run}`} className="ik-enter">
-                <text className="ik-screen-text ik-dim" x={7.5} y={13.5} fontSize={5.6}>
-                  B2 €1.50
-                </text>
-              </g>
-              <g key={`big-${run}`}>
-                {vending ? (
-                  <>
-                    <text className="ik-screen-text vm-shown vm-passing" x={7.5} y={22.6} fontSize={6.4} style={{ "--on": "0ms", "--off": `${LAND_MS}ms` } as CSSProperties}>
-                      vending
-                    </text>
-                    <text className="ik-screen-text vm-shown" x={7.5} y={22.6} fontSize={6.4} style={{ "--on": `${LAND_MS}ms` } as CSSProperties}>
-                      {after}
-                    </text>
-                  </>
-                ) : (
-                  <g className="ik-enter">
-                    <text className="ik-screen-text" x={7.5} y={22.6} fontSize={6.4}>
-                      {restocked ? after : "ready"}
-                    </text>
-                  </g>
-                )}
-              </g>
+              <Glow>
+                <g key={`small-${run}`} className="ik-enter">
+                  <text className="ik-screen-text ik-dim" x={7.5} y={13.5} fontSize={5.6}>
+                    B2 €1.50
+                  </text>
+                </g>
+                <g key={`big-${run}`}>
+                  {vending ? (
+                    <>
+                      <text className="ik-screen-text vm-shown vm-passing" x={7.5} y={22.6} fontSize={6.4} style={{ "--on": "0ms", "--off": `${LIT_MS}ms` } as CSSProperties}>
+                        vending
+                      </text>
+                      <text className="ik-screen-text vm-shown" x={7.5} y={22.6} fontSize={6.4} style={{ "--on": `${LIT_MS}ms` } as CSSProperties}>
+                        {after}
+                      </text>
+                    </>
+                  ) : (
+                    <g className="ik-enter">
+                      <text className="ik-screen-text" x={7.5} y={22.6} fontSize={6.4}>
+                        {restocked ? after : "ready"}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              </Glow>
               {PIPS.map((at, k) => (
-                <rect key={`${run}-${at}`} className="vm-pip" data-on={vending} style={{ "--t": `${at}ms` } as CSSProperties} x={7.5 + k * 6} y={25.4} width={4} height={1.8} rx={0.9} />
+                <g key={`${run}-${at}`} style={PIP_TIMING.get(at)}>
+                  <Glow on={vending} className="vm-pip-glow">
+                    <rect className="vm-pip" data-on={vending} x={7.5 + k * 6} y={25.4} width={4} height={1.8} rx={0.9} />
+                  </Glow>
+                </g>
               ))}
               <circle className="ik-detail" cx={11} cy={40} r={4.6} />
               <path className="ik-detail" d="M9.6 38.2a2.4 2.4 0 0 1 0 3.6M11.6 37a4 4 0 0 1 0 6" />
@@ -415,7 +434,7 @@ export default function VendingMachine() {
           key === B2 ? (
             <g key={key.id}>
               {run === 0 && !aiming ? <Ripple {...B2} r={1.6} /> : null}
-              <Press label={run === 3 ? "Restock coil B2" : "Buy B2 for €1.50"} onPress={press} data-hot={idle}>
+              <Press label={run === 3 ? "Restock coil B2" : "Buy B2 for €1.50"} material="metal" onPress={press} data-hot={idle}>
                 <g>
                   <Box
                     {...B2}
@@ -442,6 +461,7 @@ export default function VendingMachine() {
             />
           ),
         )}
+        <Callout at={COIL_AT} dx={-56} dy={-16} label="spiral coil" />
         <Cursor at={[B2.x + B2.w / 2, B2.y + B2.d / 2, B2.z + B2.h]} phase={demo.phase} />
       </g>
     </Plate>

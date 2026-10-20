@@ -170,9 +170,14 @@ export default function ApiKeyVault() {
               <Glow>
                 <rect className="pip" data-on="true" x={79} y={12.5} width={3} height={3} rx={0.6} />
               </Glow>
-              <Glow key={`pip-${gen}`} on={!fresh} className="old-pip">
-                <rect className={fresh ? "pip" : "pip blip"} x={84} y={12.5} width={3} height={3} rx={0.6} />
-              </Glow>
+              <rect className="pip" x={84} y={12.5} width={3} height={3} rx={0.6} />
+              {fresh ? null : (
+                <g key={`pip-${gen}`} className="old-pip">
+                  <Glow>
+                    <rect className="pip" data-on="true" x={84} y={12.5} width={3} height={3} rx={0.6} />
+                  </Glow>
+                </g>
+              )}
               <g key={gen}>
                 <g className="ik-enter" style={{ animationDelay: fresh ? "0ms" : `${REVOKE_MS}ms` }}>
                   <text className="ik-screen-text ik-dim" x={16} y={17} fontSize={5.6}>

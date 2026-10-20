@@ -4,7 +4,7 @@
 .fig-pick-and-place .pip { fill: var(--ik-screen-ink); opacity: .16; transition: opacity 0ms linear var(--t); }
 .fig-pick-and-place .pip[data-on="true"] { opacity: .85; }
 .fig-pick-and-place .pip-glow { --ik-glow-size: 3; }
-.fig-pick-and-place .pip-glow > .ik-halo { transition-delay: var(--t); }
+.fig-pick-and-place .pip-glow { --ik-glow-delay: var(--t); --ik-glow-fade-delay: var(--t); }
 .fig-pick-and-place .was { animation: pnp-was 1ms linear forwards; }
 .fig-pick-and-place .roll-in { animation: pnp-roll-in var(--ik-t-state) var(--ik-ease) var(--count-at) both; }
 .fig-pick-and-place .roll-out { animation: pnp-roll-out var(--ik-t-state) var(--ik-ease) var(--count-at) both; }

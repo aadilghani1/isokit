@@ -12,3 +12,4 @@
 .fig-smart-meter svg[data-page="0"] .sm-cycle { stroke: var(--ik-live); }
 @keyframes sm-roll-in { from { transform: translateY(12px); } }
 @keyframes sm-roll-out { to { transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) { .fig-smart-meter .sm-roll-out { display: none; } }
