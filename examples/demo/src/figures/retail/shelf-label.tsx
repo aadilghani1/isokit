@@ -1,5 +1,6 @@
-import { useId, useState } from "react"
-import { Box, Cursor, Plate, Press, Ripple, useDemoTap } from "react-isokit"
+import { type CSSProperties, useId, useState } from "react"
+import { Box, Cursor, Glow, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./shelf-label.css"
 
@@ -8,12 +9,13 @@ export const meta = {
   title: "Shelf label",
   industry: "retail",
   level: 1,
-  blurb: "Press the update key: the e-paper label on the shelf edge flashes and flips to the new price, and its light comes on.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap"],
-  sounds: ["press", "release"],
+  blurb: "Press the update key: the e-paper label on the shelf edge flashes, the digits that changed flip over one by one from the right, and its light blinks.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "Callout"],
+  sounds: ["press", "release", "roll"],
 } satisfies FigureMeta
 
 type Step = 0 | 1 | 2 | 3
+type Glyph = { glyph: string; before: string; rank: number }
 
 const DECK = { x: 0, y: 0, z: 0, w: 168, d: 74, h: 38 }
 const RAIL = { x: 9, y: DECK.d, z: 5, w: 150, d: 3, h: 28 }
@@ -29,6 +31,42 @@ const NEXT: Readonly<Record<Step, Step>> = { 0: 1, 1: 2, 2: 3, 3: 1 }
 const UNIT = "€11.96/l"
 const BARS = [0, 1.6, 3.8, 5, 7.2, 8.6, 10.8] as const
 const REFRESH = "M3.4 -1.6A3.6 3.6 0 1 0 3.6 1.2M3.6 -3.6V-1.4H1.4"
+const PRICE_TEXT = { x: SCREEN.x + 4, y: SCREEN.y + 18.6, size: 11, char: 6.6 }
+const FLIP_STAGGER_MS = 50
+const LED = { x: SCREEN.x + SCREEN.w + 8.5, y: 8, r: 2 }
+const E_PAPER_AT = [LABEL.x + SCREEN.x + 6, LABEL.y + LABEL.d, LABEL.z + LABEL.h - SCREEN.y - SCREEN.h - 1.6] as const
+
+function glyphsOf(step: Step): { glyphs: Glyph[]; turning: number } {
+  const after = PRICE[step].split("")
+  const before = (WAS[step] ?? PRICE[step]).split("")
+  const glyphs: Glyph[] = []
+  let turning = 0
+  for (let index = after.length - 1; index >= 0; index--) {
+    const glyph = after[index] ?? " "
+    const was = before[index] ?? " "
+    glyphs[index] = { glyph, before: was, rank: glyph === was ? -1 : turning }
+    if (glyph !== was) turning++
+  }
+  return { glyphs, turning }
+}
+
+function Price({ step }: { step: Step }) {
+  return glyphsOf(step).glyphs.map(({ glyph, before, rank }, index) => {
+    const x = PRICE_TEXT.x + index * PRICE_TEXT.char
+    return (
+      <g key={index} style={{ "--flip-at": `${Math.max(0, rank) * FLIP_STAGGER_MS}ms` } as CSSProperties}>
+        {rank >= 0 ? (
+          <text className="ik-screen-text sl-flip-out" x={x} y={PRICE_TEXT.y} fontSize={PRICE_TEXT.size}>
+            {before}
+          </text>
+        ) : null}
+        <text className={rank >= 0 ? "ik-screen-text sl-flip-in" : "ik-screen-text"} x={x} y={PRICE_TEXT.y} fontSize={PRICE_TEXT.size}>
+          {glyph}
+        </text>
+      </g>
+    )
+  })
+}
 
 function readoutOf(step: Step): string {
   const was = WAS[step]
@@ -47,6 +85,8 @@ export default function ShelfLabel() {
   )
   const press = () => {
     demo.dismiss()
+    const { turning } = glyphsOf(NEXT[step])
+    if (turning > 0) playSound("roll", { count: turning, stagger: FLIP_STAGGER_MS / 1000 })
     update()
   }
 
@@ -102,7 +142,7 @@ export default function ShelfLabel() {
         ))}
 
         {step === 0 && !aiming ? <Ripple {...KEY} r={5} /> : null}
-        <Press label="Update the shelf price" onPress={press} data-hot={step === 0}>
+        <Press label="Update the shelf price" material="rubber" onPress={press} data-hot={step === 0}>
           <g>
             <Box
               {...KEY}
@@ -135,17 +175,8 @@ export default function ShelfLabel() {
                 <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 7} fontSize={5.4}>
                   cold brew
                 </text>
-                {was ? (
-                  <g key={`out-${step}`} className="sl-out">
-                    <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 18.6} fontSize={11}>
-                      {was}
-                    </text>
-                  </g>
-                ) : null}
-                <g key={`in-${step}`} className={step ? "sl-in" : undefined}>
-                  <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 18.6} fontSize={11}>
-                    {PRICE[step]}
-                  </text>
+                <g key={`price-${step}`}>
+                  <Price step={step} />
                 </g>
                 <g key={`sub-${step}`} className={step ? "ik-enter sl-later" : undefined}>
                   {was ? (
@@ -165,7 +196,10 @@ export default function ShelfLabel() {
                 </g>
                 {step ? <rect key={`flash-${step}`} className="sl-flash" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} /> : null}
               </g>
-              <circle key={`led-${step}`} className="sl-led" cx={SCREEN.x + SCREEN.w + 8.5} cy={8} r={2} />
+              <circle className="sl-lens" cx={LED.x} cy={LED.y} r={LED.r} />
+              <Glow key={`led-${step}`} on={step > 0} className="sl-led-glow">
+                <circle className="sl-led" data-on={step > 0} cx={LED.x} cy={LED.y} r={LED.r} />
+              </Glow>
               {BARS.map((x) => (
                 <path key={x} className="ik-detail" d={`M${SCREEN.x + SCREEN.w + 3.4 + x} 15v12`} />
               ))}
@@ -174,6 +208,7 @@ export default function ShelfLabel() {
           side={<path className="ik-detail" d={`M1.5 3v${LABEL.h - 6}`} />}
         />
 
+        <Callout at={E_PAPER_AT} dx={-16} dy={18} label="e-paper" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>
