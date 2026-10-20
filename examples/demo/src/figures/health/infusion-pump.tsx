@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./infusion-pump.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Infusion pump",
   industry: "health",
   level: 2,
-  blurb: "Press start: drops run down the line from the bag, the pump's lamp comes on and the rate lands on its screen.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["process", "done", "toggle"],
+  blurb: "Press start: the roller pump turns, drops run down the line from the bag, the pump's lamp comes on and the rate lands on its screen.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "playSound", "Callout"],
+  sounds: ["motor", "done", "toggle"],
 } satisfies FigureMeta
 
 type Flow = "idle" | "running" | "paused"
@@ -64,8 +65,18 @@ const DROPS = [0, 150, 300] as const
 const DROP_MS = 520
 const ARRIVE_MS = 300 + DROP_MS
 const SCREEN = { x: 5, y: 5, w: 54, h: 26 }
-
+const TIMING = { "--arrive": `${ARRIVE_MS}ms` } as CSSProperties
 const onSide = ([, y, z]: Vec3) => ({ cx: PUMP.y + PUMP.d - y, cy: PUMP.z + PUMP.h - z })
+const PORT_IN = onSide(INLET)
+const PORT_OUT = onSide(OUTLET)
+const PORT_R = 2.2
+const DOOR_TUBE = `M${PORT_IN.cx} ${PORT_IN.cy + PORT_R}C${PORT_IN.cx + 4.2} ${PORT_IN.cy + 4} 20.7 17 20.7 22S${PORT_OUT.cx + 4.2} ${PORT_OUT.cy - 4} ${PORT_OUT.cx} ${PORT_OUT.cy - PORT_R}`
+const ROTOR = { cx: 12, cy: 22, r: 6.8, reach: 4.6 }
+const ROLLERS = [0, 120, 240].map((turn) => {
+  const angle = (turn * Math.PI) / 180
+  return { turn, x: Math.cos(angle) * ROTOR.reach, y: Math.sin(angle) * ROTOR.reach }
+})
+const ROTOR_AT: Vec3 = [PUMP.x + PUMP.w, PUMP.y + PUMP.d - ROTOR.cx, PUMP.z + PUMP.h - ROTOR.cy]
 
 function Hook({ x }: { x: number }) {
   return (
@@ -78,6 +89,23 @@ function Hook({ x }: { x: number }) {
         [x + 4, PY, 135.5],
       ])}
     />
+  )
+}
+
+function Rotor() {
+  return (
+    <g transform={`translate(${ROTOR.cx} ${ROTOR.cy})`}>
+      <g className="rotor">
+        <circle className="ik-detail" r={ROTOR.r} />
+        {ROLLERS.map(({ turn, x, y }) => (
+          <path key={turn} className="ik-detail" d={`M0 0L${x} ${y}`} />
+        ))}
+        {ROLLERS.map(({ turn, x, y }) => (
+          <circle key={turn} className="ik-face" cx={x} cy={y} r={1.9} />
+        ))}
+      </g>
+      <circle className="ik-fill" r={1.1} />
+    </g>
   )
 }
 
@@ -104,14 +132,14 @@ export default function InfusionPump() {
     window.clearTimeout(timer.current)
     stop.current()
     if (audible && !running) {
-      stop.current = playSound("process")
+      stop.current = playSound("motor", { duration: ARRIVE_MS / 1000 })
       timer.current = window.setTimeout(() => {
         stop.current()
         stop.current = playSound("done")
       }, ARRIVE_MS)
     }
     if (audible && running) stop.current = playSound("toggle")
-    setRun({ flow: running ? "paused" : "running", step: step + 1 })
+    setRun({ flow: running ? "paused" : "running", step: 1 - step })
   }
   const demo = useDemoTap(() => {
     if (flow === "idle") toggle(false)
@@ -123,8 +151,6 @@ export default function InfusionPump() {
   }
 
   const readout = running ? "50 ml/h · running" : flow === "paused" ? "paused · 0 ml/h" : "idle · 0 ml/h"
-  const inlet = onSide(INLET)
-  const outlet = onSide(OUTLET)
 
   return (
     <Plate
@@ -134,6 +160,7 @@ export default function InfusionPump() {
       hint={running ? "Press to pause" : "Press start"}
       readout={readout}
       className="fig-infusion-pump"
+      style={TIMING}
       data-run={running}
       fit={[BASE, CAP, ARM_LEFT, ARM_RIGHT, BAG, PUMP]}
       aspect={1.15}
@@ -214,16 +241,16 @@ export default function InfusionPump() {
               </g>
               <g key={`big-${step}`}>
                 {running ? (
-                  <>
+                  <Glow on>
                     <text className="ik-screen-text priming" x={10} y={26} fontSize={10}>
                       priming
                     </text>
-                    <g className="ik-enter" style={{ animationDelay: `${ARRIVE_MS}ms` }}>
+                    <g className="ik-enter arrive">
                       <text className="ik-screen-text" x={10} y={26} fontSize={10}>
                         50 ml/h
                       </text>
                     </g>
-                  </>
+                  </Glow>
                 ) : (
                   <g className="ik-enter">
                     <text className="ik-screen-text" x={10} y={26} fontSize={10}>
@@ -232,7 +259,9 @@ export default function InfusionPump() {
                   </g>
                 )}
               </g>
-              <circle className="lamp" cx={65.5} cy={10} r={2.6} />
+              <Glow on={running} className="lamp-glow">
+                <circle className="lamp" cx={65.5} cy={10} r={2.6} />
+              </Glow>
               <path className="ik-detail" d="M65.5 16.5c-1.8 2.4-2.7 3.8-2.7 4.9a2.7 2.7 0 0 0 5.4 0c0-1.1-.9-2.5-2.7-4.9z" />
               {[0, 1, 2, 3, 4, 5].map((k) => (
                 <path key={k} className="ik-detail" d={`M${7 + k * 3.2} 34v-0.5`} />
@@ -243,9 +272,12 @@ export default function InfusionPump() {
           side={
             <>
               <rect className="ik-well" x={4} y={4} width={18} height={36} rx={3} />
-              <circle className="ik-well" cx={inlet.cx} cy={inlet.cy} r={2.2} />
-              <circle className="ik-well" cx={outlet.cx} cy={outlet.cy} r={2.2} />
-              <path className="ik-detail" d="M9 22h8" />
+              <path className="ik-detail" d="M23.4 8v5M23.4 31v5" />
+              <rect className="ik-detail" x={1.6} y={19} width={2.4} height={6} rx={1} />
+              <circle className="ik-well" cx={PORT_IN.cx} cy={PORT_IN.cy} r={PORT_R} />
+              <circle className="ik-well" cx={PORT_OUT.cx} cy={PORT_OUT.cy} r={PORT_R} />
+              <path className="ik-line" d={DOOR_TUBE} />
+              <Rotor />
             </>
           }
         />
@@ -265,7 +297,7 @@ export default function InfusionPump() {
         />
 
         {!touched && flow === "idle" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={3} /> : null}
-        <Press label={running ? "Pause the infusion" : "Start the infusion"} onPress={press} data-hot={!running}>
+        <Press label={running ? "Pause the infusion" : "Start the infusion"} onPress={press} material="rubber" data-hot={!running}>
           <g>
             <Box
               {...KEY}
@@ -290,6 +322,7 @@ export default function InfusionPump() {
         <g key={`drops-${step}`}>{running ? DROPS.map((delay) => <Signal key={delay} className="drop" points={LINE_IN} delay={delay} duration={DROP_MS} />) : null}</g>
         <path className="ik-line" d={LINE_OUT} />
         <Box {...CONNECTOR} r={2} top={<path className="ik-detail" d="M3 3h4" />} />
+        <Callout at={ROTOR_AT} dx={26} dy={6} label="roller pump" />
 
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>

@@ -5,7 +5,7 @@
 .fig-assembly-line .al-mounted { animation: assembly-line-show 1ms linear var(--t) both; }
 .fig-assembly-line .al-held { opacity: 0; animation: assembly-line-hold 1ms linear var(--t) backwards, assembly-line-reload 200ms var(--ik-ease) backwards; }
 .fig-assembly-line .al-dip { animation: assembly-line-dip 380ms var(--t) both; }
-.fig-assembly-line .al-exit { opacity: 0; animation: assembly-line-exit 260ms var(--ik-ease) backwards; }
+.fig-assembly-line .al-exit { opacity: 0; animation: assembly-line-exit var(--ik-t-state) var(--ik-ease) backwards; }
 .fig-assembly-line .al-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .fig-assembly-line .al-lamp[data-run="true"] { animation: assembly-line-flash 380ms linear var(--t) both; }
 .fig-assembly-line .al-beacon { fill: var(--ik-detail); }
@@ -23,7 +23,7 @@
 }
 @keyframes assembly-line-dip {
   0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 0, .8, .5); }
-  36.842%, 52.632% { transform: translateY(22px); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  36.842%, 52.632% { transform: translateY(22px); animation-timing-function: var(--ik-ease); }
   100% { transform: translateY(0); }
 }
 @keyframes assembly-line-arrive { from { opacity: 0; } }

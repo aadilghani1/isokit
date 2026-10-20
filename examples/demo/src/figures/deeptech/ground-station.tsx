@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./ground-station.css"
 
@@ -8,8 +9,8 @@ export const meta = {
   title: "Ground station",
   industry: "deeptech",
   level: 2,
-  blurb: "Press link: pings climb from the dish to the satellite, its light comes on and the telemetry lands on screen.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap"],
+  blurb: "Press link: pings climb from the dish to the satellite, its light comes on, the signal needle swings up and settles, and the telemetry lands on screen.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "project", "Callout"],
   sounds: ["process", "success", "whoosh"],
 } satisfies FigureMeta
 
@@ -45,6 +46,11 @@ const LIGHT = project(SAT.x + 12.6, SAT.y + SAT.d, SAT.z + SAT.h - 5.6)
 const PINGS = [0, 150, 300] as const
 const PING_MS = 540
 const ARRIVE_MS = 300 + PING_MS
+const METER = { x: 20, y: 21, idle: -48, locked: 30 }
+const METER_TICKS = [-48, -24, 0, 15, 30].map((deg) => {
+  const a = ((deg - 90) * Math.PI) / 180
+  return `M${Math.cos(a) * 11.6} ${Math.sin(a) * 11.6}L${Math.cos(a) * 13.6} ${Math.sin(a) * 13.6}`
+}).join("")
 
 type Link = "idle" | "linked" | "dropped"
 
@@ -96,10 +102,11 @@ export default function GroundStation() {
       hint={linked ? "Press to drop the link" : "Press link"}
       readout={readout}
       className="fig-ground-station"
+      style={{ "--arrive": `${ARRIVE_MS}ms` } as CSSProperties}
       data-link={linked}
       fit={[BASE, { x: DISH.cx - DISH.r, y: DISH.cy - DISH.r, z: 0, w: 2 * DISH.r, d: 2 * DISH.r, h: FEED.z + FEED.h }, ...PANELS, SAT]}
       aspect={1.3}
-      label="A satellite ground station: a dish, an equipment shelter with a screen, and a satellite overhead. Press link to connect the dish to the satellite; press again to drop the link."
+      label="A satellite ground station: a dish, an equipment shelter with a screen and a signal meter, and a satellite overhead. Press link to connect the dish to the satellite; press again to drop the link."
     >
       <g ref={demo.ref}>
         <Box
@@ -177,7 +184,9 @@ export default function GroundStation() {
             front={
               <>
                 <rect className="ik-detail" x={3} y={3} width={7} height={8} rx={1} />
-                <circle className="sat-light" cx={12.6} cy={5.6} r={1.9} />
+                <Glow on={linked} className="sat-glow">
+                  <circle className="sat-light" cx={12.6} cy={5.6} r={1.9} />
+                </Glow>
               </>
             }
             side={<circle className="ik-detail" cx={8} cy={7} r={4} />}
@@ -185,7 +194,7 @@ export default function GroundStation() {
           <path className="ik-line" d={path([[60, 28, 110], [60, 32, 110]])} />
           <Box {...PANELS[1]} r={1} top={<PanelCells />} />
           <g key={`ring-${step}`} transform={`translate(${LIGHT[0]} ${LIGHT[1]})`}>
-            {linked ? <circle className="arrive" r={3} style={{ animationDelay: `${ARRIVE_MS}ms` }} /> : null}
+            {linked ? <circle className="arrive" r={3} /> : null}
           </g>
         </g>
 
@@ -208,7 +217,7 @@ export default function GroundStation() {
               <g key={`big-${step}`}>
                 {linked ? (
                   <>
-                    <text className="ik-screen-text acquire" x={11} y={23.6} fontSize={6.4} style={{ animationDuration: `${ARRIVE_MS}ms` }}>
+                    <text className="ik-screen-text acquire" x={11} y={23.6} fontSize={6.4}>
                       acquiring
                     </text>
                     <g className="ik-enter" style={{ animationDelay: `${ARRIVE_MS}ms` }}>
@@ -234,10 +243,18 @@ export default function GroundStation() {
           }
           side={
             <>
-              <circle className="ik-well" cx={28} cy={32} r={2.4} />
-              {Array.from({ length: 5 }, (_, k) => (
-                <path key={k} className="ik-detail" d={`M6 ${8 + k * 3.4}h18`} />
+              <rect className="ik-well" x={5} y={5} width={30} height={19} rx={2} />
+              <g transform={`translate(${METER.x} ${METER.y})`}>
+                <path className="ik-detail" d={METER_TICKS} />
+                <g className="needle" style={{ "--turn": `${linked ? METER.locked : METER.idle}deg` } as CSSProperties}>
+                  <path className="ik-line" d="M0 0V-11" />
+                </g>
+                <circle className="ik-fill" r={1.2} />
+              </g>
+              {Array.from({ length: 3 }, (_, k) => (
+                <path key={k} className="ik-detail" d={`M6 ${29 + k * 3}h14`} />
               ))}
+              <circle className="ik-well" cx={28} cy={32} r={2.4} />
             </>
           }
         />
@@ -255,7 +272,7 @@ export default function GroundStation() {
         <path className="ik-line" d={CABLE} />
 
         {!touched && link === "idle" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label={linked ? "Drop the link" : "Link to the satellite"} onPress={press} data-hot={!linked}>
+        <Press label={linked ? "Drop the link" : "Link to the satellite"} material="rubber" onPress={press} data-hot={!linked}>
           <g>
             <Box
               {...KEY}
@@ -275,6 +292,7 @@ export default function GroundStation() {
             />
           </g>
         </Press>
+        <Callout at={[FEED.x + FEED.w, FEED.y, FEED.z + FEED.h]} dx={12} dy={-12} label="ka feed" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

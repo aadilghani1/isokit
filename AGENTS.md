@@ -18,6 +18,7 @@ How to work in this repository. Read it before you change anything. It holds the
 | `npm run new:figure -- --industry <id> --slug <kebab> --level <1-4>` | Scaffolds a working figure from the level's template (Node 22.6 or newer) |
 | `npx vitest run test/figure-catalog.test.tsx` | Checks every figure's meta, then renders every figure on the server |
 | `node skills/isokit/scripts/shoot.mjs <url> --selector <plate> --click "<label>"` | Screenshots a figure in light and dark at 1280 and 390 px, and fails on console errors or a dead read-out |
+| `npm run dev`, then `#/bench` | The tuning bench, in development only: DialKit dials for every motion, light, line and look token and the sound materials, on a live figure, with copy-as-CSS |
 
 ## Map
 
@@ -26,6 +27,8 @@ src/
   index.ts                    the public API; nothing else is public
   schema.ts                   zod schemas, the source of every public type; also the react-isokit/schema entry
   styles.css                  every --ik-* token and ik-* class, at zero specificity
+  themes.css                  the looks (blueprint, paper, phosphor) and the drafting layer's styles; the react-isokit/themes.css entry
+  drafting.ts                 the react-isokit/drafting entry: Dimension, Callout, dimension
   class-names.ts              joins class names
   environment.ts              browser feature guards: window, IntersectionObserver, reduced motion, user activation
   development-checks.ts       schema checks that run only in development and warn once per problem
@@ -34,21 +37,27 @@ src/
     framing.ts                frame and corners: the viewBox that fits a pose
     rounded-outline.ts        hull, outline, radius: the silhouette of a rounded box
     curve.ts                  cubic Bézier sampling for cables and rails
+    grid.ts                   the isometric graph-paper tile and the sheet it covers
+    dimension.ts              where a dimension line sits, its angle, and its witness lines
     round.ts                  rounding to three decimals for SVG output
-  components/                 Plate, Box, Press, SoundToggle
+  components/                 Plate, Box, Press, Glow, SoundToggle
+  drafting/                   Dimension, Callout
   guided-motion/              useDemoTap, Cursor, Ripple, Signal, Flight
   sound/
     sound-store.ts            the reader's preference and page settings (module singleton)
     sound-player.ts           configureSound, primeSound, playSound; loads the engine on intent
+    sound-placement.ts        a pressed part's stereo pan and size, from its box on screen
     use-sound-enabled.ts      the React hook over the store
     sound-engine.ts           the AudioContext graph, a lazy chunk (module singleton)
-    sound-recipes.ts          the thirteen sounds as data over the voices
+    sound-recipes.ts          the nineteen sounds as data over the voices
+    sound-materials.ts        how plastic, metal, rubber, glass and paper press and release
     sound-voices.ts           tone, noise and bell: the synthesis primitives
 test/                         vitest; DOM tests opt in with the jsdom pragma
 examples/demo/src/
   main.tsx                    mounts the site and starts the theme store
   app/                        the shell: site (router), site-header, site-footer, links, copy-command, theme-store, route-store
-  pages/                      one file per page: home, figures, figure, components, sound, studio
+  pages/                      one file per page: home, figures, figure, components, sound, studio, design-system, bench (development only)
+  bench/                      the bench's panels, value-to-CSS conversion and the spring-to-linear() generator
   catalog/                    data only, no layout
     industries.ts             industries and their briefs; no imports, so the scaffold script can load it
     levels.ts                 the four levels; no imports, same reason
@@ -59,7 +68,7 @@ examples/demo/src/
   figures/<industry>/<slug>.tsx + <slug>.css
   styles/                     base.css and site.css
 scripts/                      check-dist.mjs, new-figure.ts and figure-templates/ (one template per level)
-skills/isokit/                SKILL.md, references (api, levels, rules, recipes), shoot.mjs
+skills/isokit/                SKILL.md, references (api, levels, rules, recipes, complications), shoot.mjs
 ```
 
 ## Code rules
@@ -100,10 +109,12 @@ skills/isokit/                SKILL.md, references (api, levels, rules, recipes)
 
    | Bundle | Budget | Now |
    | --- | --- | --- |
-   | Core (Plate, Box, Press, frame) | 3.5 kB | 2.65 kB |
-   | Main entry | 4.5 kB | 4.3 kB |
-   | Sound engine | 2 kB | 1.76 kB |
-   | CSS | 2.75 kB | 2.0 kB |
+   | Core (Plate, Box, Press, frame) | 3.5 kB | 3.14 kB |
+   | Main entry | 5.25 kB | 4.88 kB |
+   | Sound engine | 2.75 kB | 2.56 kB |
+   | Drafting | 1 kB | 0.92 kB |
+   | CSS | 2.75 kB | 2.52 kB |
+   | Themes CSS | 1 kB | 0.83 kB |
 
    The sound engine chunk imports types only from the rest of `src/`. One runtime import from the main chunk makes size-limit count the whole entry, and the lazy split is lost.
 9. **The public API is stable.**
@@ -152,6 +163,10 @@ Choose the lowest level that tells the story. `skills/isokit/references/levels.m
 - Sounds play only for what the reader caused, at the moment the visual change happens.
 - `fit` covers the most extreme pose. Faces are opaque, and nothing leaves the plate.
 - It reads in light and dark through the `--ik-*` tokens. Never hard-code a colour.
+- Motion is timed with the kit's tokens (`--ik-t-*`, `--ik-ease*`, `--ik-spring`, `--ik-stagger`), never literal durations or curves for a kind of motion the kit names.
+- Anything switched on that gives off light sits in `<Glow on>`. Every `Press` names its `material`.
+- Complications follow `skills/isokit/references/complications.md`: caused, sounded, and capped by level.
+- It reads in every look from `themes.css`, light and dark.
 
 ## Why it is this way
 
@@ -170,6 +185,12 @@ These are the reasons behind code that looks odd. Each one cost a bug to learn.
 - **`.ik-plate:not([data-awake])` pauses loops with `!important`.** A figure's own `animation` shorthand resets the play state, so loops would never sleep offscreen.
 - **Reduced motion lands everything at once.** Animations stop and transitions take 0 ms. `useDemoTap` never runs under reduced motion.
 
+- **Glow draws its children three times instead of using a filter.** Safari ignores CSS filters on SVG children, and an SVG filter on a moving part repaints on the CPU every frame. Two halo copies with wide strokes (a faint outer one and a brighter core) read as bloom and fade with opacity alone.
+- **A glow's timing is custom properties, not props.** Light usually lands through a `transition-delay` in figure CSS, so the halo reads the same value from `--ik-glow-delay` (and `--ik-glow-fade-delay` for the fade). `@starting-style` makes a halo that mounts already lit honour the delay too. Text inside a Glow takes half the halo, because a full one smeared screen text.
+- **The blueprint grid is three times the viewBox, and the plate clips it.** A grid the size of the viewBox showed as a hard-edged rectangle floating on the plate. Captions are positioned so they paint above it.
+- **The grid and the drafting layer hide behind `display: var(--ik-drafting, none)`.** Plate always draws the grid, so a look set on an ancestor can reveal it without Plate knowing; a look turns it on by setting one property.
+- **Box draws its silhouette again after the tint, before the lid.** The lid's fill covered the inner half of the outline on the back edges, so silhouettes were uneven. The second, heavier path gives one edge weight all the way round; the lid's own stroke sits on top of the back edges, so hover still lights the whole lid.
+
 ### Interaction
 
 - **`Press` runs your pointer handlers after its own.** Replacing them made a demo press and a reader's press race, so the action ran twice.
@@ -185,10 +206,16 @@ These are the reasons behind code that looks odd. Each one cost a bug to learn.
 - **A stored value other than `on` or `off` means "not chosen yet".** Storage is shared with the host page.
 - **`playSound` honours `delay` only for `cascade`.** Any other sound that lands later needs one timer in a ref.
 
+- **Press measures pan and size from bounding rects in its handlers.** The rects include every transform above the part, so a part inside a translated group still pans from where it is drawn; nothing is read during render.
+- **Noise sources loop.** The noise buffer is half a second long; a motor held for longer would fall silent without it.
+- **`tick` and `roll` are throttled to one every 30 ms.** A dial pressed quickly stacked clicks into a buzz.
+
 ### Packaging
 
 - **The build uses `platform: "neutral"` and keeps `process.env.NODE_ENV` in `dist/`.** The browser platform inlined it at library build time and shipped the development checks to production (0.2.0). `scripts/check-dist.mjs` guards this.
 - **Only the `index` chunk carries `"use client"`.** `react-isokit/schema` stays importable from server code, where validating JSON usually happens.
+
+- **`themes.css` uses zero specificity and loads after `styles.css`.** Looks override the core palette by order, so a host can still override a look with one class.
 
 ### Drawing figures
 
@@ -208,5 +235,9 @@ These are the reasons behind code that looks odd. Each one cost a bug to learn.
 - **Playwright's `click` waits for an element to be stable, and a bobbing part never is.** Press parts with focus and Enter.
 - **`.ik-plate` sets `grid-template-columns: minmax(0, 1fr)`.** With the implicit `auto` column, a plate of fixed height let its svg's aspect ratio widen the column past the plate (the oktai landing layout test caught it at 320, 390 and 820 px).
 - **Destructure `useDemoTap` in React-compiler codebases.** The compiler's `react-hooks/refs` rule treats every field of an object that carries a `ref` as a ref read during render.
+- **`shoot.mjs` dismisses the first-view demo with a right-button pointerdown on each svg before the rest shot.** Without it, fast demos pressed the hot part before the rest picture, its label changed, and the click landed on a copy in the variation grid. A Shift keydown did the same job, but a figure that takes typing read it as a key.
 - **Studio gallery plates set `aspect-ratio: auto`.** A figure's own aspect ratio plus a fixed gallery height overflowed the page.
 - **Builders work one industry folder each.** Never stash, reset or check out the shared tree while another agent is editing it.
+- **`--ik-spring` is generated, not typed.** `examples/demo/src/bench/spring-easing.ts` samples a damped spring into a `linear()` curve; a test keeps `src/styles.css` equal to its output, and the bench writes new values the same way. A `linear()` spring jumps when it is interrupted, so it is used on release only.
+- **The bench is reachable only in development.** `site.tsx` imports it behind `import.meta.env.DEV`, so Vite drops it and DialKit from the Pages build. It tunes the sound materials by writing into the material table in place: development tooling, never shipped.
+- **Biome's `noAriaHiddenOnFocusable` is off.** It flags every SVG `<g>` as focusable, and Glow's halo copies must be hidden so their text is read once.

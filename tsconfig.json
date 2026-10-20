@@ -17,7 +17,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "paths": { "react-isokit": ["./src/index.ts"], "react-isokit/schema": ["./src/schema.ts"] },
+    "paths": { "react-isokit": ["./src/index.ts"], "react-isokit/schema": ["./src/schema.ts"], "react-isokit/drafting": ["./src/drafting.ts"] },
     "types": ["vite/client", "node"]
   },
   "include": ["src", "test", "scripts", "examples/demo/src", "examples/demo/vite.config.ts", "tsdown.config.mjs", "vitest.config.ts"]

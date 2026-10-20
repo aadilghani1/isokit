@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./cryo-stack.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Cryo stack",
   industry: "deeptech",
   level: 3,
-  blurb: "Press cool: the fridge's plates settle together lowest first and the screen counts down to 10 mK.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap"],
-  sounds: ["cascade", "complete", "whoosh"],
+  blurb: "Press cool: the pump spins up, the fridge's plates settle together lowest first, the screen counts down to 10 mK and the needle settles on cold.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "curve", "path", "Dimension"],
+  sounds: ["motor", "cascade", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type Disc = { w: number; h: number; z: number; lift: number }
@@ -40,7 +41,19 @@ const PUMP = { x: 14, y: 106, z: 8, w: 40, d: 22, h: 16 }
 const FLANGE = { x: 28, y: 113, z: 24, w: 8, d: 8, h: 4 }
 const HOSE = path(curve([36, 117, 28], [40, 136, 9.5], [100, 136, 9.5], [128, 122, 14]))
 const ROD_ANGLES = [75, 195, 315] as const
+const ROTOR = { x: 31, y: 11, r: 6.5 }
+const BLADES = [0, 120, 240].map((deg) => {
+  const a = (deg * Math.PI) / 180
+  return `M${Math.cos(a) * 1.6} ${Math.sin(a) * 1.6}L${Math.cos(a + 0.5) * 5.4} ${Math.sin(a + 0.5) * 5.4}`
+}).join("")
+const DIAL = { x: 34, y: 18, r: 8.5, warm: 52, cold: -52 }
+const DIAL_TICKS = [-52, -26, 0, 26, 52].map((deg) => {
+  const a = ((deg - 90) * Math.PI) / 180
+  return `M${Math.cos(a) * 6} ${Math.sin(a) * 6}L${Math.cos(a) * 7.6} ${Math.sin(a) * 7.6}`
+}).join("")
 const STEP_MS = 60
+const SETTLE_MS = 700
+const LAND_MS = 360
 const COUNTDOWN = [
   { temp: "300 K", at: 0 },
   { temp: "4 K", at: 480 },
@@ -49,6 +62,11 @@ const COUNTDOWN = [
   { temp: "10 mK", at: 1440 },
 ] as const
 const STABLE_MS = 1440
+
+const RIM = TOP.w / 2 / Math.SQRT2
+const STACK_FOOT: Vec3 = [CX + RIM, CY - RIM, BASE.h]
+const STACK_OFFSET: Vec3 = [8, -8, 0]
+const stackTop = (cold: boolean): Vec3 => [CX + RIM, CY - RIM, TOP.z + TOP.h + (cold ? 0 : TOP.lift)]
 
 const box = (disc: Disc) => ({ x: CX - disc.w / 2, y: CY - disc.w / 2, z: disc.z, w: disc.w, d: disc.w, h: disc.h })
 const rods = (upper: Disc, lower: Disc) =>
@@ -67,12 +85,12 @@ export default function CryoStack() {
   const [state, setState] = useState<State>("warm")
   const [step, setStep] = useState(0)
   const [touched, setTouched] = useState(false)
-  const stop = useRef(() => {})
+  const stops = useRef<Array<() => void>>([])
   const timer = useRef(0)
   useEffect(
     () => () => {
       window.clearTimeout(timer.current)
-      stop.current()
+      for (const stop of stops.current) stop()
     },
     [],
   )
@@ -80,14 +98,16 @@ export default function CryoStack() {
   const cold = state === "cold"
   const toggle = (audible: boolean) => {
     window.clearTimeout(timer.current)
-    stop.current()
+    for (const stop of stops.current) stop()
+    stops.current = []
     if (audible && !cold) {
-      stop.current = playSound("cascade", { count: STAGES.length, stagger: STEP_MS / 1000, delay: 0.36 })
+      stops.current.push(playSound("motor", { duration: STABLE_MS / 1000 }))
+      stops.current.push(playSound("cascade", { count: STAGES.length, stagger: STEP_MS / 1000, delay: LAND_MS / 1000 }))
       timer.current = window.setTimeout(() => {
-        stop.current = playSound("complete")
+        stops.current.push(playSound("complete"))
       }, STABLE_MS)
     }
-    if (audible && cold) stop.current = playSound("whoosh")
+    if (audible && cold) stops.current.push(playSound("whoosh"))
     setState(cold ? "warming" : "cold")
     setStep(step + 1)
   }
@@ -110,10 +130,11 @@ export default function CryoStack() {
       hint={cold ? "Press to warm up" : "Press cool"}
       readout={readout}
       className="fig-cryo-stack"
+      style={{ "--step": `${STEP_MS}ms`, "--settle": `${SETTLE_MS}ms`, "--land": `${LAND_MS}ms`, "--stable": `${STABLE_MS}ms` } as CSSProperties}
       data-cold={cold}
       fit={[BASE, { x: CX - TOP.w / 2, y: CY - TOP.w / 2, z: 0, w: TOP.w, d: TOP.w, h: PORT.z + PORT.h + TOP.lift }]}
       aspect={1.3}
-      label="A dilution refrigerator: five round plates hanging from a top plate, beside a cabinet with a screen. Press cool to settle the plates together and count the temperature down to 10 millikelvin; press again to warm it up."
+      label="A dilution refrigerator: five round plates hanging from a top plate, a pump, and a cabinet with a screen and a temperature dial. Press cool to run the pump, settle the plates together and count the temperature down to 10 millikelvin; press again to warm it up."
     >
       <g ref={demo.ref}>
         <Box
@@ -165,7 +186,21 @@ export default function CryoStack() {
           )
         })}
 
-        <Box {...PUMP} r={4} front={<PumpFins />} side={<path className="ik-detail" d="M5 5h12M5 8.5h12" />} />
+        <Box
+          {...PUMP}
+          r={4}
+          top={
+            <g transform={`translate(${ROTOR.x} ${ROTOR.y})`}>
+              <circle className="ik-well" r={ROTOR.r} />
+              <g className="rotor">
+                <path className="ik-detail" d={BLADES} />
+              </g>
+              <circle className="ik-fill" r={1.2} />
+            </g>
+          }
+          front={<PumpFins />}
+          side={<path className="ik-detail" d="M5 5h12M5 8.5h12" />}
+        />
         <Box {...FLANGE} r={FLANGE.w / 2} />
         <Box
           {...CABINET}
@@ -211,7 +246,9 @@ export default function CryoStack() {
                   </g>
                 )}
               </g>
-              <circle className="light" cx={9} cy={35} r={1.9} />
+              <Glow on={cold} className="light-glow">
+                <circle className="light" cx={9} cy={35} r={1.9} />
+              </Glow>
               <path className="ik-detail" d="M15 35h14" />
               {Array.from({ length: 4 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M5 ${41 + k * 3}h40`} />
@@ -220,9 +257,17 @@ export default function CryoStack() {
           }
           side={
             <>
-              {Array.from({ length: 6 }, (_, k) => (
+              {Array.from({ length: 5 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M${8 + k * 3.4} 8v16`} />
               ))}
+              <g transform={`translate(${DIAL.x} ${DIAL.y})`}>
+                <circle className="ik-well" r={DIAL.r} />
+                <path className="ik-detail" d={DIAL_TICKS} />
+                <g className="needle" style={{ "--turn": `${cold ? DIAL.cold : DIAL.warm}deg` } as CSSProperties}>
+                  <path className="ik-line" d="M0 1.4V-6.4" />
+                </g>
+                <circle className="ik-fill" r={1.1} />
+              </g>
               <circle className="ik-well" cx={36} cy={40} r={2.6} />
             </>
           }
@@ -230,7 +275,7 @@ export default function CryoStack() {
         <path className="ik-line" d={HOSE} />
 
         {!touched && state === "warm" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label={cold ? "Warm the fridge" : "Cool the fridge"} onPress={press} data-hot={!cold}>
+        <Press label={cold ? "Warm the fridge" : "Cool the fridge"} material="metal" onPress={press} data-hot={!cold}>
           <g>
             <Box
               {...KEY}
@@ -246,6 +291,7 @@ export default function CryoStack() {
             />
           </g>
         </Press>
+        <Dimension className="stack-dim" from={STACK_FOOT} to={stackTop(cold)} offset={STACK_OFFSET} label={`h ${TOP.z + TOP.h + (cold ? 0 : TOP.lift)}`} />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

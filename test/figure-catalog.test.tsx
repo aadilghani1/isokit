@@ -4,9 +4,10 @@ import { FIGURES } from "../examples/demo/src/catalog/figure-registry"
 import { INDUSTRIES } from "../examples/demo/src/catalog/industries"
 import { LEVELS } from "../examples/demo/src/catalog/levels"
 import * as kit from "../src"
+import * as drafting from "../src/drafting"
 import { soundNames } from "../src/schema"
 
-const exportNames = new Set(Object.keys(kit))
+const exportNames = new Set([...Object.keys(kit), ...Object.keys(drafting)])
 const sounds = new Set<string>(soundNames)
 const levels = new Set<number>(LEVELS.map((level) => level.level))
 const briefsByIndustry = new Map(INDUSTRIES.map((industry) => [industry.id as string, new Map<string, number>(industry.briefs.map((brief) => [brief.slug, brief.level]))]))

@@ -1,5 +1,6 @@
-import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useId, useRef, useState } from "react"
-import { Box, curve, Plate, Press, path, playSound, top, type Vec3 } from "react-isokit"
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useCallback, useEffect, useId, useRef, useState } from "react"
+import { Box, curve, Glow, Plate, Press, path, playSound, top, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import { BrandMark } from "../../brand-mark"
 import "./desk-computer.css"
 import type { FigureMeta } from "../../catalog/figure-meta"
@@ -13,6 +14,14 @@ const KEY_H = 3.4
 const GLASS = { x: 19, y: 20, w: 82, h: 70 }
 const COLS = 19
 const AUTOTYPE = "make it feel physical"
+const KEY_DOWN_MS = 110
+const RELAY_MS = 90
+const DRIVE_MS = 900
+const POWER_TIMING = { "--relay": `${RELAY_MS}ms` } as CSSProperties
+const LEVER = { x: 110, y: 108 }
+const LEVER_AT = [PC.x + PC.w, PC.y + PC.d - LEVER.x, PC.z + PC.h - LEVER.y] as const
+const PAN_REACH = 0.35
+const SPAN = { from: MAT.x - MAT.y - MAT.d, to: MAT.x + MAT.w - MAT.y }
 
 type Key = { id: string; x: number; y: number; w: number }
 
@@ -33,6 +42,12 @@ const KEYS: Key[] = ROWS.flatMap((row, r) => {
   })
 })
 const KEY_IDS = new Set(KEYS.map((k) => k.id))
+const KEY_SOUND: ReadonlyMap<string, { material: "plastic"; pan: number; size: number }> = new Map(
+  KEYS.map((k) => {
+    const across = (k.x + k.w / 2 - (k.y + KEY / 2) - SPAN.from) / (SPAN.to - SPAN.from)
+    return [k.id, { material: "plastic", pan: (across * 2 - 1) * PAN_REACH, size: Math.sqrt((k.w * KEY) / (MAT.w * MAT.d)) }]
+  }),
+)
 const SHIFTED: Record<string, string> = { "~": "`", "!": "1", "@": "2", "#": "3", $: "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0", _: "-", "+": "=", "{": "[", "}": "]", "|": "\\", ":": ";", '"': "'", "<": ",", ">": ".", "?": "/" }
 const NAMED: Record<string, string> = { " ": "space", Backspace: "backspace", Enter: "return", Shift: "shift", CapsLock: "caps", Control: "control", Alt: "option", Meta: "command" }
 const keyFor = (key: string): string | null => NAMED[key] ?? (key.length === 1 ? (SHIFTED[key] ?? key.toLowerCase()) : null)
@@ -60,28 +75,48 @@ export function DeskComputer() {
   const [past, setPast] = useState("")
   const [down, setDown] = useState<ReadonlySet<string>>(new Set())
   const [last, setLast] = useState<string | null>(null)
+  const [driving, setDriving] = useState(false)
   const host = useRef<HTMLDivElement>(null)
   const timers = useRef(new Map<string, number>())
   const auto = useRef({ done: false, timer: 0 })
-  const id = useId().replace(/:/g, "")
+  const boot = useRef(0)
+  const stopDrive = useRef(() => {})
+  const id = useId().replace(/[^\w-]/g, "")
+
+  const power = useCallback((next: boolean, quiet: boolean) => {
+    window.clearTimeout(boot.current)
+    stopDrive.current()
+    setOn(next)
+    setLast(null)
+    setDriving(false)
+    if (!quiet) playSound("relay")
+    if (!next) return
+    boot.current = window.setTimeout(() => {
+      setDriving(true)
+      if (!quiet) {
+        playSound("boot")
+        stopDrive.current = playSound("motor", { duration: DRIVE_MS / 1000 })
+      }
+      boot.current = window.setTimeout(() => setDriving(false), DRIVE_MS)
+    }, RELAY_MS)
+  }, [])
 
   const press = useCallback((key: string, char?: string, quiet = false) => {
     window.clearTimeout(timers.current.get(key))
     setDown((d) => new Set(d).add(key))
     timers.current.set(
       key,
-      window.setTimeout(
-        () =>
-          setDown((d) => {
-            const next = new Set(d)
-            next.delete(key)
-            return next
-          }),
-        110,
-      ),
+      window.setTimeout(() => {
+        setDown((d) => {
+          const next = new Set(d)
+          next.delete(key)
+          return next
+        })
+        if (!quiet) playSound("release", KEY_SOUND.get(key))
+      }, KEY_DOWN_MS),
     )
     setLast(key)
-    if (!quiet) playSound("press")
+    if (!quiet) playSound("press", KEY_SOUND.get(key))
     if (key === "backspace") setText((t) => t.slice(0, -1))
     else if (key === "return")
       setText((t) => {
@@ -123,8 +158,8 @@ export function DeskComputer() {
         }
         run.timer = window.setTimeout(() => {
           if (run.done) return
-          setOn(true)
-          run.timer = window.setTimeout(step, 900)
+          power(true, true)
+          run.timer = window.setTimeout(step, RELAY_MS + DRIVE_MS)
         }, 500)
       },
       { threshold: 0.5 },
@@ -135,7 +170,14 @@ export function DeskComputer() {
       window.clearTimeout(run.timer)
       for (const t of timer.values()) window.clearTimeout(t)
     }
-  }, [press])
+  }, [press, power])
+  useEffect(
+    () => () => {
+      window.clearTimeout(boot.current)
+      stopDrive.current()
+    },
+    [],
+  )
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.key === "Tab") return
@@ -147,9 +189,7 @@ export function DeskComputer() {
   }
   const toggle = () => {
     stopAuto()
-    setOn(!on)
-    setLast(null)
-    playSound(on ? "toggle" : "boot")
+    power(!on, false)
   }
   const typeKey = (e: PointerEvent, key: string) => {
     e.preventDefault()
@@ -170,6 +210,7 @@ export function DeskComputer() {
         readout={readout}
         className="desk"
         data-on={on}
+        style={POWER_TIMING}
         fit={[MAT, PC]}
         aspect={1.6}
         pad={0.05}
@@ -182,15 +223,11 @@ export function DeskComputer() {
           <clipPath id={`${id}-glass`}>
             <rect x={GLASS.x} y={GLASS.y} width={GLASS.w} height={GLASS.h} rx={11} />
           </clipPath>
-          <radialGradient id={`${id}-glow`} cx="50%" cy="45%" r="65%">
-            <stop offset="0" className="glow-in" />
-            <stop offset="1" className="glow-out" />
-          </radialGradient>
         </defs>
 
         <Box {...MAT} r={14} className="mat" />
 
-        <Press className="ik-lift pc" label={on ? "Switch the computer off" : "Switch the computer on"} onPress={toggle} sound={false}>
+        <Press className="ik-lift pc" label={on ? "Switch the computer off" : "Switch the computer on"} material="plastic" onPress={toggle} sound={false}>
           <Box
             {...PC}
             r={10}
@@ -215,6 +252,20 @@ export function DeskComputer() {
                 <rect className="ik-well" x={100} y={150} width={9} height={8} rx={1.5} />
                 <rect className="ik-well" x={112} y={150} width={9} height={8} rx={1.5} />
                 <rect className="ik-well" x={8} y={148} width={9} height={9} rx={1.5} />
+                <rect className="ik-well" x={LEVER.x - 8} y={LEVER.y - 10} width={16} height={20} rx={2} />
+                <text className="ik-label lever-mark" x={LEVER.x + 4} y={LEVER.y - 5}>
+                  I
+                </text>
+                <text className="ik-label lever-mark" x={LEVER.x + 3.4} y={LEVER.y + 8}>
+                  O
+                </text>
+                <g transform={`translate(${LEVER.x} ${LEVER.y})`}>
+                  <g className="lever">
+                    <path className="ik-line ik-thick" d="M0 0V7" />
+                    <circle className="knob" cy={7} r={1.6} />
+                  </g>
+                </g>
+                <circle className="knob" cx={LEVER.x} cy={LEVER.y} r={2.2} />
               </>
             }
             front={
@@ -223,18 +274,19 @@ export function DeskComputer() {
                 <rect className="ik-detail" x={13} y={14} width={94} height={82} rx={8} />
                 <rect className="glass" x={GLASS.x} y={GLASS.y} width={GLASS.w} height={GLASS.h} rx={11} />
                 <g className="crt" clipPath={`url(#${id}-glass)`}>
-                  <rect x={GLASS.x} y={GLASS.y} width={GLASS.w} height={GLASS.h} fill={`url(#${id}-glow)`} />
                   {Array.from({ length: 23 }, (_, i) => (
                     <path key={i} className="scanline" d={`M${GLASS.x} ${GLASS.y + 2 + i * 3}h${GLASS.w}`} />
                   ))}
-                  <BrandMark x={GLASS.x + GLASS.w / 2} y={GLASS.y + 22} size={11} className="phosphor" />
-                  <text className="screen-text dim" x={GLASS.x + 7} y={GLASS.y + 47}>
-                    {past ? `> ${past.slice(-(COLS - 2))}` : ""}
-                  </text>
-                  <text className="screen-text" x={GLASS.x + 7} y={GLASS.y + 57}>
-                    {`> ${text.slice(-(COLS - 2))}`}
-                    <tspan className="cursor ik-loop">_</tspan>
-                  </text>
+                  <Glow on={on} className="crt-glow">
+                    <BrandMark x={GLASS.x + GLASS.w / 2} y={GLASS.y + 22} size={11} className="phosphor" />
+                    <text className="screen-text dim" x={GLASS.x + 7} y={GLASS.y + 47}>
+                      {past ? `> ${past.slice(-(COLS - 2))}` : ""}
+                    </text>
+                    <text className="screen-text" x={GLASS.x + 7} y={GLASS.y + 57}>
+                      {`> ${text.slice(-(COLS - 2))}`}
+                      <tspan className="cursor ik-loop">_</tspan>
+                    </text>
+                  </Glow>
                 </g>
                 <path className="ik-detail" d="M8 106h104" />
                 {Array.from({ length: 6 }, (_, i) => (
@@ -242,7 +294,12 @@ export function DeskComputer() {
                 ))}
                 <rect className="ik-well" x={58} y={124} width={44} height={5.5} rx={2.75} />
                 <path className="ik-detail" d="M62 133h12" />
-                <circle className="led" cx={14} cy={151} r={1.7} />
+                <Glow on={driving}>
+                  <circle className="drive-led" cx={98.5} cy={133.5} r={1.2} />
+                </Glow>
+                <Glow on={on} className="power">
+                  <circle className="led" cx={14} cy={151} r={1.7} />
+                </Glow>
                 <path className="ik-detail" d={`M6 ${PC.h - 10}h108`} />
               </>
             }
@@ -261,6 +318,7 @@ export function DeskComputer() {
             <Box x={k.x} y={k.y} z={KB.z + KB.h} w={k.w} d={KEY} h={KEY_H} r={1.6} />
           </g>
         ))}
+        <Callout at={LEVER_AT} dx={20} dy={-16} label="power" />
       </Plate>
     </div>
   )
@@ -271,9 +329,9 @@ export const meta = {
   title: "Desk computer",
   industry: "agents",
   level: 4,
-  blurb: "Switch it on, then type on its keys or yours: the prompt appears on its screen.",
-  uses: ["Plate", "Box", "Press", "curve", "path"],
-  sounds: ["boot", "press", "release"],
+  blurb: "Flip it on: a relay clicks, the drive whirs, the screen warms. Then type on its keys or yours and the prompt appears.",
+  uses: ["Plate", "Box", "Press", "Glow", "curve", "path", "top", "playSound", "Callout"],
+  sounds: ["relay", "boot", "motor", "press", "release"],
 } satisfies FigureMeta
 
 export default DeskComputer

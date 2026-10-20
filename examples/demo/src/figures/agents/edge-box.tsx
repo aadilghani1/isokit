@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, curve, front, Plate, Press, path, playSound, side } from "react-isokit"
+import { Box, curve, front, Glow, Plate, Press, path, playSound, side } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import "./edge-box.css"
 import type { FigureMeta } from "../../catalog/figure-meta"
 
@@ -22,6 +23,14 @@ const fz = (i: number) => STAND.h + (2 - i) * STEP
 const folder = ([tx, tw]: readonly [number, number]) =>
   `M0 ${FH + TAB}V${TAB + 2}q0-2 2-2H${tx}l3-6q.5-1 1.5-1H${tx + tw - 4.5}q1 0 1.5 1l3 6H${FW - 2}q2 0 2 2V${FH + TAB}Z`
 const CABLE = path(curve([72, 112, 3], [74, 140, 1.6], [30, 118, 1.6], [6, 146, 1.6]))
+const READ_MS = 700
+const READ_TIMING = { "--read": `${READ_MS}ms` } as CSSProperties
+const FAN = { x: 46, y: 46, r: 23, hub: 6 }
+const BLADES = Array.from({ length: 7 }, (_, k) => (
+  <path key={k} className="ik-detail" d={`M${FAN.hub} 0Q${FAN.r * 0.6} -6 ${FAN.r - 2.5} -2.5`} transform={`rotate(${(k * 360) / 7})`} />
+))
+const GUARD = [10.5, 16.5].map((r) => <circle key={r} className="ik-detail" cx={FAN.x} cy={FAN.y} r={r} />)
+const PORT_AT = [71, DEV.y + DEV.d, DEV.h - 46.5] as const
 
 export function EdgeBox() {
   const [pick, setPick] = useState(0)
@@ -39,13 +48,13 @@ export function EdgeBox() {
     window.clearTimeout(timer.current)
     stop.current()
     playSound("paper")
-    stop.current = playSound("process")
+    stop.current = playSound("motor", { duration: READ_MS / 1000 })
     setPick(i)
     setReading(true)
     timer.current = window.setTimeout(() => {
       setReading(false)
       playSound("done")
-    }, 700)
+    }, READ_MS)
   }
   const doc = DOCS[pick] ?? DOCS[0]
   if (!doc) return null
@@ -58,6 +67,7 @@ export function EdgeBox() {
       readout={`${doc.file} · ${reading ? "reading" : doc.page}`}
       className="edge"
       data-reading={reading}
+      style={READ_TIMING}
       fit={[DEV, STAND, [FX, fy(0), fz(0) + FH + TAB + 22], [6, 146, 0]]}
       aspect={1.18}
       label="A small computer with its network cable unplugged, beside a sorter of three folders. Pick a folder and the computer answers from it on its own screen."
@@ -68,9 +78,16 @@ export function EdgeBox() {
         top={
           <>
             <rect className="ik-detail" x={16} y={16} width={60} height={60} rx={9} />
-            {Array.from({ length: 25 }, (_, k) => (
-              <circle key={k} className="ik-fill" cx={28 + (k % 5) * 9} cy={28 + Math.floor(k / 5) * 9} r={1.3} />
-            ))}
+            <circle className="ik-well" cx={FAN.x} cy={FAN.y} r={FAN.r} />
+            <g transform={`translate(${FAN.x} ${FAN.y})`}>
+              <g key={pick} className="fan">
+                {BLADES}
+              </g>
+            </g>
+            {GUARD}
+            <path className="ik-detail" d={`M${FAN.x - FAN.r} ${FAN.y}h${FAN.r * 2}M${FAN.x} ${FAN.y - FAN.r}v${FAN.r * 2}`} />
+            <circle className="hub" cx={FAN.x} cy={FAN.y} r={FAN.hub} />
+            {[20.5, 71.5].flatMap((x) => [20.5, 71.5].map((y) => <circle key={`${x}-${y}`} className="ik-detail" cx={x} cy={y} r={1.4} />))}
           </>
         }
         side={
@@ -96,7 +113,9 @@ export function EdgeBox() {
                 </text>
               )}
             </g>
-            <circle className="light ik-loop" cx={11} cy={47.5} r={1.8} />
+            <Glow on={reading}>
+              <circle className="light ik-loop" cx={11} cy={47.5} r={1.8} />
+            </Glow>
             <path className="ik-detail" d="M18.5 46v-2a2.5 2.5 0 0 1 5 0v2" />
             <rect className="ik-detail" x={17} y={46} width={8} height={6} rx={1} />
             {Array.from({ length: 7 }, (_, k) => (
@@ -119,6 +138,7 @@ export function EdgeBox() {
           key={d.file}
           className="ik-lift folder"
           label={`Read ${d.file}`}
+          material="paper"
           onPress={() => choose(i)}
           sound={false}
           data-on={pick === i}
@@ -138,6 +158,7 @@ export function EdgeBox() {
           </g>
         </Press>
       ))}
+      <Callout at={PORT_AT} dx={-12} dy={32} label="offline" />
     </Plate>
   )
 }
@@ -147,9 +168,9 @@ export const meta = {
   title: "Edge box",
   industry: "agents",
   level: 2,
-  blurb: "Pick a folder from the stepped sorter: it lifts and the box reads it offline.",
-  uses: ["Plate", "Box", "Press", "curve", "path"],
-  sounds: ["paper", "process", "done"],
+  blurb: "Pick a folder from the stepped sorter: it lifts, the fan spins up and the box reads it offline.",
+  uses: ["Plate", "Box", "Press", "Glow", "curve", "path", "front", "side", "playSound", "Callout"],
+  sounds: ["paper", "motor", "done"],
 } satisfies FigureMeta
 
 export default EdgeBox

@@ -10,7 +10,8 @@ One press changes one surface.
 - **Pieces:** `Plate`, `Box`, `Press`, `useDemoTap`, `Ripple`, `Cursor`.
 - **State:** one `useState`. No timers.
 - **Motion:** the press itself, and a screen or light that changes on release.
-- **Sound:** the built-in press and release, plus at most one short result sound on release: `toggle` for a switch, `success` or `notify` for an answer.
+- **Sound:** the built-in press and release in the part's material, plus at most one short result sound on release: `toggle` for a switch, `success` or `notify` for an answer.
+- **Complications:** at most one, such as digits that roll or a lamp that glows.
 - **Shape of it:** a tally counter, a light switch, a stamp.
 
 ## Level 2 · Cause and effect
@@ -21,7 +22,8 @@ The press sends something to a separate part, and the result lands there a momen
 - **Pieces:** everything from level 1, plus `Signal` (or one moving part) from cause to effect.
 - **State:** one or two `useState`s. At most one timer, kept in a ref, for a sound that lands with the result.
 - **Motion:** the signal runs for `duration`; the result changes at `delay + duration` through a CSS `transition-delay`, not a timer.
-- **Sound:** `process` while it travels (keep its stop and cut it on arrival), then `success` or `done`.
+- **Sound:** `process` while it travels (keep its stop and cut it on arrival), then `success` or `done`. A `relay` as the result switches on is the classic complication here.
+- **Complications:** at most one.
 - **Shape of it:** a feature-flag panel, a usage meter, a ground station that pings a satellite.
 
 ## Level 3 · Sequence
@@ -33,6 +35,7 @@ Several parts move one after another, and the order explains the work.
 - **State:** a step or count. Timers live in a ref and are all cleared on the next press and on unmount.
 - **Motion:** stagger by physical position (lowest first, nearest the pointer first), 40 to 60 ms apart. Progress counts up on a screen as the parts land.
 - **Sound:** `cascade` with the same count and stagger as the motion, then `complete` when the last part lands.
+- **Complications:** up to two, such as a progress counter that rolls and a motor that runs while the sequence plays.
 - **Shape of it:** a page press seating blocks, a cryostat cooling stage by stage, a GPU rack lighting node by node.
 
 ## Level 4 · System
@@ -43,7 +46,8 @@ Two or more controls or modes drive a small machine whose parts trade things bet
 - **Pieces:** everything from level 3, plus `Flight` for a part carried between stations (or chained CSS moves when the part must stay on a track, like a train on its rails) and a `useReducer` for the state machine.
 - **State:** one reducer with named actions. Every press is a transition, every transition writes the read-out, and a cycle resets cleanly.
 - **Motion:** a flight hides the part at `from` on take-off and shows it at `to` on landing, both through CSS delays. Only one thing is in the air at a time unless the story needs more.
-- **Sound:** cut stale sounds when a newer action replaces them; `whoosh` on reset.
+- **Sound:** cut stale sounds when a newer action replaces them; `whoosh` on reset; `motor` for every drive, with its stop kept.
+- **Complications:** up to three.
 - **Shape of it:** a pick-and-place arm, a webhook relay with retries, a container crane.
 
 ## Ideas by industry

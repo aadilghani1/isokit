@@ -1,4 +1,4 @@
-export const DOC_GROUPS = ["Drawing", "Guided motion", "Sound", "Geometry"] as const
+export const DOC_GROUPS = ["Drawing", "Guided motion", "Drafting", "Sound", "Geometry"] as const
 
 export type DocGroup = (typeof DOC_GROUPS)[number]
 
@@ -20,10 +20,12 @@ export type ComponentDoc = {
 
 const GEOMETRY = new Set(["project", "top", "front", "side", "path", "curve", "frame", "outline", "corners", "hull", "radius"])
 const SOUND = new Set(["playSound", "configureSound", "primeSound", "useSoundEnabled", "soundPreference"])
+const DRAFTING = new Set(["Dimension", "Callout", "dimension"])
 
 export function docSlugForExport(name: string): string {
   if (GEOMETRY.has(name)) return "geometry"
   if (SOUND.has(name)) return "sound"
+  if (DRAFTING.has(name)) return "drafting"
   return name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
 }
 
@@ -34,7 +36,7 @@ export const DOCS: readonly ComponentDoc[] = [
     kind: "Component",
     group: "Drawing",
     summary: "The numbered plate a figure sits on, and the svg it is drawn in. It frames what you give it, puts captions in its corners and wakes looping animations only near the viewport.",
-    signature: "<Plate label fit aspect pad viewBox fig name hint readout credit theme>",
+    signature: "<Plate label fit aspect pad viewBox fig name hint readout credit theme look>",
     props: [
       { name: "label", type: "string", about: "Required. The accessible name: what the figure is and how to use it." },
       { name: "fit", type: "Array<Box3 | Vec3>", about: "Boxes and points to frame. Include the most extreme pose, so nothing leaves the plate when it moves." },
@@ -44,12 +46,17 @@ export const DOCS: readonly ComponentDoc[] = [
       { name: "fig, name, hint, readout", type: "ReactNode", about: "The four corner captions. readout is a polite live region: write it on every interaction." },
       { name: "credit", type: "boolean", fallback: "true", about: "Shows a small Made with isokit · pushary.com link beneath the captions. Set false to omit it." },
       { name: "theme", type: '"light" | "dark" | "system"', about: "Unset follows a .dark or [data-theme=dark] ancestor." },
+      { name: "look", type: '"blueprint" | "paper" | "phosphor" | string', about: "A look from react-isokit/themes.css, in its light or dark version. A data-look attribute on any ancestor works too. Blueprint lays isometric graph paper under the figure and shows the drafting layer." },
       { name: "...svg", type: "SVGProps", about: "Anything else lands on the svg. Put state there as data-* attributes and style descendants from CSS." },
     ],
     usage: `<Plate label="A key you can press" fit={[key]} hint="Press it" readout={\`pressed \${n}×\`}>
   …
 </Plate>`,
-    notes: ["The svg is a labelled group: a figure holds buttons. Pass role=\"img\" for a figure with nothing to press.", "Loops marked ik-loop, ik-float, ik-pulse or ik-blink pause while the plate is offscreen."],
+    notes: [
+      "The svg is a labelled group: a figure holds buttons. Pass role=\"img\" for a figure with nothing to press.",
+      "Loops marked ik-loop, ik-float, ik-pulse or ik-blink pause while the plate is offscreen.",
+      "Import react-isokit/themes.css after react-isokit/styles.css. A look is five colours (paper, pen, live, glow, accent) in light and dark; every face tone is mixed from them.",
+    ],
   },
   {
     slug: "box",
@@ -77,11 +84,12 @@ export const DOCS: readonly ComponentDoc[] = [
     kind: "Component",
     group: "Drawing",
     summary: "A part you can press, the way a real key works: down on press, up on release, and it acts on release. Pointer, touch, Enter and Space.",
-    signature: "<Press label onPress sound disabled className>",
+    signature: "<Press label onPress sound material disabled className>",
     props: [
       { name: "label", type: "string", about: "Required. The accessible name of the part: what pressing it does." },
       { name: "onPress", type: "() => void", about: "Required. Called on release." },
       { name: "sound", type: "boolean", fallback: "true", about: "Play the press and release clicks (sound must also be on). Turn it off to play your own." },
+      { name: "material", type: '"plastic" | "metal" | "rubber" | "glass" | "paper"', fallback: '"plastic"', about: "What the part is made of: it shapes the click. The part's size sets the pitch and where it sits sets the stereo position, both measured when it is pressed." },
       { name: "disabled", type: "boolean", about: "Not focusable, not pressable." },
       { name: "data-hot", type: "boolean", about: "Marks the part as the one to press: its faces take the live stroke, and useDemoTap presses it." },
       { name: "className", type: "string", about: "Add ik-lift for parts that lift instead of sinking." },
@@ -89,7 +97,33 @@ export const DOCS: readonly ComponentDoc[] = [
     usage: `<Press label="Publish the page" onPress={publish} data-hot={!live}>
   <g><Box {...KEY} r={6} /></g>
 </Press>`,
-    notes: ["Wrap exactly one <g> holding the boxes that move: that group sinks 3px.", "A part held from the keyboard comes back up when focus leaves it."],
+    notes: [
+      "Wrap exactly one <g> holding the boxes that move: that group sinks --ik-travel (2 units) in 50 ms and springs back up on release.",
+      "Set --ik-travel on a Press for a deeper or shallower key.",
+      "A part held from the keyboard comes back up when focus leaves it.",
+    ],
+  },
+  {
+    slug: "glow",
+    name: "Glow",
+    kind: "Component",
+    group: "Drawing",
+    summary: "Light coming off something that is switched on: an LED, an awake screen's text, a signal on a wire. It draws its children twice more underneath as a soft halo, and fades the halo in fast and out slowly.",
+    signature: "<Glow on className>children</Glow>",
+    props: [
+      { name: "on", type: "boolean", fallback: "true", about: "Whether the light is on. The halo ignites in --ik-t-glow-on and fades over --ik-t-glow-off." },
+      { name: "children", type: "ReactNode", about: "Small emitters only: dots, short lines, screen text. Never faces, and never anything pressable or with an id: it is drawn three times." },
+    ],
+    usage: `<Glow on={lit}>
+  <circle className={lit ? "ik-dot" : "ik-fill"} cx={6} cy={6} r={1.6} />
+</Glow>`,
+    notes: [
+      "Glow is emission, not attention: the one live stroke still says where to look.",
+      "On light themes --ik-glow-strength is 0, so lit means a darker fill; dark themes and the dark looks show the bloom.",
+      "No CSS filter is used: Safari ignores filters on SVG children, and a halo layer costs one paint.",
+      "Colour a glow with --ik-glow on an ancestor; --ik-glow-size sets how far it spreads, and text takes half of it.",
+      "When the light lands late through a transition-delay, set --ik-glow-delay to the same delay so the halo ignites with it.",
+    ],
   },
   {
     slug: "use-demo-tap",
@@ -186,6 +220,28 @@ const press = () => { demo.dismiss(); publish(true) }
     notes: ["Draw it last; give it a new key to fly again.", "Switch the parts at either end with a transition-delay rather than a timer, so it costs nothing."],
   },
   {
+    slug: "drafting",
+    name: "Dimension, Callout",
+    kind: "Component",
+    group: "Drafting",
+    summary: "The drafting layer, from react-isokit/drafting: dimension lines with witness lines and arrowheads, and leader-line callouts. It shows only in a look that turns drafting on, like blueprint, and a dimension slides to its new length when what it measures moves.",
+    signature: "<Dimension from to offset label /> · <Callout at dx dy label />",
+    props: [
+      { name: "from, to", type: "Vec3", about: "The two ends being measured, in world units." },
+      { name: "offset", type: "Vec3", about: "How far the dimension line stands off the edge, in world units. The witness lines run back along it." },
+      { name: "label", type: "ReactNode", about: "What the dimension says. Treat it as a read-out: write the new value when the part moves." },
+      { name: "at", type: "Vec3", about: "Callout: the world point the leader starts from." },
+      { name: "dx, dy", type: "number", fallback: "18, -14", about: "Callout: where the leader's elbow sits, in viewBox units from at." },
+    ],
+    usage: `<Dimension from={[KEY.x, KEY.y + KEY.d, 0]} to={[KEY.x + KEY.w, KEY.y + KEY.d, 0]} offset={[0, 10, 0]} label="w 82" />
+<Callout at={[x, y, z]} label="lid" />`,
+    notes: [
+      "Hidden unless --ik-drafting is set; react-isokit/themes.css sets it in blueprint and styles the lines.",
+      "Labels always read left to right or bottom to top: the ends swap for you.",
+      "Draw dimensions last, after the parts they measure.",
+    ],
+  },
+  {
     slug: "sound-toggle",
     name: "SoundToggle",
     kind: "Component",
@@ -201,17 +257,24 @@ const press = () => { demo.dismiss(); publish(true) }
     name: "playSound, configureSound",
     kind: "Sound",
     group: "Sound",
-    summary: "Thirteen synthesized interaction sounds, no audio files. The engine is a separate chunk fetched when a pointer reaches a figure; nothing plays until the page opts in and the reader has interacted.",
-    signature: "playSound(name, { count, stagger, delay }) → stop()",
+    summary: "Nineteen synthesized interaction sounds, no audio files: clicks shaped by material, mechanical complications (tick, latch, relay, motor, roll, beep) and result bells. The engine is a separate chunk fetched when a pointer reaches a figure; nothing plays until the page opts in and the reader has interacted.",
+    signature: "playSound(name, { count, stagger, delay, duration, material, pan, size }) → stop()",
     props: [
       { name: "configureSound", type: "({ defaultOn, storageKey, volume }) => void", about: "Call once, early. Sound is off until the page turns it on or the reader presses a SoundToggle." },
       { name: "playSound", type: "(name, options?) => () => void", about: "Plays a sound if sound is on. Keep the stop() for anything a newer action should cut short." },
+      { name: "options.material", type: "Material", about: "Shapes press and release: plastic, metal, rubber, glass or paper. Press passes its own." },
+      { name: "options.duration", type: "number", about: "Seconds the motor runs before it winds down." },
+      { name: "options.pan, options.size", type: "number", about: "Stereo position from -1 to 1, and the part's share of the plate from 0 to 1 (bigger is lower). Press measures both for you." },
       { name: "primeSound", type: "() => void", about: "Starts loading the engine. Plate calls it when a pointer or focus arrives." },
       { name: "useSoundEnabled", type: "() => [boolean, (on) => void]", about: "The reader's preference." },
     ],
     usage: `configureSound({ defaultOn: true })
 const stop = playSound("cascade", { count: 4, stagger: 0.06, delay: 0.3 })`,
-    notes: ["Sounds asked for before the reader has interacted with the page are dropped, never queued.", "Match a cascade's stagger and delay to the staggered motion it accompanies."],
+    notes: [
+      "Sounds asked for before the reader has interacted with the page are dropped, never queued.",
+      "Match a cascade's stagger and delay to the staggered motion it accompanies.",
+      "tick and roll are throttled to one every 30 ms, so a fast dial never machine-guns.",
+    ],
   },
   {
     slug: "geometry",

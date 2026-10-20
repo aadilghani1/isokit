@@ -29,6 +29,7 @@ export function Box({ x, y, z, w, d, h, r = 0, className, top: lid, front: front
           <rect className="ik-tint" width={d - 2 * corner} height={h} />
         </g>
       )}
+      <path className="ik-edge" d={hullPath} />
       <g transform={top(x, y, z + h)}>
         <rect className="ik-face ik-top" width={w} height={d} rx={corner} />
       </g>

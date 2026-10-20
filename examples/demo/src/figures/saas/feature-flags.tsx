@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./feature-flags.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Feature flags",
   industry: "saas",
   level: 2,
-  blurb: "Flip a flag: the switch slides, its light comes on and the users it rolls out to light up on the screen.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap"],
-  sounds: ["toggle"],
+  blurb: "Flip a flag: the switch slides, its relay clicks, its light comes on and the users it rolls out to light up on the screen.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "Callout"],
+  sounds: ["press", "release", "relay"],
 } satisfies FigureMeta
 
 type Flag = { id: string; label: string; pct: number; y: number }
@@ -22,13 +23,18 @@ const SLOT = { x: 44, w: 80, d: 4 }
 const KNOB = { x: SLOT.x + 2, z: BASE.h, w: 24, d: 12, h: 7 }
 const TRAVEL = SLOT.w - KNOB.w - 4
 const SLIDE = `translate(${(TRAVEL * Math.cos(Math.PI / 6)).toFixed(3)}px, ${(TRAVEL * Math.sin(Math.PI / 6)).toFixed(3)}px)`
-const LIGHT_X = 138
+const ARM = { x: SLOT.x + SLOT.w + 3, length: 6.5 }
+const CONTACT_X = ARM.x + ARM.length + 1.2
+const LIGHT_X = 140
+const RELAY_MS = 240
 const FIRST: Flag = { id: "new-ui", label: "NEW-UI", pct: 50, y: 46 }
-const FLAGS: readonly Flag[] = [FIRST, { id: "beta", label: "BETA", pct: 25, y: 68 }, { id: "dark", label: "DARK", pct: 75, y: 90 }]
+const NEAREST: Flag = { id: "dark", label: "DARK", pct: 75, y: 90 }
+const FLAGS: readonly Flag[] = [FIRST, { id: "beta", label: "BETA", pct: 25, y: 68 }, NEAREST]
 const COLS = 8
 const ROWS = 3
 const USERS = Array.from({ length: COLS * ROWS }, (_, i) => ({ i, c: i % COLS, r: Math.floor(i / COLS) }))
 const SCREEN = { x: 8, y: 7, w: 118, h: 34 }
+const PLATE_STYLE = { "--relay": `${RELAY_MS}ms` } as CSSProperties
 
 const share = (flag: Flag) => Math.round((USERS.length * flag.pct) / 100)
 const reaches = (f: number, flag: Flag, i: number) => (i * 13 + f * 7) % USERS.length < share(flag)
@@ -42,21 +48,35 @@ export default function FeatureFlags() {
   const [on, setOn] = useState<readonly boolean[]>([false, false, false])
   const [last, setLast] = useState<Last | null>(null)
   const [touched, setTouched] = useState(false)
-  const stop = useRef(() => {})
-  useEffect(() => () => stop.current(), [])
+  const relayAt = useRef(0)
+  const stopRelay = useRef(() => {})
+  useEffect(
+    () => () => {
+      window.clearTimeout(relayAt.current)
+      stopRelay.current()
+    },
+    [],
+  )
 
   const toggle = (f: number, audible: boolean) => {
     const next = on.map((value, i) => (i === f ? !value : value))
-    stop.current()
-    if (audible) stop.current = playSound("toggle")
+    window.clearTimeout(relayAt.current)
+    stopRelay.current()
+    if (audible)
+      relayAt.current = window.setTimeout(() => {
+        stopRelay.current = playSound("relay")
+      }, RELAY_MS)
     setOn(next)
     setLast({ flag: f, on: next[f] ?? false })
   }
-  const demo = useDemoTap(() => {
-    if (!on[0]) toggle(0, false)
-  }, { delay: 1100 })
+  const { ref: demoAnchor, phase, dismiss, plate } = useDemoTap(
+    () => {
+      if (!on[0]) toggle(0, false)
+    },
+    { delay: 1100 },
+  )
   const press = (f: number) => {
-    demo.dismiss()
+    dismiss()
     setTouched(true)
     toggle(f, true)
   }
@@ -67,34 +87,48 @@ export default function FeatureFlags() {
 
   return (
     <Plate
-      {...demo.plate}
+      {...plate}
       fig="SaaS"
       name="Feature flags"
       hint="Flip a switch"
       readout={readoutOf(last, shown)}
       className="fig-feature-flags"
+      style={PLATE_STYLE}
       fit={[BASE, { ...RISER, z: 0, h: RISER.z + RISER.h }]}
       aspect={1.3}
-      label="A feature-flag panel with three slide switches, new UI, beta and dark, and a screen of users. Flip a switch to turn its flag on and see the share of users it rolls out to."
+      label="A feature-flag panel with three slide switches, new UI, beta and dark, each wired through a relay to a light, and a screen of users. Flip a switch to turn its flag on and see the share of users it rolls out to."
     >
-      <g ref={demo.ref}>
+      <g ref={demoAnchor}>
         <Box
           {...BASE}
           r={10}
           top={
             <>
-              {FLAGS.map((flag, f) => (
-                <g key={flag.id}>
-                  <text className="ik-label ff-name" x={10} y={flag.y + KNOB.d / 2 + 2.3}>
-                    {flag.label}
-                  </text>
-                  <rect className="ik-well" x={SLOT.x} y={flag.y + (KNOB.d - SLOT.d) / 2} width={SLOT.w} height={SLOT.d} rx={SLOT.d / 2} />
-                  <circle className="ff-light" data-on={on[f]} data-last={last?.flag === f} cx={LIGHT_X} cy={flag.y + KNOB.d / 2} r={2.6} />
-                  <text className="ik-label ff-pct" x={145} y={flag.y + KNOB.d / 2 + 2}>
-                    {flag.pct}%
-                  </text>
-                </g>
-              ))}
+              {FLAGS.map((flag, f) => {
+                const mid = flag.y + KNOB.d / 2
+                return (
+                  <g key={flag.id}>
+                    <text className="ik-label ff-name" x={10} y={mid + 2.3}>
+                      {flag.label}
+                    </text>
+                    <rect className="ik-well" x={SLOT.x} y={flag.y + (KNOB.d - SLOT.d) / 2} width={SLOT.w} height={SLOT.d} rx={SLOT.d / 2} />
+                    <path className="ik-detail" d={`M${SLOT.x - 2.5} ${mid - 3.5}v7M${SLOT.x + SLOT.w + 0.5} ${mid - 3.5}v7`} />
+                    <path className="ik-detail" d={`M${CONTACT_X} ${mid - 2.4}v4.8`} />
+                    <g transform={`translate(${ARM.x} ${mid})`}>
+                      <g className="ff-arm" data-on={on[f]}>
+                        <path className="ik-line" d={`M0 0h${ARM.length}`} />
+                      </g>
+                      <circle className="ik-fill" r={1} />
+                    </g>
+                    <Glow on={on[f]} className="ff-lamp">
+                      <circle className="ff-light" data-on={on[f]} data-last={last?.flag === f} cx={LIGHT_X} cy={mid} r={2.6} />
+                    </Glow>
+                    <text className="ik-label ff-pct" x={146} y={mid + 2}>
+                      {flag.pct}%
+                    </text>
+                  </g>
+                )
+              })}
               {[
                 [6, BASE.d - 6],
                 [BASE.w - 6, BASE.d - 6],
@@ -129,7 +163,9 @@ export default function FeatureFlags() {
                 </text>
               </g>
               {USERS.map((u) => (
-                <circle key={u.i} className="ff-user" data-on={lit(u.i)} cx={70 + u.c * 7} cy={16 + u.r * 8.5} r={2} style={{ "--i": u.c + u.r } as CSSProperties} />
+                <Glow key={u.i} on={lit(u.i)}>
+                  <circle className="ff-user" data-on={lit(u.i)} cx={70 + u.c * 7} cy={16 + u.r * 8.5} r={2} style={{ "--i": u.c + u.r } as CSSProperties} />
+                </Glow>
               ))}
               <text className="ik-label ff-tag" x={134} y={14}>
                 FLAGS
@@ -145,9 +181,14 @@ export default function FeatureFlags() {
 
         {FLAGS.map((flag, f) => (
           <g key={flag.id}>
-            {f === 0 && !touched && last === null && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple x={KNOB.x} y={flag.y} z={KNOB.z} w={KNOB.w} d={KNOB.d} r={3} /> : null}
+            {f === 0 && !touched && last === null && phase !== "aim" && phase !== "press" ? <Ripple x={KNOB.x} y={flag.y} z={KNOB.z} w={KNOB.w} d={KNOB.d} r={3} /> : null}
             <g className="ff-slide" data-on={on[f]} style={on[f] ? { transform: SLIDE } : undefined}>
-              <Press label={`Turn ${flag.id} ${on[f] ? "off" : "on"}`} onPress={() => press(f)} sound={false} data-hot={last === null ? f === 0 : last.flag === f && !last.on}>
+              <Press
+                label={`Turn ${flag.id} ${on[f] ? "off" : "on"}`}
+                material="plastic"
+                onPress={() => press(f)}
+                data-hot={last === null ? f === 0 : last.flag === f && !last.on}
+              >
                 <g>
                   <Box
                     x={KNOB.x}
@@ -166,7 +207,8 @@ export default function FeatureFlags() {
           </g>
         ))}
 
-        <Cursor at={[KNOB.x + KNOB.w / 2, FIRST.y + KNOB.d / 2, KNOB.z + KNOB.h]} phase={demo.phase} />
+        <Callout at={[ARM.x + 3, NEAREST.y + KNOB.d / 2, BASE.h]} dx={10} dy={44} label="relay" />
+        <Cursor at={[KNOB.x + KNOB.w / 2, FIRST.y + KNOB.d / 2, KNOB.z + KNOB.h]} phase={phase} />
       </g>
     </Plate>
   )

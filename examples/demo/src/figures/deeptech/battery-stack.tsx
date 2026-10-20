@@ -1,5 +1,6 @@
-import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, project, Ripple, Signal, type SoundName, type SoundOptions, useDemoTap, type Vec3 } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./battery-stack.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Battery stack",
   industry: "deeptech",
   level: 3,
-  blurb: "Press charge: the plug seats, current runs along the bus bar and four cells fill up level by level.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "project", "curve", "path"],
-  sounds: ["toggle", "cascade", "whoosh"],
+  blurb: "Press charge: the plug latches into its port, current runs along the bus bar, four cells fill up level by level and the charge rolls over on the screen.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "project", "curve", "path", "Dimension"],
+  sounds: ["latch", "cascade", "roll", "whoosh"],
 } satisfies FigureMeta
 
 type Phase = "flat" | "charged" | "drained"
@@ -42,24 +43,46 @@ const CHARGE_PATH: readonly Vec3[] = [
   [BUS.x + 2, BUS.y + BUS.d / 2, BUS_TOP],
 ]
 const DRAIN_PATH = [...CHARGE_PATH].reverse()
+const SCREWS = [
+  [5, 5],
+  [CASE.w - 5, 5],
+  [5, CASE.d - 5],
+  [CASE.w - 5, CASE.d - 5],
+] as const
 
 const LEVELS = [0, 1, 2, 3, 4] as const
 const SEG = { x: 10.5, w: 9, h: 5.4, gap: 1.05, bottom: 41.6 }
 const segY = (k: number) => SEG.bottom - (k + 1) * SEG.h - k * SEG.gap
-const SIGNAL_AT = 260
+const DIGIT = { x: 13, y: 19.5, size: 9, pitch: 5.4 }
+const DIGIT_WINDOW = { x: 11, y: 9.5, width: 12.6, height: 12 }
+const SEAT_MS = 380
+const SIGNAL_AT = SEAT_MS
 const SIGNAL_MS = 420
-const FILL_AT = 420
+const BUS_AT = SIGNAL_AT + SIGNAL_MS
+const FILL_AT = SEAT_MS + 160
 const DRAIN_AT = 140
 const LEVEL_MS = 110
 const CELL_MS = 60
-const PLAN: Readonly<Record<Phase, { level: number; pct: string; kwh: string; readout: string; next: Phase }>> = {
-  flat: { level: 1, pct: "18%", kwh: "0.7 kWh", readout: "18% · unplugged", next: "charged" },
-  charged: { level: 4, pct: "82%", kwh: "3.2 kWh", readout: "82% · 3.2 kWh", next: "drained" },
-  drained: { level: 1, pct: "18%", kwh: "0.7 kWh", readout: "18% · 2.5 kWh out", next: "charged" },
+const ROLL_MS = 50
+const PLAN: Readonly<Record<Phase, { level: number; pct: number; kwh: string; readout: string; next: Phase }>> = {
+  flat: { level: 1, pct: 18, kwh: "0.7 kWh", readout: "18% · unplugged", next: "charged" },
+  charged: { level: 4, pct: 82, kwh: "3.2 kWh", readout: "82% · 3.2 kWh", next: "drained" },
+  drained: { level: 1, pct: 18, kwh: "0.7 kWh", readout: "18% · 2.5 kWh out", next: "charged" },
 }
+const CAME_FROM: Readonly<Record<Phase, Phase>> = { flat: "flat", charged: "flat", drained: "charged" }
 const LOW = PLAN.flat.level
 const HIGH = PLAN.charged.level
-const SETTLE = { charged: FILL_AT + (HIGH - LOW - 1) * LEVEL_MS + 3 * CELL_MS, drained: DRAIN_AT + (HIGH - LOW - 1) * LEVEL_MS + 3 * CELL_MS }
+const SETTLE: Readonly<Record<Phase, number>> = {
+  flat: 0,
+  charged: FILL_AT + (HIGH - LOW - 1) * LEVEL_MS + 3 * CELL_MS,
+  drained: DRAIN_AT + (HIGH - LOW - 1) * LEVEL_MS + 3 * CELL_MS,
+}
+const GAUGE = { x: cellX(0) + SEG.x, y: CELL.y + CELL.d }
+const GAUGE_FOOT: Vec3 = [GAUGE.x, GAUGE.y, CELL.z + CELL.h - SEG.bottom]
+const GAUGE_OFFSET: Vec3 = [-SEG.x - 6, 0, 0]
+const gaugeTop = (level: number): Vec3 => [GAUGE.x, GAUGE.y, CELL.z + CELL.h - segY(level - 1)]
+
+const digitsOf = (pct: number) => String(pct).padStart(2, "0").split("")
 
 function delayOf(phase: Phase, i: number, k: number) {
   if (k < LOW || k >= HIGH) return 0
@@ -71,24 +94,39 @@ function delayOf(phase: Phase, i: number, k: number) {
 export default function BatteryStack() {
   const [run, setRun] = useState<{ phase: Phase; step: number }>({ phase: "flat", step: 0 })
   const [touched, setTouched] = useState(false)
-  const stop = useRef(() => {})
-  useEffect(() => () => stop.current(), [])
+  const stops = useRef<Array<() => void>>([])
+  const timers = useRef<number[]>([])
+  const clip = useId().replace(/[^\w-]/g, "")
+  const hush = () => {
+    for (const timer of timers.current) window.clearTimeout(timer)
+    for (const stop of stops.current) stop()
+    timers.current = []
+    stops.current = []
+  }
+  useEffect(
+    () => () => {
+      for (const timer of timers.current) window.clearTimeout(timer)
+      for (const stop of stops.current) stop()
+    },
+    [],
+  )
 
   const { phase, step } = run
   const charged = phase === "charged"
   const plan = PLAN[phase]
+  const digits = digitsOf(plan.pct)
+  const before = digitsOf(PLAN[CAME_FROM[phase]].pct)
   const toggle = (audible: boolean) => {
     const next = plan.next
-    stop.current()
+    hush()
     if (audible) {
+      const later = (ms: number, name: SoundName, options?: SoundOptions) => timers.current.push(window.setTimeout(() => stops.current.push(playSound(name, options)), ms))
+      const turning = digitsOf(PLAN[next].pct).filter((digit, index) => digit !== digits[index]).length
       if (next === "charged") {
-        const click = playSound("toggle")
-        const fill = playSound("cascade", { count: HIGH - LOW, stagger: LEVEL_MS / 1000, delay: FILL_AT / 1000 })
-        stop.current = () => {
-          click()
-          fill()
-        }
-      } else stop.current = playSound("whoosh")
+        later(SEAT_MS, "latch")
+        stops.current.push(playSound("cascade", { count: HIGH - LOW, stagger: LEVEL_MS / 1000, delay: FILL_AT / 1000 }))
+      } else stops.current.push(playSound("whoosh"))
+      if (turning) later(SETTLE[next], "roll", { count: turning, stagger: ROLL_MS / 1000 })
     }
     setRun({ phase: next, step: step + 1 })
   }
@@ -112,27 +150,59 @@ export default function BatteryStack() {
       hint={charged ? "Press to discharge" : "Press charge"}
       readout={plan.readout}
       className="fig-battery-stack"
+      style={{ "--seat": `${SEAT_MS}ms`, "--bus-at": `${BUS_AT}ms`, "--settle": `${step ? SETTLE[phase] : 0}ms`, "--roll-step": `${ROLL_MS}ms`, "--gauge-at": `${charged ? FILL_AT : DRAIN_AT}ms` } as CSSProperties}
       data-charged={charged}
       fit={[CASE, { x: cellX(0), y: CELL.y, z: 0, w: BUS.x + BUS.w - cellX(0), d: CELL.d, h: BUS_TOP }, PLUG, [62, 136, 0]]}
       aspect={1.3}
-      label="An energy-storage pack: four battery cells on an enclosure, joined by a bus bar, with a charging plug lying unplugged in front. Press charge to plug it in and fill the cells; press again to discharge."
+      label="An energy-storage pack: four battery cells on an enclosure, joined by a bus bar, with a charging plug lying unplugged in front. Press charge to latch the plug into its port and fill the cells; press again to discharge."
     >
+      <defs>
+        <clipPath id={clip}>
+          <rect {...DIGIT_WINDOW} />
+        </clipPath>
+      </defs>
       <g ref={demo.ref}>
         <Box
           {...CASE}
           r={6}
           top={
-            <text className="ik-label spec" x={cellX(0)} y={63}>
-              LFP · 4S · 48V
-            </text>
+            <>
+              {SCREWS.map(([cx, cy]) => (
+                <g key={`${cx}-${cy}`} transform={`translate(${cx} ${cy})`}>
+                  <circle className="ik-detail" r={1.6} />
+                  <path className="ik-detail" d="M-1 0h2" />
+                </g>
+              ))}
+              <text className="ik-label spec" x={cellX(0)} y={63}>
+                LFP · 4S · 48V
+              </text>
+            </>
           }
           front={
             <>
               <rect className="ik-screen" x={8} y={6} width={58} height={18} rx={3} />
-              <g key={step} className="ik-enter" style={{ animationDelay: `${step ? SETTLE[phase === "charged" ? "charged" : "drained"] : 0}ms` }}>
-                <text className="ik-screen-text" x={13} y={19.5} fontSize={9}>
-                  {plan.pct}
-                </text>
+              <g clipPath={`url(#${clip})`}>
+                {digits.map((digit, index) => {
+                  const turns = step > 0 && digit !== before[index]
+                  const x = DIGIT.x + index * DIGIT.pitch
+                  return (
+                    <g key={`${index}-${step}`} style={{ "--i": digits.length - 1 - index } as CSSProperties}>
+                      {turns ? (
+                        <text className="ik-screen-text roll-out" x={x} y={DIGIT.y} fontSize={DIGIT.size}>
+                          {before[index]}
+                        </text>
+                      ) : null}
+                      <text className={turns ? "ik-screen-text roll-in" : "ik-screen-text"} x={x} y={DIGIT.y} fontSize={DIGIT.size}>
+                        {digit}
+                      </text>
+                    </g>
+                  )
+                })}
+              </g>
+              <text className="ik-screen-text" x={DIGIT.x + digits.length * DIGIT.pitch} y={DIGIT.y} fontSize={DIGIT.size}>
+                %
+              </text>
+              <g key={step} className="ik-enter" style={{ animationDelay: `${step ? SETTLE[phase] : 0}ms` }}>
                 <text className="ik-screen-text ik-dim" x={35} y={19} fontSize={5.6}>
                   {plan.kwh}
                 </text>
@@ -163,23 +233,22 @@ export default function BatteryStack() {
             x={cellX(i)}
             {...CELL}
             r={3}
-            top={<path className="ik-detail" d={`M4 ${CELL.d - 5}h${CELL.w - 8}`} />}
+            top={
+              <>
+                <path className="ik-detail" d={`M4 ${CELL.d - 5}h${CELL.w - 8}`} />
+                <path className="ik-detail" d="M5.5 25h4M7.5 23v4M20.5 25h4" />
+              </>
+            }
             front={
               <>
                 <path className="ik-detail" d={`M4 4.5h${CELL.w - 8}`} />
                 <rect className="ik-screen" x={9} y={9} width={12} height={34} rx={2} />
                 {LEVELS.map((k) => (
-                  <rect
-                    key={k}
-                    className="seg"
-                    data-on={k < plan.level}
-                    style={{ "--t": `${delayOf(phase, i, k)}ms` } as CSSProperties}
-                    x={SEG.x}
-                    y={segY(k)}
-                    width={SEG.w}
-                    height={SEG.h}
-                    rx={0.8}
-                  />
+                  <g key={k} style={{ "--t": `${delayOf(phase, i, k)}ms` } as CSSProperties}>
+                    <Glow on={k < plan.level} className="seg-glow">
+                      <rect className="seg" data-on={k < plan.level} x={SEG.x} y={segY(k)} width={SEG.w} height={SEG.h} rx={0.8} />
+                    </Glow>
+                  </g>
                 ))}
                 <text className="ik-label tag" x={24} y={47.5}>
                   {i + 1}
@@ -196,7 +265,7 @@ export default function BatteryStack() {
         {step > 0 ? <Signal key={step} points={charged ? CHARGE_PATH : DRAIN_PATH} delay={charged ? SIGNAL_AT : 0} duration={SIGNAL_MS} /> : null}
 
         {!touched && phase === "flat" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={5} /> : null}
-        <Press label={charged ? "Discharge the pack" : "Charge the pack"} onPress={press} data-hot={!charged}>
+        <Press label={charged ? "Discharge the pack" : "Charge the pack"} material="rubber" onPress={press} data-hot={!charged}>
           <g>
             <Box
               {...KEY}
@@ -223,6 +292,7 @@ export default function BatteryStack() {
           <path className="ik-line" d={TAIL} />
         </g>
         <path className="ik-line" d={LEAD} />
+        <Dimension className="gauge-dim" from={GAUGE_FOOT} to={gaugeTop(plan.level)} offset={GAUGE_OFFSET} label={`${plan.pct}%`} />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

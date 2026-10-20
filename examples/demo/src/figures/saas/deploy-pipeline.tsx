@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./deploy-pipeline.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Deploy pipeline",
   industry: "saas",
   level: 4,
-  blurb: "Press deploy: a signal runs build to test to ship, each stage ticks ok and the new version goes live.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["process", "success", "whoosh"],
+  blurb: "Press deploy: the build fan spins up, a signal runs build to test to ship, each stage ticks ok and a relay throws prod over to the new version.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "Callout"],
+  sounds: ["press", "release", "motor", "process", "relay", "success", "whoosh"],
 } satisfies FigureMeta
 
 type Stage = "build" | "test" | "ship"
@@ -38,6 +39,11 @@ const STEPS: Readonly<Record<Kind, readonly number[]>> = {
 const CURRENT: readonly Stage[] = ["build", "build", "test", "test", "ship", "ship"]
 const SIGNAL_MS = 320
 const TRACE_MS = 280
+const BUILD_MS = (STEPS.deploy[1] ?? 0) - (STEPS.deploy[0] ?? 0)
+const LAMP_MS = 70
+const FAN_BLADES = [0, 90, 180, 270] as const
+const ARM = { x: 30, y: 30.5, length: 6.5 }
+const PLATE_STYLE = { "--lamp": `${LAMP_MS}ms` } as CSSProperties
 const CHECK = "M0 3l2.2 2.2L6.6 .8"
 const BACK = "M5.5 1.2H2.4a2 2 0 0 0 0 4h4.2M3.6 0L2.4 1.2l1.2 1.2"
 
@@ -91,8 +97,12 @@ function TopMark({ stage }: { stage: Stage }) {
     return (
       <g transform={`translate(${cx} ${cy})`}>
         <circle className="ik-well" r={8} />
-        <circle className="ik-detail" r={2.2} />
-        <path className="ik-detail" d="M2.2 0h4.6M-2.2 0h-4.6M0 2.2v4.6M0-2.2v-4.6" />
+        <g className="dp-fan ik-loop">
+          {FAN_BLADES.map((turn) => (
+            <path key={turn} className="ik-line" d="M1.8 .6Q4.4-2.8 6.9-1.4" transform={`rotate(${turn})`} />
+          ))}
+        </g>
+        <circle className="ik-face ik-top" r={2.2} />
       </g>
     )
   if (stage === "test")
@@ -114,6 +124,7 @@ export default function DeployPipeline() {
   const [touched, setTouched] = useState(false)
   const timers = useRef<number[]>([])
   const stop = useRef(() => {})
+  const stopMotor = useRef(() => {})
   const clear = () => {
     for (const timer of timers.current) window.clearTimeout(timer)
     timers.current = []
@@ -122,6 +133,7 @@ export default function DeployPipeline() {
     () => () => {
       for (const timer of timers.current) window.clearTimeout(timer)
       stop.current()
+      stopMotor.current()
     },
     [],
   )
@@ -129,20 +141,27 @@ export default function DeployPipeline() {
   const start = (kind: Kind, to: number, audible: boolean) => {
     const id = run.id + 1
     const from = live(run)
+    const steps = STEPS[kind]
+    const end = steps[steps.length - 1] ?? 0
     clear()
     stop.current()
+    stopMotor.current()
     if (audible && kind === "rollback") stop.current = playSound("whoosh")
     setRun({ id, kind, step: 0, from, to })
-    timers.current = STEPS[kind].map((at, i) =>
+    timers.current = steps.map((at, i) =>
       window.setTimeout(() => {
         const step = i + 1
         setRun((r) => (r.id === id ? { ...r, step } : r))
         if (!audible || kind !== "deploy") return
         stop.current()
-        if (step === STEPS.deploy.length) stop.current = playSound("success")
+        if (step === 1) stopMotor.current = playSound("motor", { duration: BUILD_MS / 1000 })
+        else if (step === steps.length) stop.current = playSound("relay")
         else if (step % 2 === 1) stop.current = playSound("process")
       }, at),
     )
+    if (!audible || steps.length === 0) return
+    if (kind === "rollback") timers.current.push(window.setTimeout(() => (stop.current = playSound("relay")), end))
+    if (kind === "deploy") timers.current.push(window.setTimeout(() => (stop.current = playSound("success")), end + LAMP_MS))
   }
   const deploy = (audible: boolean) => start("deploy", live(run) + 1, audible)
   const rollback = () => {
@@ -151,11 +170,11 @@ export default function DeployPipeline() {
     else if (prod > 0) start("rollback", prod - 1, true)
     else start("oldest", prod, false)
   }
-  const demo = useDemoTap(() => {
+  const { ref: demoAnchor, phase, dismiss, plate } = useDemoTap(() => {
     if (run.kind === null) deploy(false)
   }, { delay: 500 })
   const press = (action: () => void) => {
-    demo.dismiss()
+    dismiss()
     setTouched(true)
     action()
   }
@@ -166,18 +185,19 @@ export default function DeployPipeline() {
 
   return (
     <Plate
-      {...demo.plate}
+      {...plate}
       fig="SaaS"
       name="Deploy pipeline"
       hint={run.kind === null ? "Press deploy" : "Deploy or roll back"}
       readout={readoutOf(run)}
       className="fig-deploy-pipeline"
+      style={PLATE_STYLE}
       data-kind={run.kind ?? "idle"}
       fit={[BASE, { x: FIRST.x, y: ST.y, z: 0, w: 164, d: ST.d, h: LID + 16 }]}
       aspect={1.3}
       label="A deploy pipeline of three stages, build, test and ship, joined by cables. Press deploy to send a new version through every stage to production, or roll back to the previous version."
     >
-      <g ref={demo.ref}>
+      <g ref={demoAnchor}>
         <Box
           {...BASE}
           r={10}
@@ -242,10 +262,23 @@ export default function DeployPipeline() {
                           </text>
                         )}
                       </g>
-                      <circle className="dp-light ik-loop" cx={7} cy={30.5} r={2} />
+                      <Glow on={status === "run" || status === "on"} className="dp-glow">
+                        <circle className="dp-light ik-loop" cx={7} cy={30.5} r={2} />
+                      </Glow>
                       <text className="ik-label dp-name" x={12} y={32.6}>
                         {stage.label}
                       </text>
+                      {ship ? (
+                        <>
+                          <path className="ik-detail" d={`M${ARM.x + ARM.length + 1.2} ${ARM.y - 2.4}v4.8`} />
+                          <g transform={`translate(${ARM.x} ${ARM.y})`}>
+                            <g className="dp-arm">
+                              <path className="ik-line" d={`M0 0h${ARM.length}`} />
+                            </g>
+                            <circle className="ik-fill" r={1} />
+                          </g>
+                        </>
+                      ) : null}
                       {Array.from({ length: 10 }, (_, k) => (
                         <path key={k} className="ik-detail" d={`M${6 + k * 3.6} 37.5v4.5`} />
                       ))}
@@ -277,8 +310,8 @@ export default function DeployPipeline() {
         {run.kind === "deploy" ? <Signal key={`d-${run.id}`} points={DEPLOY_TRACE} duration={TRACE_MS} /> : null}
         {run.kind === "rollback" ? <Signal key={`r-${run.id}`} points={ROLLBACK_TRACE} duration={STEPS.rollback[0] ?? TRACE_MS} /> : null}
 
-        {!touched && run.kind === null && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...DEPLOY} r={6} /> : null}
-        <Press label={`Deploy ${version(live(run) + 1)}`} onPress={() => press(() => deploy(true))} data-hot={run.kind === null}>
+        {!touched && run.kind === null && phase !== "aim" && phase !== "press" ? <Ripple {...DEPLOY} r={6} /> : null}
+        <Press label={`Deploy ${version(live(run) + 1)}`} material="plastic" onPress={() => press(() => deploy(true))} data-hot={run.kind === null}>
           <g>
             <Box
               {...DEPLOY}
@@ -294,7 +327,7 @@ export default function DeployPipeline() {
             />
           </g>
         </Press>
-        <Press label="Roll back to the previous version" onPress={() => press(rollback)}>
+        <Press label="Roll back to the previous version" material="plastic" onPress={() => press(rollback)}>
           <g>
             <Box
               {...ROLLBACK}
@@ -311,7 +344,8 @@ export default function DeployPipeline() {
           </g>
         </Press>
 
-        <Cursor at={[DEPLOY.x + DEPLOY.w / 2, DEPLOY.y + DEPLOY.d / 2, DEPLOY.z + DEPLOY.h]} phase={demo.phase} />
+        <Callout at={[LAST.x + ST.w, ST.y + ST.d, LID]} dx={24} dy={-20} label={`prod · ${version(shown)}`} />
+        <Cursor at={[DEPLOY.x + DEPLOY.w / 2, DEPLOY.y + DEPLOY.d / 2, DEPLOY.z + DEPLOY.h]} phase={phase} />
       </g>
     </Plate>
   )

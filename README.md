@@ -10,7 +10,7 @@ Rounded boxes, faces you can draw on, keys that click back, and sound you can he
 A small, typed React kit, and a skill your coding agent uses to draw with it.
 
 [![npm](https://img.shields.io/npm/v/react-isokit?color=161616&label=npm)](https://www.npmjs.com/package/react-isokit)
-[![size](https://img.shields.io/badge/core-2.7%20kB-161616)](#performance)
+[![size](https://img.shields.io/badge/core-3.1%20kB-161616)](#performance)
 [![types](https://img.shields.io/badge/types-strict%20%2B%20zod-161616)](#validation)
 [![CI](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml/badge.svg)](https://github.com/aadilghani1/isokit/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/aadilghani1/isokit?color=161616)](LICENSE)
@@ -31,7 +31,7 @@ Most product illustrations are pictures. These are objects: the key goes down wh
 - **Presses that feel physical.** Down on press, up on release, acts on release. Pointer, touch, Enter and Space.
 - **Sound, done properly.** Twelve synthesized interaction sounds, no audio files, loaded only when someone reaches for a figure, silent until the page opts in.
 - **Typed and validated.** Every public type is inferred from a zod schema. In development, bad input is explained in the console; in production it is clamped and costs nothing.
-- **Light on the page.** 2.7 kB core, the sound engine is a separate 1.8 kB chunk, loops sleep offscreen, server rendering works.
+- **Light on the page.** 3.1 kB core, the sound engine is a separate 2.6 kB chunk, loops sleep offscreen, server rendering works.
 
 ## Quick start
 
@@ -101,6 +101,7 @@ The numbered plate a figure sits on, and the `<svg>` it is drawn in.
 | `fig`, `name`, `hint`, `readout` | `ReactNode` | The four corner captions. `readout` is announced to screen readers. |
 | `credit` | `boolean` | Shows the small “Made with isokit · pushary.com” link. Default `true`; set `false` to omit it. |
 | `theme` | `"light" \| "dark" \| "system"` | Unset follows a `.dark` or `[data-theme="dark"]` ancestor. |
+| `look` | `"blueprint" \| "paper" \| "phosphor" \| string` | A look from `react-isokit/themes.css`, in its light or dark version. A `data-look` attribute on any ancestor works too. |
 
 Any other prop goes to the `<svg>`, so `data-*` attributes there can drive your CSS.
 
@@ -114,7 +115,15 @@ A rounded box. Its outline is the hull of its rounded top and foot, so no vertic
 
 A part you can press. It goes down on press, comes up on release, and calls `onPress` on release. Wrap the boxes that should sink in one `<g>` inside it.
 
-`label` (required), `onPress` (required), `sound` (default `true`), `disabled`, `className`. Add the class `ik-lift` for parts that lift instead of sinking.
+`label` (required), `onPress` (required), `sound` (default `true`), `material` (`"plastic"` by default, or `"metal"`, `"rubber"`, `"glass"`, `"paper"`: it shapes the click), `disabled`, `className`. Add the class `ik-lift` for parts that lift instead of sinking. The part's size sets the pitch of its click and its position sets the stereo pan, measured when it is pressed. Set `--ik-travel` on it for a deeper key.
+
+#### `<Glow>`
+
+Light coming off something that is switched on: an LED, an awake screen's text, a signal on a wire. `on` (default `true`) fades a soft halo in fast and out slowly. Wrap small emitters only; never faces or pressable parts. The halo shows on dark themes and dark looks; on light themes, lit means the darker fill you give it.
+
+#### Drafting: `react-isokit/drafting`
+
+`<Dimension from to offset label>` draws a dimension line with witness lines and arrowheads; when what it measures moves, its end and label slide with it, so the label can be a read-out. `<Callout at dx dy label>` draws a leader-line label. Both show only in a look that turns drafting on, like blueprint.
 
 #### Guided motion: `useDemoTap`, `<Cursor>`, `<Ripple>`, `<Signal>`, `<Flight>`
 
@@ -175,7 +184,7 @@ const result = box3Schema.safeParse(json)
 if (!result.success) console.error(describe(result.error))
 ```
 
-**The palette:** `press`, `release`, `toggle`, `boot`, `success`, `error`, `notify`, `complete`, `cascade`, `whoosh`, `paper`, `process`, `done`. `cascade` takes `{ count, stagger, delay }` so its steps land in time with your animation.
+**The palette:** `press`, `release`, `toggle`, `boot`, `success`, `error`, `notify`, `complete`, `cascade`, `whoosh`, `paper`, `process`, `done`, and the mechanical complications `tick`, `latch`, `relay`, `motor`, `roll`, `beep`. `cascade` and `roll` take `{ count, stagger, delay }` so their steps land in time with your animation; `motor` takes `{ duration }`. Press passes `material`, `pan` and `size` for its own clicks; you can pass them too.
 
 ## Styling
 
@@ -183,7 +192,7 @@ Everything is drawn with a few classes and coloured by `--ik-*` custom propertie
 
 | Class | For |
 | --- | --- |
-| `ik-face`, `ik-top`, `ik-tint` | Solids (what `Box` uses). |
+| `ik-face`, `ik-top`, `ik-tint`, `ik-edge` | Solids and silhouettes (what `Box` uses). |
 | `ik-detail` | Dim inner lines: seams, vents, text lines. |
 | `ik-line` | Structure-weight lines: cables, rails. |
 | `ik-live` | The one bright stroke: whatever is live right now. |
@@ -193,13 +202,26 @@ Everything is drawn with a few classes and coloured by `--ik-*` custom propertie
 | `ik-label` | Small engraved labels. Size them with CSS (`font-size`), not the `fontSize` attribute: CSS wins over SVG presentation attributes. |
 | `ik-enter`, `ik-pulse`, `ik-blink`, `ik-float`, `ik-loop` | Ready-made motion; loops sleep offscreen. |
 
-Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `--ik-line`, `--ik-detail`, `--ik-live`, `--ik-ink`, `--ik-ink-hi`, `--ik-screen`, `--ik-screen-ink`, `--ik-screen-font`, `--ik-border`, `--ik-ease` and `--ik-spring`.
+Restyle with `--ik-panel`, `--ik-top`, `--ik-front`, `--ik-side`, `--ik-well`, `--ik-line`, `--ik-detail`, `--ik-live`, `--ik-ink`, `--ik-ink-hi`, `--ik-screen`, `--ik-screen-ink`, `--ik-screen-font`, `--ik-border`, and `--ik-glow`, `--ik-glow-size`, `--ik-glow-strength` for light.
+
+Lines come in three weights: `--ik-weight-edge` for silhouettes, `--ik-weight-crease` for creases, `--ik-weight-fine` for inner marks.
+
+Motion is one scale: `--ik-ease`, `--ik-ease-out`, `--ik-ease-move`, `--ik-ease-fall` and `--ik-spring` (a real spring, written as CSS `linear()`), timed by `--ik-t-press`, `--ik-t-hover`, `--ik-t-state`, `--ik-t-move`, `--ik-t-spring`, `--ik-t-glow-on`, `--ik-t-glow-off` and `--ik-stagger`. Change one and every figure follows.
+
+### Looks
+
+```ts
+import "react-isokit/styles.css"
+import "react-isokit/themes.css"
+```
+
+`themes.css` adds three looks, each with a light and a dark version, set with `look` on a Plate or `data-look` on any ancestor: **blueprint** (blue on whiteprint, white on cyanotype, on isometric graph paper, with the drafting layer), **paper** (sepia ink, one vermilion accent) and **phosphor** (amber or green, with bloom and scanlines). A look is five colours per scheme, `--ik-paper`, `--ik-pen`, `--ik-live`, `--ik-glow` and `--ik-accent` with `-light` and `-dark`; every face tone is mixed from them, so writing your own look takes ten lines.
 
 ## Performance
 
-- **2.7 kB** for `Plate`, `Box`, `Press` and the math, 4.3 kB for the whole entry with guided motion, minified and brotlied; unused pieces tree-shake away. **2 kB** of CSS. Budgets are enforced in CI.
+- **3.1 kB** for `Plate`, `Box`, `Press` and the math, 4.9 kB for the whole entry with guided motion and `Glow`, minified and brotlied; unused pieces tree-shake away. **2.5 kB** of CSS, plus 0.8 kB for the looks and 0.9 kB for drafting if you use them. Budgets are enforced in CI.
 - **Validation costs nothing in production.** The schemas (zod/mini, 7.4 kB) load only in development builds, or when you import `react-isokit/schema` yourself.
-- **Sound costs nothing until it is used.** The 1.8 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again once the longest scheduled sound has finished and four quiet seconds have passed.
+- **Sound costs nothing until it is used.** The 2.6 kB engine is a separate chunk fetched when a pointer or focus reaches a plate; no `AudioContext` exists until the first press, and it is suspended again once the longest scheduled sound has finished and four quiet seconds have passed.
 - **Loops sleep offscreen.** Each plate watches itself with one `IntersectionObserver`.
 - **Server rendering.** Everything renders to static SVG; the package ships `"use client"` for the Next.js App Router.
 - **Reduced motion** lands every transition at once and stops every loop.

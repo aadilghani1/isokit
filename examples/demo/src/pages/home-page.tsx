@@ -124,11 +124,12 @@ export function HomePage(): ReactNode {
         <section className="split">
           <div>
             <p className="eyebrow">Sound</p>
-            <h2>Thirteen sounds, no files.</h2>
-            <p>Give a button a click, a switch a tick, or a finished task a chime. The browser makes the sounds, so there are no audio files to download. Sound is optional.</p>
+            <h2>Nineteen sounds, no files.</h2>
+            <p>Every key clicks like what it is made of, sounds lower when it is bigger and sits where it is drawn in stereo. Mechanisms tick, latch, relay, hum and roll, and results chime. The browser makes the sounds, so there are no audio files to download. Sound is optional.</p>
             <pre>
               <code>{`configureSound({ defaultOn: true })
-playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
+playSound("cascade", { count: 4, stagger: 0.06 })
+playSound("motor", { duration: 0.9 })`}</code>
             </pre>
           </div>
           <SoundBoard />
@@ -138,16 +139,16 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
           <div className="section-head">
             <p className="eyebrow">Theming</p>
             <h2>Same figure, your colours.</h2>
-            <p>Match your website with a few CSS colour settings. Light and dark themes are included. Try the same counter in three different styles.</p>
+            <p>Light and dark come built in. Import react-isokit/themes.css for three looks, each with a light and a dark version: blueprint draws the figure on isometric graph paper, paper inks it in sepia, phosphor makes it glow like a terminal.</p>
           </div>
           <div className="grid">
-            <div className="theme-paper">
-              <TallyCounter theme="Paper" />
-            </div>
-            <div className="theme-blueprint">
+            <div data-look="blueprint">
               <TallyCounter theme="Blueprint" />
             </div>
-            <div className="theme-phosphor">
+            <div data-look="paper">
+              <TallyCounter theme="Paper" />
+            </div>
+            <div data-look="phosphor">
               <TallyCounter theme="Phosphor" />
             </div>
           </div>

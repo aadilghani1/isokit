@@ -60,7 +60,7 @@ export default function ${input.componentName}() {
           side={<path className="ik-detail" d="M8 12v24M12 12v24M16 12v24" />}
         />
         {presses || aiming ? null : <Ripple {...KEY} r={6} />}
-        <Press label="Press the key" onPress={press} data-hot={presses === 0}>
+        <Press label="Press the key" material="rubber" onPress={press} data-hot={presses === 0}>
           <g>
             <Box {...KEY} r={6} top={<path className="ik-detail" d={\`M10 \${KEY.d / 2}h\${KEY.w - 20}\`} />} />
           </g>

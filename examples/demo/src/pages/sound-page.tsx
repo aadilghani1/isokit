@@ -53,8 +53,8 @@ export function SoundPage({ focus }: { focus: string | undefined }): ReactNode {
     <main className="page">
       <header className="page-head">
         <p className="eyebrow">Sound · {SOUNDS.length} sounds</p>
-        <h1>Thirteen sounds, no files.</h1>
-        <p className="lede">Clicks, chimes and little signals for your interface. Press a pad to listen. The browser makes each sound, so there are no audio files to load.</p>
+        <h1>Nineteen sounds, no files.</h1>
+        <p className="lede">Clicks shaped by what a part is made of, the ticks, latches, relays and motors of a mechanism, and the chimes of a result. Press a pad to listen. The browser makes each sound, so there are no audio files to load.</p>
         {on ? null : (
           <button type="button" className="pill" onClick={() => setOn(true)}>
             Sound is off · turn it on

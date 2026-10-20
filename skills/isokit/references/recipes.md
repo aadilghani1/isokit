@@ -34,12 +34,28 @@ const KEYS = ROWS.flatMap((row, r) => { let at = 0; return row.map(([id, w]) => 
 
 ## A status light
 
+A light that is on glows. Wrap it in `Glow`, and give it the live fill when it is on.
+
 ```tsx
-<circle className="light ik-loop" cx={132} cy={13} r={2.4} />
+<Glow on={waiting}>
+  <circle className="light ik-loop" cx={132} cy={13} r={2.4} />
+</Glow>
 ```
 
 ```css
+.my-figure .light { fill: var(--ik-detail); transition: fill var(--ik-t-state) var(--ik-ease); }
 .my-figure svg[data-phase="waiting"] .light { fill: var(--ik-live); animation: ik-pulse 1.8s ease-in-out infinite; }
+```
+
+## A screen that wakes
+
+The text on an awake screen gives off light; the glass does not. Wrap the text, not the rect.
+
+```tsx
+<rect className="ik-screen" x={9} y={8} width={106} height={30} rx={4} />
+<Glow on={awake}>
+  <text className="ik-screen-text" x={15} y={32} fontSize={9.5}>{big}</text>
+</Glow>
 ```
 
 ## A cable
@@ -69,7 +85,7 @@ Draw each layer at its floating height, then drop it with CSS. The higher layers
 ```
 
 ```css
-.block { transition: transform 700ms var(--ik-ease) calc(var(--i) * 60ms); }
+.block { transition: transform var(--ik-t-move) var(--ik-ease) calc(var(--i) * var(--ik-stagger)); }
 svg[data-live="true"] .block { transform: translateY(var(--drop)); }
 ```
 
@@ -99,6 +115,10 @@ const press = () => { demo.dismiss(); setTouched(true); publish(true) }
   </g>
 </Plate>
 ```
+
+## A mechanism
+
+Rolling digits, a settling needle, a ticking dial, a relay, a latch, a motor, a gear train and a dimension that follows the part: see `complications.md`.
 
 ## A part that moves between places
 

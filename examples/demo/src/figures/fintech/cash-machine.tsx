@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, Signal, top, useDemoTap } from "react-isokit"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, Signal, top, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./cash-machine.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Cash machine",
   industry: "fintech",
   level: 2,
-  blurb: "Press withdraw: a signal runs down the cable to the vault, its wheel turns and three notes slide out of the cash slot.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "top"],
-  sounds: ["press", "release", "process", "paper"],
+  blurb: "Press withdraw: a signal runs down the cable to the vault, its wheel turns and the feeder motor runs three notes out of the cash slot.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "top", "Callout"],
+  sounds: ["press", "release", "process", "paper", "motor"],
 } satisfies FigureMeta
 
 const BASE = { x: 0, y: 0, z: 0, w: 178, d: 126, h: 8 }
@@ -40,12 +41,16 @@ const CABLE = curve(
   [GLAND.x + GLAND.w / 2, GLAND.y + GLAND.d, GLAND.z + GLAND.h / 2],
   40,
 )
+const CABLE_MID = CABLE[Math.floor(CABLE.length / 2)] ?? [GLAND.x, GLAND.y, BASE.h]
 const SIGNAL_AT = 120
 const SIGNAL_MS = 520
 const ARRIVE_MS = SIGNAL_AT + SIGNAL_MS
 const NOTES_AT = ARRIVE_MS + 260
 const NOTE_STAGGER_MS = 60
-const LAND_MS = NOTES_AT + (NOTES.length - 1) * NOTE_STAGGER_MS + 600
+const FEED_MS = 600
+const RUN_MS = (NOTES.length - 1) * NOTE_STAGGER_MS + FEED_MS
+const LAND_MS = NOTES_AT + RUN_MS
+const FEEDING = { "--feed": `${FEED_MS}ms` } as CSSProperties
 const AMOUNT = 60
 const OPENING = 1300
 const CYCLE = 5
@@ -57,11 +62,13 @@ export default function CashMachine() {
   const [count, setCount] = useState(0)
   const clip = useId().replace(/:/g, "")
   const stop = useRef(() => {})
+  const stopMotor = useRef(() => {})
   const timer = useRef(0)
   useEffect(
     () => () => {
       window.clearTimeout(timer.current)
       stop.current()
+      stopMotor.current()
     },
     [],
   )
@@ -69,11 +76,13 @@ export default function CashMachine() {
   const withdraw = (audible: boolean) => {
     window.clearTimeout(timer.current)
     stop.current()
+    stopMotor.current()
     if (audible) {
       stop.current = playSound("process")
       timer.current = window.setTimeout(() => {
         stop.current()
         stop.current = playSound("paper")
+        stopMotor.current = playSound("motor", { duration: RUN_MS / 1000 })
       }, NOTES_AT)
     }
     setCount((count % CYCLE) + 1)
@@ -105,7 +114,8 @@ export default function CashMachine() {
       data-fresh={fresh}
       fit={[BASE, { ...ATM, z: 0, h: HOOD.z + HOOD.h }, HOOD, SHELF, VAULT]}
       aspect={1.3}
-      label="A cash machine wired to a vault. Press withdraw: the request runs down the cable to the vault, its wheel turns, and sixty euros in notes slide out of the cash slot."
+      style={FEEDING}
+      label="A cash machine wired to a vault. Press withdraw: the request runs down the cable to the vault, its wheel turns, and the feeder runs sixty euros in notes out of the cash slot."
     >
       <g ref={demo.ref}>
         <defs>
@@ -185,43 +195,45 @@ export default function CashMachine() {
                   <rect className="ik-face" x={ATM.w - 8.1} y={SCREEN.y + 2 + k * 7} width={3.6} height={4.5} rx={0.8} />
                 </g>
               ))}
-              <g key={`small-${count}`}>
-                {fresh ? (
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6}>
-                    fast cash
+              <Glow>
+                <g key={`small-${count}`}>
+                  {fresh ? (
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6}>
+                      fast cash
+                    </text>
+                  ) : (
+                    <>
+                      <text className="ik-screen-text ik-dim cm-shown cm-passing" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6} style={{ "--on": "0ms", "--off": `${NOTES_AT}ms` } as CSSProperties}>
+                        checking
+                      </text>
+                      <text className="ik-screen-text ik-dim cm-shown" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6} style={{ "--on": `${NOTES_AT}ms` } as CSSProperties}>
+                        take cash
+                      </text>
+                    </>
+                  )}
+                </g>
+                <g key={`big-${count}`} className="ik-enter">
+                  <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 18.5} fontSize={9}>
+                    {euros(AMOUNT)}
                   </text>
-                ) : (
-                  <>
-                    <text className="ik-screen-text ik-dim cm-shown cm-passing" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6} style={{ "--on": "0ms", "--off": `${NOTES_AT}ms` } as CSSProperties}>
-                      checking
+                </g>
+                <g key={`balance-${count}`}>
+                  {fresh ? (
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6}>
+                      bal {euros(OPENING)}
                     </text>
-                    <text className="ik-screen-text ik-dim cm-shown" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6} style={{ "--on": `${NOTES_AT}ms` } as CSSProperties}>
-                      take cash
-                    </text>
-                  </>
-                )}
-              </g>
-              <g key={`big-${count}`} className="ik-enter">
-                <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 18.5} fontSize={9}>
-                  {euros(AMOUNT)}
-                </text>
-              </g>
-              <g key={`balance-${count}`}>
-                {fresh ? (
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6}>
-                    bal {euros(OPENING)}
-                  </text>
-                ) : (
-                  <>
-                    <text className="ik-screen-text ik-dim cm-shown cm-passing" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6} style={{ "--on": "0ms", "--off": `${ARRIVE_MS}ms` } as CSSProperties}>
-                      bal {euros(before)}
-                    </text>
-                    <text className="ik-screen-text ik-dim cm-shown" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6} style={{ "--on": `${ARRIVE_MS}ms` } as CSSProperties}>
-                      bal {euros(after)}
-                    </text>
-                  </>
-                )}
-              </g>
+                  ) : (
+                    <>
+                      <text className="ik-screen-text ik-dim cm-shown cm-passing" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6} style={{ "--on": "0ms", "--off": `${ARRIVE_MS}ms` } as CSSProperties}>
+                        bal {euros(before)}
+                      </text>
+                      <text className="ik-screen-text ik-dim cm-shown" x={SCREEN.x + 4} y={SCREEN.y + 25} fontSize={5.6} style={{ "--on": `${ARRIVE_MS}ms` } as CSSProperties}>
+                        bal {euros(after)}
+                      </text>
+                    </>
+                  )}
+                </g>
+              </Glow>
               <rect className="ik-detail" x={36} y={40} width={20} height={4.5} rx={1.5} />
               <rect className="ik-well" x={39} y={41.6} width={14} height={1.4} rx={0.7} />
               <rect className="ik-detail" x={SLOT.x - 4} y={SLOT.y - 5} width={SLOT.w + 8} height={SLOT.h + 10} rx={3} />
@@ -257,7 +269,11 @@ export default function CashMachine() {
         />
 
         <path className="ik-line" d={path(CABLE)} />
-        {fresh ? null : <Signal key={`signal-${count}`} points={CABLE} delay={SIGNAL_AT} duration={SIGNAL_MS} />}
+        {fresh ? null : (
+          <Glow key={`signal-${count}`}>
+            <Signal points={CABLE} delay={SIGNAL_AT} duration={SIGNAL_MS} />
+          </Glow>
+        )}
 
         {fresh ? null : (
           <g key={`notes-${count}`}>
@@ -286,7 +302,7 @@ export default function CashMachine() {
         />
 
         {fresh && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={3} /> : null}
-        <Press label="Withdraw sixty euros" onPress={press} data-hot={fresh}>
+        <Press label="Withdraw sixty euros" material="metal" onPress={press} data-hot={fresh}>
           <g>
             <Box
               {...KEY}
@@ -299,6 +315,7 @@ export default function CashMachine() {
             />
           </g>
         </Press>
+        <Callout at={CABLE_MID} dx={12} dy={16} label="host link" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, front, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, curve, front, Glow, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./wind-turbine.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Wind turbine",
   industry: "energy",
   level: 3,
-  blurb: "Press start: the brake caliper lifts, the three blades ramp up to speed and the output bar fills step by step to 2.1 MW.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "front", "project", "curve", "path"],
-  sounds: ["press", "release", "cascade", "complete", "whoosh"],
+  blurb: "Press start: the brake caliper lifts, the pitch drive turns the blades out of feather, the rotor ramps up, the output bar fills step by step to 2.1 MW and the grid contactor clicks shut before the grid lamp lights.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "front", "project", "curve", "path", "playSound", "Callout"],
+  sounds: ["press", "release", "motor", "cascade", "relay", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type State = "parked" | "running" | "stopped"
@@ -34,19 +35,26 @@ const CALIPER = { x: TX - 3.5, y: DISC.y - 2, z: HUB.z + DISC.r - 3.5, w: 7, d: 
 const BLADE = 58
 const SPAN = BLADE * 0.37
 const BLADE_PATH = `M-2.6 -6.4C-4.2 -11 -5 -15 -4.4 -${SPAN}L-1.4 -${BLADE - 0.8}Q-0.4 -${BLADE + 0.6} 0.9 -${BLADE - 0.4}L3.4 -${SPAN}C3.8 -15 3.4 -10 2.6 -6.4Z`
+const SPAR = `M-0.8 -8L-0.2 -${BLADE - 6}`
 const BLADE_ANGLES = [60, 180, 300] as const
 const CABINET = { x: 96, y: 46, z: BASE.h, w: 58, d: 34, h: 44 }
 const KEY = { x: 101, y: 52, z: CABINET.z + CABINET.h, w: 48, d: 20, h: 5 }
 const SCREEN = { x: 5, y: 5, w: 48, h: 28 }
 const CONDUIT = path(curve([TX + 14, TY + 8, BASE.h + 0.6], [TX + 30, TY + 18, BASE.h + 0.6], [86, 66, BASE.h + 0.6], [102, 64, BASE.h + 0.6], 24))
+const CONTACTOR = { x: 36, y: 35, w: 18, h: 7, arm: 9 }
 const STEPS = [0, 1, 2, 3, 4, 5] as const
 const OUTPUT = ["0.4", "0.7", "1.1", "1.4", "1.8", "2.1"] as const
+const PITCH_MS = 500
 const FILL_AT = 600
 const STEP_MS = 160
-const LEAVE_MS = 60
 const DONE_MS = FILL_AT + (STEPS.length - 1) * STEP_MS
+const GRID_MS = DONE_MS + 260
+const LAMP_MS = GRID_MS + 60
+const TIMING = { "--pitch": `${PITCH_MS}ms`, "--grid": `${GRID_MS}ms`, "--lamp": `${LAMP_MS}ms` } as CSSProperties
 const READOUTS: Readonly<Record<State, string>> = { parked: "parked · brake on", running: "12 m/s · 2.1 MW", stopped: "stopped · brake on" }
 const NEXT: Readonly<Record<State, State>> = { parked: "running", running: "stopped", stopped: "running" }
+
+const BRAKE_AT: Vec3 = [CALIPER.x + CALIPER.w / 2, CALIPER.y + CALIPER.d, CALIPER.z + CALIPER.h]
 
 const segOn = (k: number) => FILL_AT + k * STEP_MS
 
@@ -54,7 +62,12 @@ function Rotor({ move }: { move: "rest" | "start" | "stop" }) {
   return (
     <g className="wt-turn" data-move={move}>
       {BLADE_ANGLES.map((deg) => (
-        <path key={deg} className="ik-face" d={BLADE_PATH} transform={`rotate(${deg})`} />
+        <g key={deg} transform={`rotate(${deg})`}>
+          <g className="wt-blade">
+            <path className="ik-face" d={BLADE_PATH} />
+            <path className="ik-detail" d={SPAR} />
+          </g>
+        </g>
       ))}
       <circle className="ik-face ik-top" r={6.6} />
       <circle className="ik-detail" r={3} />
@@ -68,10 +81,10 @@ function Rotor({ move }: { move: "rest" | "start" | "stop" }) {
 export default function WindTurbine() {
   const [run, setRun] = useState<{ state: State; step: number }>({ state: "parked", step: 0 })
   const stops = useRef<Array<() => void>>([])
-  const timer = useRef(0)
+  const timers = useRef<number[]>([])
   useEffect(
     () => () => {
-      window.clearTimeout(timer.current)
+      for (const timer of timers.current) window.clearTimeout(timer)
       for (const stop of stops.current) stop()
     },
     [],
@@ -81,16 +94,16 @@ export default function WindTurbine() {
   const running = state === "running"
   const toggle = (audible: boolean) => {
     const next = NEXT[state]
-    window.clearTimeout(timer.current)
+    for (const timer of timers.current) window.clearTimeout(timer)
     for (const stop of stops.current) stop()
+    timers.current = []
     stops.current = []
+    if (audible) stops.current.push(playSound("motor", { duration: PITCH_MS / 1000 }))
     if (audible && next === "running") {
       stops.current.push(playSound("cascade", { count: STEPS.length, stagger: STEP_MS / 1000, delay: FILL_AT / 1000 }))
-      timer.current = window.setTimeout(() => {
-        stops.current.push(playSound("complete"))
-      }, DONE_MS + 260)
+      timers.current = [window.setTimeout(() => stops.current.push(playSound("relay")), GRID_MS), window.setTimeout(() => stops.current.push(playSound("complete")), LAMP_MS)]
     }
-    if (audible && next === "stopped") stops.current.push(playSound("whoosh"))
+    if (audible && next === "stopped") stops.current.push(playSound("relay"), playSound("whoosh"))
     setRun({ state: next, step: step === 1 ? 2 : 1 })
   }
   const demo = useDemoTap(
@@ -112,10 +125,11 @@ export default function WindTurbine() {
       hint={running ? "Press to stop" : "Press start"}
       readout={READOUTS[state]}
       className="fig-wind-turbine"
+      style={TIMING}
       data-run={running}
       fit={[BASE, { x: TX - BLADE - 2, y: HUB.y, z: HUB.z - BLADE - 2, w: 2 * BLADE + 4, d: 1, h: 2 * BLADE + 4 }, NACELLE, { ...MAST, h: MAST.h + 3 }]}
       aspect={1.05}
-      label="A wind turbine: a tapered tower with a nacelle and three blades, and a control cabinet at its foot with a screen and a start key. Press start to release the brake; the blades ramp up and the output bar fills in steps to 2.1 megawatts. Press again to stop."
+      label="A wind turbine: a tapered tower with a nacelle and three feathered blades, and a control cabinet at its foot with a screen, a grid contactor and a start key. Press start to release the brake; the blades pitch into the wind and ramp up, the output bar fills in steps to 2.1 megawatts and the contactor closes to light the grid lamp. Press again to stop."
     >
       <g ref={demo.ref}>
         <Box
@@ -222,47 +236,56 @@ export default function WindTurbine() {
                   </g>
                 )}
               </g>
-              <g key={`big-${step}`}>
-                {running ? (
-                  [{ mw: "0.0", at: 0 }, ...OUTPUT.map((mw, k) => ({ mw, at: segOn(k) }))].map(({ mw, at }, k, all) => (
-                    <text
-                      key={mw}
-                      className={k === all.length - 1 ? "ik-screen-text wt-shown" : "ik-screen-text wt-shown wt-passing"}
-                      x={9}
-                      y={22.5}
-                      fontSize={8}
-                      style={{ "--on": `${at}ms`, "--off": `${all[k + 1]?.at ?? DONE_MS}ms` } as CSSProperties}
-                    >
-                      {mw} MW
-                    </text>
-                  ))
-                ) : (
-                  <g className="ik-enter">
-                    <text className="ik-screen-text" x={9} y={22.5} fontSize={8}>
-                      0.0 MW
-                    </text>
-                  </g>
-                )}
-              </g>
-              {STEPS.map((k) => (
-                <rect
-                  key={k}
-                  className="wt-seg"
-                  style={{ "--on": `${segOn(k)}ms`, "--off": `${(STEPS.length - 1 - k) * LEAVE_MS}ms` } as CSSProperties}
-                  x={9 + k * 6.6}
-                  y={25.4}
-                  width={5.6}
-                  height={4}
-                  rx={0.8}
-                />
-              ))}
-              <circle className="wt-lamp" style={{ "--t": `${DONE_MS}ms` } as CSSProperties} cx={9} cy={39} r={2} />
+              <Glow>
+                <g key={`big-${step}`}>
+                  {running ? (
+                    [{ mw: "0.0", at: 0 }, ...OUTPUT.map((mw, k) => ({ mw, at: segOn(k) }))].map(({ mw, at }, k, all) => (
+                      <text
+                        key={mw}
+                        className={k === all.length - 1 ? "ik-screen-text wt-shown" : "ik-screen-text wt-shown wt-passing"}
+                        x={9}
+                        y={22.5}
+                        fontSize={8}
+                        style={{ "--on": `${at}ms`, "--off": `${all[k + 1]?.at ?? DONE_MS}ms` } as CSSProperties}
+                      >
+                        {mw} MW
+                      </text>
+                    ))
+                  ) : (
+                    <g className="ik-enter">
+                      <text className="ik-screen-text" x={9} y={22.5} fontSize={8}>
+                        0.0 MW
+                      </text>
+                    </g>
+                  )}
+                </g>
+                {STEPS.map((k) => (
+                  <rect
+                    key={k}
+                    className="wt-seg"
+                    style={{ "--on": `${segOn(k)}ms`, "--leave": STEPS.length - 1 - k } as CSSProperties}
+                    x={9 + k * 6.6}
+                    y={25.4}
+                    width={5.6}
+                    height={4}
+                    rx={0.8}
+                  />
+                ))}
+              </Glow>
+              <Glow on={running} className="wt-lit">
+                <circle className="wt-lamp" cx={9} cy={39} r={2} />
+              </Glow>
               <text className="ik-label wt-tag" x={13.5} y={41}>
                 GRID
               </text>
-              {Array.from({ length: 6 }, (_, k) => (
-                <path key={k} className="ik-detail" d={`M${38 + k * 3.4} 36v7`} />
-              ))}
+              <rect className="ik-well" x={CONTACTOR.x} y={CONTACTOR.y} width={CONTACTOR.w} height={CONTACTOR.h} rx={1.5} />
+              <circle className="ik-fill" cx={CONTACTOR.x + CONTACTOR.w - 4} cy={CONTACTOR.y + CONTACTOR.h / 2 + 1} r={0.9} />
+              <g transform={`translate(${CONTACTOR.x + 4} ${CONTACTOR.y + CONTACTOR.h / 2 + 1})`}>
+                <g className="wt-armature">
+                  <path className="ik-line" d={`M0 0h${CONTACTOR.arm}`} />
+                </g>
+                <circle className="ik-fill" r={0.9} />
+              </g>
             </>
           }
           side={
@@ -276,7 +299,7 @@ export default function WindTurbine() {
         />
 
         {state === "parked" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={5} /> : null}
-        <Press label={running ? "Stop the turbine" : "Start the turbine"} onPress={press} data-hot={!running}>
+        <Press label={running ? "Stop the turbine" : "Start the turbine"} material="metal" onPress={press} data-hot={!running}>
           <g>
             <Box
               {...KEY}
@@ -292,6 +315,7 @@ export default function WindTurbine() {
             />
           </g>
         </Press>
+        <Callout at={BRAKE_AT} dx={-40} dy={-12} label={running ? "brake · off" : "brake · on"} />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

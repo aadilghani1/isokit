@@ -16,6 +16,12 @@ export const SOUNDS: readonly SoundDoc[] = [
   { name: "paper", feel: "A crisp rustle.", when: "A document, folder or card is picked up.", seconds: 0.2 },
   { name: "process", feel: "A faint hum under a few quiet ticks.", when: "Work is happening for a moment. Keep its stop() and cut it when the work ends.", seconds: 0.6 },
   { name: "done", feel: "Two soft bells, small and warm.", when: "A short piece of work finished: a part seated, a file read.", seconds: 0.4 },
+  { name: "tick", feel: "A tiny dry tick.", when: "A dial passes a detent or a ratchet clicks over: one per step.", seconds: 0.1 },
+  { name: "latch", feel: "A catch, then a heavier seat.", when: "A lid, door, plug or clasp closes and locks.", seconds: 0.2 },
+  { name: "relay", feel: "A dry contact click with a bounce.", when: "Just before a light or motor comes on: the switch closing.", seconds: 0.1 },
+  { name: "motor", feel: "A low hum that rises, holds and winds down.", when: "A servo, feeder or drive runs for a while. Pass duration; keep its stop() to cut it.", seconds: 1.15 },
+  { name: "roll", feel: "Quick soft ticks, one per wheel.", when: "Odometer digits turn over; pass count for the wheels that carry.", seconds: 0.2 },
+  { name: "beep", feel: "One short square beep.", when: "A terminal, scanner or meter confirms.", seconds: 0.15 },
 ]
 
 export const SOUND_RULES: readonly string[] = [
@@ -23,4 +29,5 @@ export const SOUND_RULES: readonly string[] = [
   "Quiet by default: nothing plays until the page calls configureSound or the reader presses a SoundToggle.",
   "Cut stale sounds: keep the stop() a sound returns and call it when a newer action replaces it.",
   "Never the only feedback: every sound has a visible change and a read-out beside it.",
+  "Two layers: the part's own click, shaped by its material, size and position, then a result sound for what happened.",
 ]

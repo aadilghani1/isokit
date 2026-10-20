@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./desk-globe.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Desk globe",
   industry: "education",
   level: 2,
-  blurb: "Press spin: the globe turns to the next country, the lamp beside it marks the spot and the plaque names it.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "project"],
-  sounds: ["press", "release", "process", "done"],
+  blurb: "Press spin: a motor in the stand turns the globe to the next country, the lamp beside it lights and marks the spot, and the plaque names it.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "project", "playSound", "Callout"],
+  sounds: ["press", "release", "motor", "done"],
 } satisfies FigureMeta
 
 type Country = { name: string; capital: string; land: string; city: readonly [number, number] }
@@ -18,6 +19,11 @@ type Country = { name: string; capital: string; land: string; city: readonly [nu
 const BASE = { x: 0, y: 0, z: 0, w: 172, d: 128, h: 8 }
 const FOOT = { x: 28, y: 22, z: BASE.h, w: 44, d: 44, h: 5 }
 const COLLAR = { x: 34, y: 28, z: FOOT.z + FOOT.h, w: 32, d: 32, h: 4 }
+const VENTS = Array.from({ length: 24 }, (_, k) => {
+  const a = (k * 15 * Math.PI) / 180
+  const c = FOOT.w / 2
+  return `M${(c + 17.4 * Math.cos(a)).toFixed(3)} ${(c + 17.4 * Math.sin(a)).toFixed(3)}L${(c + 20.4 * Math.cos(a)).toFixed(3)} ${(c + 20.4 * Math.sin(a)).toFixed(3)}`
+}).join("")
 const NECK = { x: 45, y: 39, z: COLLAR.z + COLLAR.h, w: 10, d: 10, h: 8 }
 const STEM = { x: 47.5, y: 41.5, z: NECK.z + NECK.h, w: 5, d: 5, h: 12 }
 const PIVOT: Vec3 = [50, 44, STEM.z + STEM.h]
@@ -28,6 +34,12 @@ const TILT_RAD = (TILT * Math.PI) / 180
 const SHIFT = (RING * Math.sin(TILT_RAD)) / (2 * Math.cos(Math.PI / 6))
 const CENTER: Vec3 = [PIVOT[0] + SHIFT, PIVOT[1] - SHIFT, PIVOT[2] + RING * Math.cos(TILT_RAD)]
 const [CX, CY] = project(...CENTER)
+const NORTH_PIN: Vec3 = [CENTER[0] + SHIFT, CENTER[1] - SHIFT, CENTER[2] + RING * Math.cos(TILT_RAD)]
+const GRADUATION = Array.from({ length: 11 }, (_, k) => {
+  const a = ((105 + k * 15) * Math.PI) / 180
+  const inner = k % 2 ? RING - 1.2 : RING - 2
+  return `M${(inner * Math.cos(a)).toFixed(3)} ${(inner * Math.sin(a)).toFixed(3)}L${((RING + 2) * Math.cos(a)).toFixed(3)} ${((RING + 2) * Math.sin(a)).toFixed(3)}`
+}).join("")
 const SPOT = { x: 14, y: -4 }
 const SPOT_AT: Vec3 = [CENTER[0] + SPOT.x / (2 * Math.cos(Math.PI / 6)), CENTER[1] - SPOT.x / (2 * Math.cos(Math.PI / 6)), CENTER[2] - SPOT.y]
 const POLE = R * Math.cos((14 * Math.PI) / 180)
@@ -54,6 +66,12 @@ const SHADES = [
   return stack
 }, [])
 const RIM = 13
+const MOUTH = path(
+  Array.from({ length: 13 }, (_, k): Vec3 => {
+    const a = ((-45 + k * 15) * Math.PI) / 180
+    return [HEAD.cx + RIM * Math.cos(a), HEAD.cy + RIM * Math.sin(a), HEAD.z]
+  }),
+)
 const SHOULDER: Vec3 = [135, 29, LAMP_PIVOT.z + LAMP_PIVOT.h - 2]
 const ELBOW: Vec3 = [146, 18, 76]
 const NAPE: Vec3 = [HEAD.cx + 9, HEAD.cy, HEAD.z + 11]
@@ -81,31 +99,38 @@ const COUNTRIES: readonly Country[] = [
 ]
 const FIRST = COUNTRIES[0] ?? { name: "Ghana", capital: "Accra", land: "", city: [0, 0] }
 const SPIN_MS = 1000
+const SETTLE_MS = 320
 const BEAM_MS = 320
 const ARRIVE_MS = SPIN_MS + BEAM_MS
 const ms = (value: number) => `${value}ms`
+const TIMING = { "--spin": ms(SPIN_MS), "--settle": ms(SETTLE_MS), "--arrive": ms(ARRIVE_MS) } as CSSProperties
+const noop = () => {}
 
 export default function DeskGlobe() {
   const [spins, setSpins] = useState(0)
   const [touched, setTouched] = useState(false)
-  const stop = useRef(() => {})
+  const stopMotor = useRef(noop)
+  const stopDone = useRef(noop)
   const timer = useRef(0)
   useEffect(
     () => () => {
       window.clearTimeout(timer.current)
-      stop.current()
+      stopMotor.current()
+      stopDone.current()
     },
     [],
   )
 
   const spin = (audible: boolean) => {
     window.clearTimeout(timer.current)
-    stop.current()
+    stopMotor.current()
+    stopDone.current()
+    stopMotor.current = noop
+    stopDone.current = noop
     if (audible) {
-      stop.current = playSound("process")
+      stopMotor.current = playSound("motor", { duration: SPIN_MS / 1000 })
       timer.current = window.setTimeout(() => {
-        stop.current()
-        stop.current = playSound("done")
+        stopDone.current = playSound("done")
       }, ARRIVE_MS)
     }
     setSpins(spins + 1)
@@ -135,6 +160,7 @@ export default function DeskGlobe() {
       hint="Press spin"
       readout={readout}
       className="fig-desk-globe"
+      style={TIMING}
       data-marked={marked}
       fit={[
         BASE,
@@ -160,7 +186,7 @@ export default function DeskGlobe() {
         />
         <path className="ik-line" d={CORD} />
 
-        <Box {...FOOT} r={FOOT.w / 2} />
+        <Box {...FOOT} r={FOOT.w / 2} top={<path className="ik-detail" d={VENTS} />} />
         <Box {...COLLAR} r={COLLAR.w / 2} top={<circle className="ik-detail" cx={COLLAR.w / 2} cy={COLLAR.d / 2} r={10} />} />
         <Box {...NECK} r={NECK.w / 2} />
         <Box {...STEM} r={STEM.w / 2} />
@@ -189,14 +215,15 @@ export default function DeskGlobe() {
                 <Land country={was} lit={false} />
               </g>
             ) : null}
-            <g className={marked ? "dg-arrive" : undefined} style={{ "--land": ms(SPIN_MS - 320) } as CSSProperties}>
+            <g className={marked ? "dg-arrive" : undefined}>
               <Land country={country} lit={marked} />
             </g>
-            {marked ? <circle className="dg-ping" cx={SPOT.x + country.city[0]} cy={SPOT.y + country.city[1]} r={3} style={{ animationDelay: ms(ARRIVE_MS) }} /> : null}
+            {marked ? <circle className="dg-ping" cx={SPOT.x + country.city[0]} cy={SPOT.y + country.city[1]} r={3} /> : null}
           </g>
           <circle className="ik-line" r={R} />
           <g transform={`rotate(${TILT})`}>
             <path className="ik-face dg-ring" d={ringBand(RING - 2, RING + 2)} />
+            <path className="ik-detail" d={GRADUATION} />
             <circle className="ik-face ik-top" cx={0} cy={-RING} r={2.4} />
             <circle className="ik-face ik-top" cx={0} cy={RING} r={2.4} />
           </g>
@@ -212,10 +239,10 @@ export default function DeskGlobe() {
               <g key={`plaque-${spins}`}>
                 {marked ? (
                   <>
-                    <text className="ik-screen-text ik-dim dg-turning" x={9} y={14} fontSize={5.6} style={{ animationDuration: ms(ARRIVE_MS) }}>
+                    <text className="ik-screen-text ik-dim dg-turning" x={9} y={14} fontSize={5.6}>
                       turning…
                     </text>
-                    <g className="ik-enter" style={{ animationDelay: ms(ARRIVE_MS) }}>
+                    <g className="ik-enter dg-named">
                       <PlaqueText country={country} />
                     </g>
                   </>
@@ -241,22 +268,32 @@ export default function DeskGlobe() {
         {SHADES.map((disc, k) => (
           <Box key={disc.z} {...disc} r={disc.w / 2} top={k === SHADES.length - 1 ? <circle className="ik-fill" cx={disc.w / 2} cy={disc.d / 2} r={1} /> : null} />
         ))}
+        <g key={`lamp-${spins}`}>
+          {spins > 1 ? <LitMouth className="dg-lamp-off" /> : null}
+          {marked ? <LitMouth className="dg-lamp-on" /> : null}
+        </g>
         <Arm from={ELBOW} to={NAPE} />
         <circle className="ik-face ik-top" cx={project(...ELBOW)[0]} cy={project(...ELBOW)[1]} r={3.2} />
         <circle className="ik-fill" cx={project(...ELBOW)[0]} cy={project(...ELBOW)[1]} r={1} />
         <g key={`cone-${spins}`}>
           {marked ? (
-            <g className="dg-cone" style={{ animationDelay: ms(ARRIVE_MS) }}>
+            <g className="dg-cone">
               {CONE.map((d) => (
                 <path key={d} className="ik-dash" d={d} />
               ))}
             </g>
           ) : null}
         </g>
-        <g key={`beam-${spins}`}>{marked ? <Signal points={BEAM} delay={SPIN_MS} duration={BEAM_MS} /> : null}</g>
+        <g key={`beam-${spins}`}>
+          {marked ? (
+            <Glow>
+              <Signal points={BEAM} delay={SPIN_MS} duration={BEAM_MS} />
+            </Glow>
+          ) : null}
+        </g>
 
         {!touched && !marked && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label="Spin the globe to the next country" onPress={press} data-hot={!marked}>
+        <Press label="Spin the globe to the next country" material="plastic" onPress={press} data-hot={!marked}>
           <g>
             <Box
               {...KEY}
@@ -276,6 +313,7 @@ export default function DeskGlobe() {
           </g>
         </Press>
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
+        <Callout at={NORTH_PIN} dx={-14} dy={-10} label="axis 23.5°" />
       </g>
     </Plate>
   )
@@ -302,8 +340,16 @@ function Land({ country, lit }: { country: Country; lit: boolean }) {
   return (
     <g transform={`translate(${SPOT.x} ${SPOT.y}) scale(1.3)`}>
       <path className="dg-land" d={country.land} />
-      <circle className="dg-city" data-lit={lit} cx={country.city[0]} cy={country.city[1]} r={1.6} style={{ "--arrive": ms(ARRIVE_MS) } as CSSProperties} />
+      <circle className="dg-city" data-lit={lit} cx={country.city[0]} cy={country.city[1]} r={1.6} />
     </g>
+  )
+}
+
+function LitMouth({ className }: { className: string }) {
+  return (
+    <Glow>
+      <path className={`ik-line dg-mouth ${className}`} d={MOUTH} />
+    </Glow>
   )
 }
 

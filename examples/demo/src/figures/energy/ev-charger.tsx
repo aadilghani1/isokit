@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, front, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, curve, front, Glow, Plate, Press, path, playSound, project, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./ev-charger.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "EV charger",
   industry: "energy",
   level: 2,
-  blurb: "Press the plug: the connector seats in the car's inlet, a signal runs down the cable and the car's charge bar fills toward 80%.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "project", "front"],
-  sounds: ["press", "release", "process", "success", "whoosh"],
+  blurb: "Press the plug: the connector seats in the car's inlet and its latch catches, a signal runs down the cable and the car's charge bar fills toward 80%.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "project", "front", "playSound", "Callout"],
+  sounds: ["press", "release", "latch", "process", "success", "whoosh"],
 } satisfies FigureMeta
 
 type Phase = "idle" | "charging" | "unplugged"
@@ -25,10 +26,18 @@ const INLET = { x: 124, z: 26 }
 const GAP = 7
 const HEAD = { x: INLET.x - 5.5, y: FLANK + GAP, z: INLET.z - 5, w: 11, d: 6, h: 10 }
 const GRIP = { x: INLET.x - 4, y: HEAD.y + HEAD.d, z: INLET.z - 4.5, w: 8, d: 12, h: 9 }
-const PLUG = { x: HEAD.x, y: HEAD.y, z: HEAD.z, w: HEAD.w, d: HEAD.d + GRIP.d, h: HEAD.h }
+const CATCH = { x: INLET.x - 1.5, y: HEAD.y + 0.6, z: HEAD.z + HEAD.h, w: 3, d: 10, h: 1.6 }
+const CATCH_LIFT = { y: 2, z: 1.4 }
+const PLUG = { x: HEAD.x, y: HEAD.y, z: HEAD.z, w: HEAD.w, d: HEAD.d + GRIP.d, h: HEAD.h + CATCH.h + CATCH_LIFT.z }
 const EXIT: Vec3 = [INLET.x, GRIP.y + GRIP.d, INLET.z]
 const TAIL = path([EXIT, [INLET.x, EXIT[1] + GAP + 4, INLET.z]])
 const PLINTH = { x: 154, y: 16, z: BASE.h, w: 52, d: 30, h: 4 }
+const ANCHORS = [
+  [3.4, 3.4],
+  [PLINTH.w - 3.4, 3.4],
+  [3.4, PLINTH.d - 3.4],
+  [PLINTH.w - 3.4, PLINTH.d - 3.4],
+] as const
 const POST = { x: 158, y: 20, z: PLINTH.z + PLINTH.h, w: 44, d: 22, h: 72 }
 const CAP = { x: 155, y: 17, z: POST.z + POST.h, w: 50, d: 28, h: 5 }
 const GLAND: Vec3 = [180, POST.y + POST.d, POST.z + 3]
@@ -44,11 +53,13 @@ const LEAD_POINTS: readonly Vec3[] = [
 const LEAD = path(LEAD_POINTS)
 const SIGNAL_PATH: readonly Vec3[] = [...LEAD_POINTS].reverse().concat([[INLET.x, EXIT[1] - GAP, INLET.z]])
 const [SEAT_X, SEAT_Y] = project(0, -GAP, 0)
-const SEAT_STYLE = { "--seat-x": `${SEAT_X}px`, "--seat-y": `${SEAT_Y}px` } as CSSProperties
-const SIGNAL_AT = 300
+const [LIFT_X, LIFT_Y] = project(0, CATCH_LIFT.y, CATCH_LIFT.z)
+const SEAT_STYLE = { "--seat-x": `${SEAT_X}px`, "--seat-y": `${SEAT_Y}px`, "--lift-x": `${LIFT_X}px`, "--lift-y": `${LIFT_Y}px` } as CSSProperties
+const SEAT_MS = 380
+const SIGNAL_AT = SEAT_MS
 const SIGNAL_MS = 520
 const ARRIVE_MS = SIGNAL_AT + SIGNAL_MS
-const CELL_MS = 70
+const TIMING = { "--seat": `${SEAT_MS}ms`, "--arrive": `${ARRIVE_MS}ms` } as CSSProperties
 const CELLS = [0, 1, 2, 3, 4] as const
 const CHARGED = 4
 const CHARGING_CELL = CHARGED - 1
@@ -64,6 +75,8 @@ const PINS = [
 const BOLT = "M6 0L1 9h4.4L3 16l7-10H5.6L8 0z"
 const READOUTS: Readonly<Record<Phase, string>> = { idle: "ready · plug in", charging: "11 kW · 34% → 80%", unplugged: "unplugged · 0 kW" }
 const NEXT: Readonly<Record<Phase, Phase>> = { idle: "charging", charging: "unplugged", unplugged: "charging" }
+
+const INLET_POINT: Vec3 = [INLET.x, FLANK, INLET.z]
 
 const local = (x: number, z: number) => ({ x: x - BODY.x, y: BODY.z + BODY.h - z })
 const INLET_AT = local(INLET.x, INLET.z)
@@ -105,11 +118,14 @@ export default function EvCharger() {
     window.clearTimeout(timer.current)
     stop.current()
     if (audible && next === "charging") {
-      stop.current = playSound("process")
       timer.current = window.setTimeout(() => {
-        stop.current()
-        stop.current = playSound("success")
-      }, ARRIVE_MS)
+        playSound("latch")
+        stop.current = playSound("process")
+        timer.current = window.setTimeout(() => {
+          stop.current()
+          stop.current = playSound("success")
+        }, ARRIVE_MS - SEAT_MS)
+      }, SEAT_MS)
     }
     if (audible && next === "unplugged") stop.current = playSound("whoosh")
     setRun({ phase: next, step: step === 1 ? 2 : 1 })
@@ -133,10 +149,11 @@ export default function EvCharger() {
       hint={charging ? "Press to unplug" : "Press the plug"}
       readout={READOUTS[phase]}
       className="fig-ev-charger"
+      style={TIMING}
       data-charging={charging}
       fit={[BASE, { ...BODY, z: 0, h: CABIN.z + CABIN.h }, { ...CAP, z: 0, h: CAP.z + CAP.h }, PLUG]}
       aspect={1.5}
-      label="A charging post on a parking bay, cabled to a parked electric car whose connector waits outside the charge inlet. Press the plug to seat it; a signal runs down the cable and the car's charge bar fills from 34 to 80 percent. Press again to unplug."
+      label="A charging post on a parking bay, cabled to a parked electric car whose connector waits outside the charge inlet. Press the plug to seat it; its latch catches, a signal runs down the cable and the car's charge bar fills from 34 to 80 percent. Press again to unplug."
     >
       <g ref={demo.ref}>
         <Box
@@ -177,18 +194,20 @@ export default function EvCharger() {
               <rect className="ik-detail" x={local(60, 0).x} y={3} width={7} height={1.8} rx={0.9} />
               <rect className="ik-detail" x={11} y={3} width={9} height={2.4} rx={1.2} />
               {CELLS.map((k) => (
-                <rect
-                  key={k}
-                  className="ev-cell ik-loop"
-                  data-on={k < CHARGED}
-                  data-head={k === CHARGING_CELL}
-                  style={{ "--t": `${ARRIVE_MS + Math.max(0, k - 1) * CELL_MS}ms` } as CSSProperties}
-                  x={BAR.x + k * (BAR.w + BAR.gap)}
-                  y={BAR.y}
-                  width={BAR.w}
-                  height={BAR.h}
-                  rx={0.8}
-                />
+                <g key={k} style={{ "--k": Math.max(0, k - 1) } as CSSProperties}>
+                  <Glow on={charging && k < CHARGED} className="ev-lit">
+                    <rect
+                      className="ev-cell ik-loop"
+                      data-on={k < CHARGED}
+                      data-head={k === CHARGING_CELL}
+                      x={BAR.x + k * (BAR.w + BAR.gap)}
+                      y={BAR.y}
+                      width={BAR.w}
+                      height={BAR.h}
+                      rx={0.8}
+                    />
+                  </Glow>
+                </g>
               ))}
               <rect className="ik-detail" x={INLET_AT.x - 6} y={INLET_AT.y - 6} width={12} height={12} rx={3} />
               <circle className="ik-well" cx={INLET_AT.x} cy={INLET_AT.y} r={3.8} />
@@ -221,7 +240,16 @@ export default function EvCharger() {
           side={<rect className="ik-well" x={6} y={3} width={CABIN.d - 12} height={9} rx={3} />}
         />
 
-        <Box {...PLINTH} r={4} />
+        <Box
+          {...PLINTH}
+          r={4}
+          top={ANCHORS.map(([cx, cy]) => (
+            <g key={`${cx}-${cy}`}>
+              <circle className="ik-detail" cx={cx} cy={cy} r={1.5} />
+              <circle className="ik-fill" cx={cx} cy={cy} r={0.6} />
+            </g>
+          ))}
+        />
         <Box
           {...POST}
           r={5}
@@ -233,27 +261,31 @@ export default function EvCharger() {
                   {charging ? "34% → 80%" : phase === "unplugged" ? "unplugged" : "plug in"}
                 </text>
               </g>
-              <g key={`big-${step}`}>
-                {charging ? (
-                  <>
-                    <text className="ik-screen-text ev-linking" x={SCREEN.x + 4} y={SCREEN.y + 20} fontSize={7}>
-                      linking
-                    </text>
-                    <g className="ik-enter" style={{ animationDelay: `${ARRIVE_MS}ms` }}>
+              <Glow>
+                <g key={`big-${step}`}>
+                  {charging ? (
+                    <>
+                      <text className="ik-screen-text ev-linking" x={SCREEN.x + 4} y={SCREEN.y + 20} fontSize={7}>
+                        linking
+                      </text>
+                      <g className="ik-enter" style={{ animationDelay: `${ARRIVE_MS}ms` }}>
+                        <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 20} fontSize={8}>
+                          11 kW
+                        </text>
+                      </g>
+                    </>
+                  ) : (
+                    <g className="ik-enter">
                       <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 20} fontSize={8}>
-                        11 kW
+                        {phase === "unplugged" ? "0 kW" : "ready"}
                       </text>
                     </g>
-                  </>
-                ) : (
-                  <g className="ik-enter">
-                    <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 20} fontSize={8}>
-                      {phase === "unplugged" ? "0 kW" : "ready"}
-                    </text>
-                  </g>
-                )}
-              </g>
-              <rect className="ev-strip" style={{ "--t": `${ARRIVE_MS}ms` } as CSSProperties} x={8} y={37} width={28} height={3} rx={1.5} />
+                  )}
+                </g>
+              </Glow>
+              <Glow on={charging} className="ev-lit">
+                <rect className="ev-strip" x={8} y={37} width={28} height={3} rx={1.5} />
+              </Glow>
               <rect className="ik-detail" x={10} y={45} width={24} height={13} rx={3} />
               <g className="ik-detail" transform="translate(22 52)">
                 <path d="M-1.5 1.5a2.2 2.2 0 0 1 3 0" />
@@ -280,7 +312,7 @@ export default function EvCharger() {
 
         <path className="ik-line" d={LEAD} />
         <g className="ev-plug" style={SEAT_STYLE}>
-          <Press label={charging ? "Unplug the car" : "Plug in the car"} onPress={press} data-hot={!charging}>
+          <Press label={charging ? "Unplug the car" : "Plug in the car"} material="plastic" onPress={press} data-hot={!charging}>
             <g>
               <Box {...HEAD} r={4} side={<path className="ik-detail" d={`M1.6 2v${HEAD.h - 4}`} />} />
               <Box
@@ -290,12 +322,16 @@ export default function EvCharger() {
                 front={<circle className="ik-detail" cx={GRIP.w / 2} cy={GRIP.h / 2} r={2.2} />}
                 side={Array.from({ length: 4 }, (_, k) => <path key={k} className="ik-detail" d={`M${2.5 + k * 2.4} 2.2v4.6`} />)}
               />
+              <g className="ev-catch">
+                <Box {...CATCH} r={1.2} top={<path className="ik-detail" d={`M${CATCH.w / 2} 1.6v${CATCH.d - 5}`} />} />
+              </g>
             </g>
           </Press>
-          {phase === "idle" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...PLUG} z={PLUG.z + PLUG.h} r={3} /> : null}
+          {phase === "idle" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...PLUG} z={HEAD.z + HEAD.h} r={3} /> : null}
           <path className="ik-line" d={TAIL} />
         </g>
         {charging ? <Signal key={step} points={SIGNAL_PATH} delay={SIGNAL_AT} duration={SIGNAL_MS} /> : null}
+        <Callout at={INLET_POINT} dx={16} dy={26} label={charging ? "inlet · locked" : "inlet · open"} />
         <Cursor at={[GRIP.x + GRIP.w / 2, GRIP.y + GRIP.d / 2, GRIP.z + GRIP.h]} phase={demo.phase} />
       </g>
     </Plate>

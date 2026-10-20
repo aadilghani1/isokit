@@ -2,7 +2,7 @@
 .fig-vending-machine .vm-key { font-size: 4.4px; }
 .fig-vending-machine .vm-tag { font-size: 4px; }
 .fig-vending-machine .vm-tray { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.fig-vending-machine .vm-tray[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: vm-tray-on 260ms var(--ik-ease) var(--t) both; }
+.fig-vending-machine .vm-tray[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); animation: vm-tray-on var(--ik-t-state) var(--ik-ease) var(--t) both; }
 .fig-vending-machine .vm-pip { fill: var(--ik-screen-ink); opacity: .18; }
 .fig-vending-machine .vm-pip[data-on="true"] { animation: vm-pip 200ms var(--ik-ease) var(--t) both; }
 .fig-vending-machine .vm-shown { animation: vm-on 1ms linear var(--on) both; }

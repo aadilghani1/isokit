@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useId, useReducer, useRef, useState } from "react"
-import { Box, Cursor, curve, Flight, front, Plate, Press, path, playSound, Ripple, Signal, type SoundName, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, curve, Flight, front, Glow, Plate, Press, path, playSound, Ripple, Signal, type SoundName, useDemoTap, type Vec3 } from "react-isokit"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import { AGENT_LOGOS, type AgentLogo, PUSHARY_GLYPH, PUSHARY_ICON } from "../../logos/agent-logos"
 import "./agent-relay.css"
@@ -10,8 +10,8 @@ export const meta = {
   industry: "deeptech",
   level: 4,
   blurb: "Press run: six coding agents plan first and ask their one real question up front on the Mac's notch, and on the phone when you step away. Risky commands still ask. The board compares the time and money with and without Pushary.",
-  uses: ["Plate", "Box", "Press", "Signal", "Flight", "Ripple", "Cursor", "useDemoTap", "curve", "path", "front"],
-  sounds: ["cascade", "notify", "whoosh", "success", "error", "toggle", "complete"],
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Flight", "Ripple", "Cursor", "useDemoTap", "curve", "path", "front"],
+  sounds: ["cascade", "relay", "notify", "whoosh", "success", "error", "toggle", "beep", "complete"],
 } satisfies FigureMeta
 
 type Fork = { question: string; options: readonly [string, string] }
@@ -126,6 +126,7 @@ const MENU = { x: 3, y: 61.5, w: 48, row: 8.5, icon: 7.8, label: 12.6 }
 const SHEET = { x: 2, y: 2, w: 50, h: 104, option: 42 }
 const PROMPT = { x: 13, y: 62, w: 88, h: 6.4 }
 const SCREEN = { x: 3, y: 8.4, w: BOARD.w - 6, h: BOARD.h - 11.4 }
+const ARMATURE = { x: 18.2, y: 29.4, w: 6 }
 
 const HUB_TOP: Vec3 = [HUB.x + HUB.w / 2, HUB.y + HUB.d / 2, HUB.z + HUB.h]
 const NOTCH_AT: Vec3 = [LID.x + NOTCH.x, LID.y + LID.d, LID.z + LID.h - 6]
@@ -377,6 +378,7 @@ export default function AgentRelay() {
   const timers = useRef<number[]>([])
   const stops = useRef<Array<() => void>>([])
   const audible = useRef(false)
+  const relayed = useRef("")
   const ids = useId().replace(/:/g, "")
   const tile = `${ids}-tile`
   const glyph = `${ids}-glyph`
@@ -389,6 +391,11 @@ export default function AgentRelay() {
       if (audible.current && when > now - 120) at(when, () => stops.current.push(playSound(name)))
     }
     const asks = asksOf(s.run)
+    const lookup = `${s.run}:${s.auto}`
+    if (isPlanning(s) && s.auto > 0 && relayed.current !== lookup) {
+      relayed.current = lookup
+      tell(s.autoAt, "relay")
+    }
     if (isActive(s.phase)) {
       if (isPlanning(s) && s.auto < PLAN.facts) at(s.autoAt + AUTO_MS, send("auto"))
       AGENTS.forEach((_, tier) => {
@@ -413,7 +420,7 @@ export default function AgentRelay() {
         tell(s.moved + FLY_MS, "notify")
       }
     }
-    if (s.event === "timeout") tell(s.at, "error")
+    if (s.event === "timeout") tell(s.at, "beep")
     if (s.event === "finish") tell(s.at, "complete")
     return () => {
       for (const timer of timers.current) window.clearTimeout(timer)
@@ -463,7 +470,6 @@ export default function AgentRelay() {
   const open = () => {
     reader()
     hush()
-    play("toggle")
     dispatch({ type: "open", now: performance.now() })
   }
   const step = () => {
@@ -490,6 +496,7 @@ export default function AgentRelay() {
       hint={hintOf(s, ask, agent)}
       readout={readoutOf(s)}
       className="fig-agent-relay"
+      style={{ "--lamp-step": ms(STAGGER_MS) } as CSSProperties}
       data-phase={s.phase}
       data-away={s.away}
       fit={[BASE, { x: RACK.x, y: RACK.y, z: 0, w: RACK.w, d: RACK.d, h: CAP.z + CAP.h }, { ...PHONE, z: 0, h: PHONE.z + PHONE.h }, { ...LID, z: 0, h: LID.z + LID.h }, [NOTCH_AT[0], 44, 100]]}
@@ -573,6 +580,13 @@ export default function AgentRelay() {
             <>
               <circle className="ik-detail" cx={HUB.w / 2} cy={HUB.d / 2} r={12.5} />
               <circle key={`led-${s.auto}`} className="hub-led" data-on={isPlanning(s) && s.auto > 0} cx={HUB.w - 5} cy={HUB.d - 5} r={1.3} />
+              <path className="ik-detail" d={`M${ARMATURE.x + ARMATURE.w - 0.6} ${ARMATURE.y - 1.8}v1.2`} />
+              <g transform={`translate(${ARMATURE.x} ${ARMATURE.y})`}>
+                <g key={`arm-${s.auto}`} className="armature" data-on={isPlanning(s) && s.auto > 0}>
+                  <path className="ik-line" d={`M0 0h${ARMATURE.w}`} />
+                </g>
+                <circle className="ik-fill" r={0.7} />
+              </g>
               <Glyph className="glyph" x={HUB.w / 2 - 6.4 * PUSHARY_GLYPH.aspect} y={HUB.d / 2 - 6.4} height={12.8} mask={glyph} />
             </>
           }
@@ -601,7 +615,7 @@ export default function AgentRelay() {
         </g>
 
         {!touched && runHot && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...RUN_KEY} r={6} /> : null}
-        <Press label={s.phase === "done" ? "Run the agents again" : "Run the agents"} onPress={run} disabled={!runHot} data-hot={runHot}>
+        <Press label={s.phase === "done" ? "Run the agents again" : "Run the agents"} material="plastic" onPress={run} disabled={!runHot} data-hot={runHot}>
           <g>
             <Box
               {...RUN_KEY}
@@ -617,7 +631,7 @@ export default function AgentRelay() {
             />
           </g>
         </Press>
-        <Press label={s.away ? "Come back to the desk" : "Step away from the desk"} onPress={step}>
+        <Press label={s.away ? "Come back to the desk" : "Step away from the desk"} material="plastic" onPress={step}>
           <g>
             <Box {...SWITCH} r={5} top={<rect className="ik-well" x={3} y={2.5} width={SWITCH.w - 6} height={SWITCH.d - 5} rx={4} />} />
             <g className="slider">
@@ -656,7 +670,9 @@ function Tier({ agent, tier, state, clip }: { agent: Agent; tier: number; state:
             </text>
             <path className="ik-detail" d="M13.4 9.2h28" />
             <path className="ik-detail work ik-loop" d="M13.4 9.2h28" pathLength={100} />
-            <circle className="lamp ik-loop" cx={NODE.w - 4.2} cy={6} r={1.6} />
+            <Glow on={state === "plan" || state === "work" || state === "wait" || state === "retry"} className="lamp-glow">
+              <circle className="lamp ik-loop" cx={NODE.w - 4.2} cy={6} r={1.6} />
+            </Glow>
             <Check x={NODE.w - 4.2} y={6.5} />
           </>
         }
@@ -748,7 +764,7 @@ function Screen({ s, agent, ask, command, card, receipt, clip, answer, glyph }: 
         ))}
       </g>
       {waiting ? (
-        <Press className="ik-lift tap" label={ask.kind === "round" ? `Answer ${agent.fork.question} in the terminal` : `Allow ${command} in the terminal`} onPress={() => answer(ask.kind === "round" ? "first" : "approve", "terminal")} sound={false} data-hot={true}>
+        <Press className="ik-lift tap" material="glass" label={ask.kind === "round" ? `Answer ${agent.fork.question} in the terminal` : `Allow ${command} in the terminal`} onPress={() => answer(ask.kind === "round" ? "first" : "approve", "terminal")} data-hot={true}>
           <g key={`prompt-${card}`} className="prompt">
             <rect className="prompt-row ik-loop" x={PROMPT.x} y={PROMPT.y} width={PROMPT.w} height={PROMPT.h} rx={1.4} />
             <text className="ui-mono prompt-text" x={PROMPT.x + 2.4} y={PROMPT.y + 4.5} fontSize={3.8}>
@@ -828,7 +844,7 @@ function DecisionCard({ agent, ask, command, clip, answer }: { agent: Agent; ask
         </text>
         {ask.kind === "round" ? (
           agent.fork.options.map((option, k) => (
-            <Press key={option} className="ik-lift tap" label={`${option}, on the notch`} onPress={() => answer(k === 0 ? "first" : "second", "notch")} sound={false} data-hot={k === 0}>
+            <Press key={option} className="ik-lift tap" material="glass" label={`${option}, on the notch`} onPress={() => answer(k === 0 ? "first" : "second", "notch")} data-hot={k === 0}>
               <g>
                 <rect className="isle-button quiet" x={left} y={25.2 + k * 8} width={right - left} height={6.6} rx={1.8} />
                 <text className="isle-text" x={(left + right) / 2} y={29.6 + k * 8} fontSize={3.6} textAnchor="middle">
@@ -839,7 +855,7 @@ function DecisionCard({ agent, ask, command, clip, answer }: { agent: Agent; ask
           ))
         ) : (
           <>
-            <Press className="ik-lift tap" label={`Deny ${command} for ${agent.name}`} onPress={() => answer("deny", "notch")} sound={false}>
+            <Press className="ik-lift tap" material="glass" label={`Deny ${command} for ${agent.name}`} onPress={() => answer("deny", "notch")}>
               <g>
                 <rect className="isle-button quiet" x={left} y={25.4} width={(right - left) / 2 - 1.2} height={6.8} rx={1.8} />
                 <text className="isle-text" x={left + (right - left) / 4 - 0.6} y={29.9} fontSize={3.7} textAnchor="middle">
@@ -847,7 +863,7 @@ function DecisionCard({ agent, ask, command, clip, answer }: { agent: Agent; ask
                 </text>
               </g>
             </Press>
-            <Press className="ik-lift tap" label={`Approve ${command} for ${agent.name}`} onPress={() => answer("approve", "notch")} sound={false} data-hot={true}>
+            <Press className="ik-lift tap" material="glass" label={`Approve ${command} for ${agent.name}`} onPress={() => answer("approve", "notch")} data-hot={true}>
               <g>
                 <rect className="isle-button approve" x={(left + right) / 2 + 1.2} y={25.4} width={(right - left) / 2 - 1.2} height={6.8} rx={1.8} />
                 <text className="isle-text strong" x={right - (right - left) / 4 + 0.6} y={29.9} fontSize={3.7} textAnchor="middle">
@@ -855,7 +871,7 @@ function DecisionCard({ agent, ask, command, clip, answer }: { agent: Agent; ask
                 </text>
               </g>
             </Press>
-            <Press className="ik-lift tap" label={`Deny ${command} with a reason`} onPress={() => answer("steer", "notch")} sound={false}>
+            <Press className="ik-lift tap" material="glass" label={`Deny ${command} with a reason`} onPress={() => answer("steer", "notch")}>
               <g>
                 <rect className="link-hit" x={(left + right) / 2 - 16} y={33.4} width={32} height={4.6} />
                 <text className="isle-text muted" x={(left + right) / 2} y={36.6} fontSize={2.9} textAnchor="middle">
@@ -911,9 +927,11 @@ function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, ope
         <text className="ui-text" x={cx} y={20.4} fontSize={3.1} textAnchor="middle">
           Monday 5 October
         </text>
-        <text className="ui-text clock" x={cx} y={33.2} fontSize={13} textAnchor="middle">
-          9:41
-        </text>
+        <Glow on={awake}>
+          <text className="ui-text clock" x={cx} y={33.2} fontSize={13} textAnchor="middle">
+            9:41
+          </text>
+        </Glow>
       </g>
       {onPhone && ask.kind === "gate" ? (
         <g key={`note-${card}`} className="note" style={{ "--arrive": ms(arrive) } as CSSProperties}>
@@ -922,7 +940,7 @@ function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, ope
             <rect className="menu-card" x={MENU.x} y={MENU.y} width={MENU.w} height={MENU.row * 3} rx={4.4} />
             <path className="menu-rule" d={`M${MENU.x} ${MENU.y + MENU.row}h${MENU.w}M${MENU.x} ${MENU.y + 2 * MENU.row}h${MENU.w}`} />
             {GATE_ROWS.map((row, k) => (
-              <Press key={row.reply} className="ik-lift tap" label={rowLabel(row.reply, command)} onPress={() => answer(row.reply, "phone")} sound={false} data-hot={k === 0}>
+              <Press key={row.reply} className="ik-lift tap" material="glass" label={rowLabel(row.reply, command)} onPress={() => answer(row.reply, "phone")} data-hot={k === 0}>
                 <g>
                   <rect className={k === 0 ? "menu-hit primary-row" : "menu-hit"} x={MENU.x} y={MENU.y + k * MENU.row} width={MENU.w} height={MENU.row} />
                   <text className={`ui-text menu-text${row.strong ? " strong" : ""}${row.destructive ? " destructive" : ""}`} x={MENU.label} y={MENU.y + k * MENU.row + 5.6} fontSize={3.6}>
@@ -937,7 +955,7 @@ function LockScreen({ s, agent, ask, command, card, arrive, receipt, answer, ope
       ) : null}
       {onPhone && ask.kind === "round" && !s.opened ? (
         <g key={`note-${card}`} className="note" style={{ "--arrive": ms(arrive) } as CSSProperties}>
-          <Press className="ik-lift tap" label={`Open ${agent.name}'s question on the phone`} onPress={open} sound={false} data-hot={true}>
+          <Press className="ik-lift tap" material="glass" label={`Open ${agent.name}'s question on the phone`} onPress={open} data-hot={true}>
             <g>
               <NoteCard clip={`${frame}-note`} title={`${agent.name} - ${agent.project} is asking`} body={agent.fork.question} />
               <rect className="note-hit" x={NOTE.x} y={NOTE.y} width={NOTE.w} height={NOTE.h} rx={5} />
@@ -983,7 +1001,7 @@ function AnswerSheet({ agent, frame, answer }: { agent: Agent; frame: string; an
           {agent.fork.question}
         </text>
         {agent.fork.options.map((option, k) => (
-          <Press key={option} className="ik-lift tap" label={`${option}, on the phone`} onPress={() => answer(k === 0 ? "first" : "second", "phone")} sound={false} data-hot={k === 0}>
+          <Press key={option} className="ik-lift tap" material="glass" label={`${option}, on the phone`} onPress={() => answer(k === 0 ? "first" : "second", "phone")} data-hot={k === 0}>
             <g>
               <rect className="sheet-option" x={x} y={SHEET.option + k * 11} width={SHEET.w - 8} height={8.6} rx={3} />
               <text className="ui-text sheet-option-text" x={SHEET.x + SHEET.w / 2} y={SHEET.option + 5.6 + k * 11} fontSize={3.6} textAnchor="middle">

@@ -45,7 +45,7 @@ export const INDUSTRIES = [
     blurb: "The figures that started isokit: computers, approvals and phones.",
     briefs: [
       { slug: "tally-counter", title: "Tally counter", level: 1, brief: "A hand tally counter with a plunger and a reset knob. Press the plunger. The count rolls on, and the read-out says count 0004." },
-      { slug: "sound-board", title: "Sound board", level: 1, brief: "A pad of thirteen keys, one per sound. Press a pad. It plays its sound, and the read-out names it." },
+      { slug: "sound-board", title: "Sound board", level: 1, brief: "A pad of nineteen keys, one per sound. Press a pad. It plays its sound, and the read-out names it." },
       { slug: "approval-pad", title: "Approval pad", level: 2, brief: "A pad with allow and deny keys under a request screen. Press allow. The request clears and the next one arrives, and the read-out says allowed · back to work." },
       { slug: "edge-box", title: "Edge box", level: 2, brief: "A small computer beside a stepped folder sorter. Press a folder. It lifts and the box reads it offline, and the read-out says contract.pdf · read." },
       { slug: "phone", title: "Phone", level: 2, brief: "A phone on a dock showing an agent's request. Press approve. The card clears and the next question arrives, and the read-out says approved · 3 waiting." },

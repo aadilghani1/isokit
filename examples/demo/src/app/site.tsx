@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react"
+import { lazy, type ReactNode, Suspense, useEffect } from "react"
 import { ComponentsPage } from "../pages/components-page"
 import { DesignSystemPage } from "../pages/design-system-page"
 import { FigurePage } from "../pages/figure-page"
@@ -10,9 +10,10 @@ import { useRoute } from "./route-store"
 import { SiteFooter } from "./site-footer"
 import { SiteHeader } from "./site-header"
 
-const PAGES = ["figures", "studio", "components", "sound", "design-system"] as const
+const PAGES = ["figures", "studio", "components", "sound", "design-system", "bench"] as const
 type Page = (typeof PAGES)[number]
-const PAGE_SET: ReadonlySet<string> = new Set(PAGES)
+const BenchPage = import.meta.env.DEV ? lazy(() => import("../pages/bench-page")) : null
+const PAGE_SET: ReadonlySet<string> = new Set(BenchPage ? PAGES : PAGES.filter((page) => page !== "bench"))
 const isPage = (segment: string | undefined): segment is Page => segment !== undefined && PAGE_SET.has(segment)
 
 function PageBody({ page, slug }: { page: Page; slug: string | undefined }): ReactNode {
@@ -27,6 +28,12 @@ function PageBody({ page, slug }: { page: Page; slug: string | undefined }): Rea
       return <ComponentsPage slug={slug} />
     case "sound":
       return <SoundPage focus={slug} />
+    case "bench":
+      return BenchPage ? (
+        <Suspense fallback={null}>
+          <BenchPage />
+        </Suspense>
+      ) : null
   }
 }
 

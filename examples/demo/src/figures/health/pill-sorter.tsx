@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./pill-sorter.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Pill sorter",
   industry: "health",
   level: 3,
-  blurb: "Press fill: the dispenser drops each day's dose into its cell from Monday on and the screen counts the week up to 7 of 7.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap"],
-  sounds: ["cascade", "complete", "whoosh"],
+  blurb: "Press fill: the metering gears turn, the dispenser drops each day's dose into its cell from Monday on, the screen counts the week up to 7 of 7 and a relay lights the done lamp.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "playSound", "Dimension"],
+  sounds: ["motor", "cascade", "relay", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type Fill = "empty" | "filled" | "emptied"
@@ -36,6 +37,27 @@ const STAGGER_MS = 60
 const FALL_MS = 460
 const landing = (day: number) => FALL_MS + day * STAGGER_MS
 const FILLED_MS = landing(DAYS.length - 1)
+const RELAY_MS = 60
+const LIT_MS = FILLED_MS + RELAY_MS
+const TIMING = { "--fall": `${FALL_MS}ms`, "--stagger": `${STAGGER_MS}ms`, "--filled": `${FILLED_MS}ms`, "--lit": `${LIT_MS}ms` } as CSSProperties
+const DRIVE_TURN = 270
+const GEARS = [
+  { id: "driver", cx: 31, cy: 11, r: 4.2, teeth: 12 },
+  { id: "driven", cx: 38, cy: 11, r: 2.8, teeth: 8 },
+] as const
+const TEETH = new Map(
+  GEARS.map(({ id, r, teeth }) => [
+    id,
+    Array.from({ length: teeth }, (_, k) => {
+      const angle = (k * 2 * Math.PI) / teeth
+      const [cos, sin] = [Math.cos(angle), Math.sin(angle)]
+      return `M${(cos * r).toFixed(3)} ${(sin * r).toFixed(3)}L${(cos * (r + 1.3)).toFixed(3)} ${(sin * (r + 1.3)).toFixed(3)}`
+    }).join(""),
+  ]),
+)
+const GEAR_TURNS = new Map(GEARS.map(({ id, teeth }) => [id, { "--turn": `${id === "driver" ? DRIVE_TURN : (-DRIVE_TURN * GEARS[0].teeth) / teeth}deg` } as CSSProperties]))
+const PIP_TIMING = DAYS.map((_, day) => ({ "--t": `${landing(day)}ms`, "--j": DAYS.length - 1 - day }) as CSSProperties)
+const RELAY = { x: 133.5, y: 14.5 }
 const COUNT = Array.from({ length: DAYS.length + 1 }, (_, k) => ({ k, on: k === 0 ? 0 : landing(k - 1), off: k < DAYS.length ? landing(k) : FILLED_MS }))
 const BIN_PILLS = [
   [9, 5, 0],
@@ -46,6 +68,41 @@ const BIN_PILLS = [
   [53, 8.2, 1],
   [61, 4.8, 0],
 ] as const
+
+function Gears() {
+  return (
+    <>
+      <rect className="ik-well" x={24} y={3} width={20} height={16} rx={2.5} />
+      {GEARS.map(({ id, cx, cy, r }) => (
+        <g key={id} transform={`translate(${cx} ${cy})`}>
+          <g className="gear" style={GEAR_TURNS.get(id)}>
+            <circle className="ik-detail" r={r} />
+            <path className="ik-detail" d={TEETH.get(id)} />
+            <path className="ik-detail" d={`M${-r * 0.55} 0H${r * 0.55}`} />
+          </g>
+          <circle className="ik-fill" r={0.9} />
+        </g>
+      ))}
+    </>
+  )
+}
+
+function Relay() {
+  return (
+    <>
+      <rect className="ik-well" x={131.5} y={4.5} width={13} height={13} rx={1.5} />
+      <rect className="ik-detail" x={134.5} y={6.5} width={6} height={4.5} rx={0.8} />
+      <path className="ik-detail" d="M136 6.5v4.5M137.5 6.5v4.5M139 6.5v4.5" />
+      <circle className="ik-fill" cx={142.3} cy={12.4} r={0.8} />
+      <g transform={`translate(${RELAY.x} ${RELAY.y})`}>
+        <g className="armature">
+          <path className="ik-line" d="M0 0h9" />
+        </g>
+        <circle className="ik-fill" r={0.9} />
+      </g>
+    </>
+  )
+}
 
 function Dose({ cx }: { cx: number }) {
   return (
@@ -75,13 +132,17 @@ export default function PillSorter() {
     window.clearTimeout(timer.current)
     stop.current()
     if (audible && !filled) {
-      stop.current = playSound("cascade", { count: DAYS.length, stagger: STAGGER_MS / 1000, delay: FALL_MS / 1000 })
+      const playing = [playSound("motor", { duration: FILLED_MS / 1000 }), playSound("cascade", { count: DAYS.length, stagger: STAGGER_MS / 1000, delay: FALL_MS / 1000 })]
+      stop.current = () => {
+        for (const cut of playing) cut()
+      }
       timer.current = window.setTimeout(() => {
-        stop.current = playSound("complete")
+        playing.push(playSound("relay"))
+        timer.current = window.setTimeout(() => playing.push(playSound("complete")), RELAY_MS)
       }, FILLED_MS)
     }
     if (audible && filled) stop.current = playSound("whoosh")
-    setRun({ fill: filled ? "emptied" : "filled", step: step + 1 })
+    setRun({ fill: filled ? "emptied" : "filled", step: 1 - step })
   }
   const demo = useDemoTap(() => {
     if (fill === "empty") toggle(false)
@@ -102,6 +163,7 @@ export default function PillSorter() {
       hint={filled ? "Press to empty" : "Press fill"}
       readout={readout}
       className="fig-pill-sorter"
+      style={TIMING}
       data-filled={filled}
       fit={[BASE, HOPPER, BIN]}
       aspect={1.3}
@@ -197,19 +259,17 @@ export default function PillSorter() {
                 )}
               </g>
               {DAYS.map((_, day) => (
-                <rect
-                  key={day}
-                  className="pip"
-                  data-on={filled}
-                  x={84 + day * 5.4}
-                  y={12.6}
-                  width={3.4}
-                  height={4}
-                  rx={0.8}
-                  style={{ "--t": `${filled ? landing(day) : (DAYS.length - 1 - day) * STAGGER_MS}ms` } as CSSProperties}
-                />
+                <g key={day} style={PIP_TIMING[day]}>
+                  <Glow on={filled} className="pip-glow">
+                    <rect className="pip" data-on={filled} x={84 + day * 5.4} y={12.6} width={3.4} height={4} rx={0.8} />
+                  </Glow>
+                </g>
               ))}
-              <circle className="lamp" cx={150} cy={11} r={2.4} />
+              <Gears />
+              <Relay />
+              <Glow on={filled} className="lamp-glow">
+                <circle className="lamp" cx={150} cy={11} r={2.4} />
+              </Glow>
               <text className="ik-label tag" x={156} y={13}>
                 DONE
               </text>
@@ -235,7 +295,7 @@ export default function PillSorter() {
         />
 
         {!touched && fill === "empty" && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label={filled ? "Empty the week" : "Fill the week"} onPress={press} data-hot={!filled}>
+        <Press label={filled ? "Empty the week" : "Fill the week"} onPress={press} material="plastic" data-hot={!filled}>
           <g>
             <Box
               {...KEY}
@@ -255,6 +315,7 @@ export default function PillSorter() {
             />
           </g>
         </Press>
+        <Dimension from={[TRAY.x, TRAY.y + TRAY.d, TRAY.z]} to={[TRAY.x + TRAY.w, TRAY.y + TRAY.d, TRAY.z]} offset={[0, 7, 0]} label="7 days" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

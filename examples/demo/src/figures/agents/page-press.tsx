@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { Box, Plate, Press, path, playSound } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import "./page-press.css"
 import type { FigureMeta } from "../../catalog/figure-meta"
 
@@ -16,6 +17,13 @@ const BLOCKS: readonly Block[] = [
   { name: "footer", lift: 12, parts: [{ x: 17, y: 101, w: 134, d: 9 }] },
 ]
 const ARROW = "M0 8L8 0M2.5 0H8V5.5"
+const DROP_MS = 320
+const DROP_STAGGER_MS = 60
+const LANDED_MS = DROP_MS + (BLOCKS.length - 1) * DROP_STAGGER_MS
+const LOCK_MS = LANDED_MS + 240
+const PRESS_TIMING = { "--drop-ms": `${DROP_MS}ms`, "--drop-stagger": `${DROP_STAGGER_MS}ms`, "--top-delay": `${LANDED_MS - DROP_MS}ms`, "--lock-ms": `${LOCK_MS}ms` } as CSSProperties
+const TALLEST = BLOCKS[0]?.lift ?? 0
+const STACK_EDGE = { x: 151, y: 23 }
 
 function Marks({ block, part, i }: { block: Block["name"]; part: Part; i: number }) {
   switch (block) {
@@ -52,12 +60,25 @@ function Marks({ block, part, i }: { block: Block["name"]; part: Part; i: number
 export function PagePress() {
   const [live, setLive] = useState(false)
   const stop = useRef(() => {})
-  useEffect(() => () => stop.current(), [])
+  const lock = useRef(0)
+  useEffect(
+    () => () => {
+      stop.current()
+      window.clearTimeout(lock.current)
+    },
+    [],
+  )
   const publish = () => {
     stop.current()
-    stop.current = live ? playSound("whoosh") : playSound("cascade", { count: BLOCKS.length, stagger: 0.06, delay: 0.3 })
+    window.clearTimeout(lock.current)
+    if (live) stop.current = playSound("whoosh")
+    else {
+      stop.current = playSound("cascade", { count: BLOCKS.length, stagger: DROP_STAGGER_MS / 1000, delay: DROP_MS / 1000 })
+      lock.current = window.setTimeout(() => playSound("latch"), LOCK_MS)
+    }
     setLive(!live)
   }
+  const stack = Z + T + (live ? 0 : TALLEST)
 
   return (
     <Plate
@@ -67,6 +88,7 @@ export function PagePress() {
       readout={live ? "live · your-idea.site" : `draft · ${BLOCKS.length} blocks`}
       className="page-press"
       data-live={live}
+      style={PRESS_TIMING}
       fit={[BASE, { x: 17, y: 23, z: Z + 62, w: 134, d: 8, h: T + 3 }]}
       aspect={1.18}
       label="A webpage taken apart into blocks that float above their page. Press publish and they drop into place."
@@ -82,7 +104,10 @@ export function PagePress() {
               <circle key={k} className="ik-fill" cx={16 + k * 5.5} cy={13.5} r={1.6} />
             ))}
             <rect className="url" x={43} y={10.5} width={82} height={6} rx={3} />
-            <circle className="url-dot" cx={47} cy={13.5} r={1.4} />
+            <rect className="lock" x={45.2} y={13.3} width={3.6} height={2.6} rx={0.5} />
+            <g className="shackle">
+              <path className="ik-detail" d="M45.9 13.3v-1a1.1 1.1 0 0 1 2.2 0v1" />
+            </g>
             {BLOCKS.flatMap((b) => b.parts.map((p, k) => <rect key={`${b.name}-${k}`} className="ik-dash" x={p.x} y={p.y} width={p.w} height={p.d} rx={2} />))}
           </>
         }
@@ -108,7 +133,7 @@ export function PagePress() {
         </g>
       ))}
 
-      <Press label={live ? "Unpublish the page" : "Publish the page"} onPress={publish} data-hot={!live}>
+      <Press label={live ? "Unpublish the page" : "Publish the page"} material="plastic" onPress={publish} data-hot={!live}>
         <g>
           <Box
             {...KEY}
@@ -124,6 +149,7 @@ export function PagePress() {
           />
         </g>
       </Press>
+      <Dimension from={[STACK_EDGE.x, STACK_EDGE.y, 0]} to={[STACK_EDGE.x, STACK_EDGE.y, stack]} offset={[14, 0, 0]} label={`h ${stack}`} />
     </Plate>
   )
 }
@@ -133,9 +159,9 @@ export const meta = {
   title: "Page press",
   industry: "agents",
   level: 3,
-  blurb: "Press publish: the page blocks drop into place, lowest first, and the address goes live.",
-  uses: ["Plate", "Box", "Press", "path"],
-  sounds: ["cascade", "whoosh"],
+  blurb: "Press publish: the page blocks drop into place, lowest first, the lock latches and the address goes live.",
+  uses: ["Plate", "Box", "Press", "path", "playSound", "Dimension"],
+  sounds: ["press", "release", "cascade", "latch", "whoosh"],
 } satisfies FigureMeta
 
 export default PagePress

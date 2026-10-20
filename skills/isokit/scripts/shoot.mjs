@@ -22,7 +22,11 @@ for (const theme of ["light", "dark"]) for (const width of [1280, 390]) {
   const errors = []
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()) })
   page.on("pageerror", (e) => errors.push(e.message))
-  await page.goto(url, { waitUntil: "networkidle" })
+  await page.goto(url, { waitUntil: "domcontentloaded" })
+  await page.waitForSelector(".ik-plate svg", { timeout: 10000 }).catch(() => {})
+  await page.waitForTimeout(120)
+  await page.evaluate(() => { for (const svg of document.querySelectorAll(".ik-plate svg")) svg.dispatchEvent(new PointerEvent("pointerdown", { button: 2, bubbles: true })) })
+  await page.waitForLoadState("networkidle")
   await page.evaluate((t) => document.documentElement.classList.toggle("dark", t === "dark"), theme)
   const plates = page.locator(selector)
   const count = await plates.count()
@@ -30,7 +34,13 @@ for (const theme of ["light", "dark"]) for (const width of [1280, 390]) {
   const readouts = async () => Promise.all(Array.from({ length: count }, (_, i) => plates.nth(i).locator("[aria-live]").first().textContent().catch(() => "")))
   for (let i = 0; i < count; i++) { await plates.nth(i).scrollIntoViewIfNeeded(); await page.waitForTimeout(900); await plates.nth(i).screenshot({ path: join(out, `${theme}-${width}-${i}-rest.png`) }) }
   const before = await readouts()
-  for (const name of clicks) { const part = page.getByRole("button", { name }).first(); await part.focus(); await page.keyboard.press("Enter") }
+  for (const name of clicks) {
+    const inPlate = plates.first().getByRole("button", { name, exact: true })
+    const part = (await inPlate.count()) ? inPlate.first() : page.getByRole("button", { name, exact: true }).first()
+    await part.focus()
+    await page.keyboard.press("Enter")
+    await page.waitForTimeout(clicks.length > 1 ? 400 : 0)
+  }
   await page.waitForTimeout(clicks.length ? 1200 : 0)
   const after = await readouts()
   for (let i = 0; i < count && clicks.length; i++) await plates.nth(i).screenshot({ path: join(out, `${theme}-${width}-${i}-pressed.png`) })

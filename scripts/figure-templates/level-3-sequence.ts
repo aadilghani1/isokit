@@ -96,7 +96,7 @@ export default function ${input.componentName}() {
           </g>
         ))}
         {runs || aiming ? null : <Ripple {...KEY} r={5} />}
-        <Press label={filled ? "Clear the row" : "Run the row"} onPress={press} data-hot={settled}>
+        <Press label={filled ? "Clear the row" : "Run the row"} material="plastic" onPress={press} data-hot={settled}>
           <g>
             <Box {...KEY} r={5} />
           </g>
