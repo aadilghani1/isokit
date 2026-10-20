@@ -68,9 +68,10 @@
 :where(.ik-thick) { stroke-width: 1.6; }
 :where(.ik-dim) { opacity: .45; }
 
-:where(.ik-halo) { opacity: 0; pointer-events: none; transition: opacity var(--ik-t-glow-off) var(--ik-ease-out); }
+:where(.ik-halo) { opacity: 0; pointer-events: none; transition: opacity var(--ik-t-glow-off) var(--ik-ease-out) var(--ik-glow-fade-delay, 0ms); }
 :where(.ik-glow[data-on="true"] > .ik-halo) { opacity: calc(var(--ik-glow-strength) * .14); transition-duration: var(--ik-t-glow-on); transition-delay: var(--ik-glow-delay, 0ms); }
 :where(.ik-glow[data-on="true"] > .ik-halo-core) { opacity: calc(var(--ik-glow-strength) * .3); }
+@starting-style { :where(.ik-glow[data-on="true"] > .ik-halo) { opacity: 0; } }
 .ik-halo * { stroke: var(--ik-glow) !important; stroke-width: var(--ik-glow-size) !important; stroke-opacity: 1 !important; stroke-linecap: round; stroke-linejoin: round; }
 .ik-halo-core * { stroke-width: calc(var(--ik-glow-size) * .45) !important; }
 .ik-halo text { stroke-width: calc(var(--ik-glow-size) * .5) !important; }

@@ -39,7 +39,7 @@ A focusable button part. Wrap exactly one `<g>` holding the boxes that move: `<P
 
 ## `<Glow on className>`
 
-Light coming off something that is switched on. It draws its children twice more underneath as a halo that ignites in `--ik-t-glow-on` and fades over `--ik-t-glow-off`. Wrap small emitters only (an LED, an awake screen's text, a signal): never faces, pressable parts, or anything with an `id`. `--ik-glow` colours it, `--ik-glow-size` sets its spread (text gets half of it, so screen text stays crisp), `--ik-glow-strength` (0 on light themes, 1 on dark) sets how much shows, and `--ik-glow-delay` holds the halo back when the light it belongs to arrives late through a CSS delay. All four inherit, so set them on the Glow's parent or in your figure's CSS. On light themes "lit" is the darker fill you give the child.
+Light coming off something that is switched on. It draws its children twice more underneath as a halo that ignites in `--ik-t-glow-on` and fades over `--ik-t-glow-off`. Wrap small emitters only (an LED, an awake screen's text, a signal): never faces, pressable parts, or anything with an `id`. `--ik-glow` colours it, `--ik-glow-size` sets its spread (text gets half of it, so screen text stays crisp), `--ik-glow-strength` (0 on light themes, 1 on dark) sets how much shows, `--ik-glow-delay` holds the halo back when the light it belongs to arrives late through a CSS delay (also when the Glow mounts already on), and `--ik-glow-fade-delay` holds back its fade. They all inherit, so set them on the Glow's parent or in your figure's CSS; never style the halo's own classes. On light themes "lit" is the darker fill you give the child.
 
 ## Drafting: `react-isokit/drafting`
 
