@@ -1,5 +1,27 @@
 # react-isokit
 
+## 0.5.0
+
+### Minor Changes
+
+- [#30](https://github.com/aadilghani1/isokit/pull/30) [`61ca83a`](https://github.com/aadilghani1/isokit/commit/61ca83a15c13e56b1ea725753bc49c9bc48c3c4a) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Light, looks, drafting and a fuller sound palette.
+  
+  - `Glow` gives things that are switched on a soft halo that ignites fast and fades slowly, without CSS filters, so it works in Safari.
+  - `react-isokit/themes.css` adds the blueprint, paper and phosphor looks, each in light and dark, set with `look` on `Plate` or `data-look` on any ancestor. Blueprint lays world-aligned isometric graph paper under the figure.
+  - `react-isokit/drafting` adds `Dimension` and `Callout`, shown in blueprint; a dimension slides with the part it measures.
+  - `Press` takes a `material` (plastic, metal, rubber, glass, paper); its click follows the material, the part's size and its position in the figure.
+  - Six new sounds for mechanisms: `tick`, `latch`, `relay`, `motor`, `roll`, `beep`. `playSound` takes `duration`, `material`, `pan` and `size`.
+  - Motion is one scale of tokens (`--ik-ease-out`, `--ik-ease-move`, `--ik-ease-fall`, `--ik-t-*`, `--ik-stagger`, `--ik-travel`), and `--ik-spring` is now a real spring written as CSS `linear()`, with the old curve as the fallback.
+  - `Box` draws its silhouette at `--ik-weight-edge`, heavier than creases and inner marks, and evenly all the way round.
+  - A press sinks 2 units instead of 3, disabled parts draw in the detail ink, and reduced motion keeps short fades instead of cutting everything.
+  - The plate credit stays readable when the host page styles links.
+
+- [#24](https://github.com/aadilghani1/isokit/pull/24) [`a075f8d`](https://github.com/aadilghani1/isokit/commit/a075f8deefe52a2e1f0c355e5a25b0d5fb77a80e) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Add a small linked maker credit to Plate by default. Use credit={false} to omit it. Keep the drawing in its own grid row so plates without captions retain the correct layout.
+
+### Patch Changes
+
+- [#31](https://github.com/aadilghani1/isokit/pull/31) [`f787ea1`](https://github.com/aadilghani1/isokit/commit/f787ea19c1066ec8cacd6cece65c915188bf6e7c) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Keep every colour a look sets in oklab, so a figure's one-sided colour keyframe (`from { fill: var(--ik-well) }`) no longer renders near-black in blueprint, paper or phosphor in Chrome.
+
 ## 0.4.0
 
 ### Minor Changes
