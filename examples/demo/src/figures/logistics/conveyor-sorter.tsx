@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, front, Plate, Press, playSound, project, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, front, Glow, Plate, Press, playSound, project, Ripple, type SoundName, type SoundOptions, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./conveyor-sorter.css"
 
@@ -8,14 +9,25 @@ export const meta = {
   title: "Conveyor sorter",
   industry: "logistics",
   level: 3,
-  blurb: "Press sort: six parcels roll out of the scan tunnel and three diverter arms swing in turn to peel them off into their bins.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "front", "project"],
-  sounds: ["press", "release", "cascade", "complete"],
+  blurb: "Press sort: the belt motor runs six parcels out of the scan tunnel, and each diverter's solenoid clicks as its arm swings across to peel its parcels off into their bin.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "front", "project", "Callout"],
+  sounds: ["press", "release", "motor", "relay", "cascade", "complete"],
 } satisfies FigureMeta
 
 type Counts = readonly [number, number, number]
 type Parcel = { bin: number; slot: number; start: number; contact: number; landing: number; until: number | undefined }
-type Wave = { counts: Counts; parcels: readonly Parcel[]; arms: readonly { open: number; shut: number }[]; tallies: readonly (readonly number[])[]; first: number; last: number }
+type Wave = {
+  counts: Counts
+  parcels: readonly Parcel[]
+  arms: readonly { open: number; shut: number }[]
+  relays: readonly number[]
+  tallies: readonly (readonly number[])[]
+  first: number
+  last: number
+  drive: CSSProperties
+  motor: SoundOptions
+}
+type Run = { batch: number; prior: number; settled: boolean }
 
 const BASE = { x: 0, y: 0, z: 0, w: 204, d: 120, h: 8 }
 const BED = { x: 10, y: 8, z: 26, w: 184, d: 38, h: 8 }
@@ -28,6 +40,11 @@ const LEG_XS = [16, 98, 180] as const
 const LEG_YS = [12, 39] as const
 const TUNNEL = { x: 160, y: 12, z: BELT_Z, w: 30, d: 36, h: 22 }
 const BEACON = { x: 170, y: 24, z: TUNNEL.z + TUNNEL.h, w: 6, d: 6, h: 5 }
+const DRIVE = { x: BED.x + BED.w + 1, y: 22, z: 20, w: 8, d: 16, h: 14 }
+const PULLEY = { cx: 8, cy: 7, r: 4 }
+const SPOKE_TURN = 120
+const PULLEY_SPOKES = [0, SPOKE_TURN, 2 * SPOKE_TURN].map((turn) => `M0 0L${(Math.cos((turn * Math.PI) / 180) * PULLEY.r).toFixed(3)} ${(Math.sin((turn * Math.PI) / 180) * PULLEY.r).toFixed(3)}`).join("")
+const DEGREES_PER_UNIT = 6
 const BIN = { y: BELT_FRONT + 2, d: 40, w: 36, wall: 2, floor: 2, h: 8 }
 const CONSOLE = { x: 162, y: 80, z: BASE.h, w: 38, d: 30, h: 24 }
 const KEY = { x: 166, y: 87, z: CONSOLE.z + CONSOLE.h, w: 30, d: 15, h: 4 }
@@ -47,6 +64,8 @@ const ARM_CLEAR = 13.5
 const DIAG_MS = (ARM_CLEAR * Math.SQRT2) / SPEED
 const DIAG = 20.5
 const PEEL_MS = 420
+const TIMING = { "--swing-ms": `${SWING_MS}ms`, "--peel-ms": `${PEEL_MS}ms` } as CSSProperties
+const START: Run = { batch: 0, prior: 0, settled: false }
 const MANIFESTS: readonly Counts[] = [
   [2, 3, 1],
   [3, 1, 2],
@@ -88,7 +107,11 @@ function buildWave(counts: Counts): Wave {
   const tallies = [0, 1, 2].map((bin) => parcels.flatMap((parcel) => (parcel.bin === bin ? [parcel.landing] : [])))
   const first = parcels[0]?.landing ?? 0
   const last = parcels[parcels.length - 1]?.landing ?? 0
-  return { counts, parcels, arms, tallies, first, last }
+  let belt = 0
+  for (const parcel of parcels) belt = Math.max(belt, parcel.contact)
+  const turn = Math.round((belt * SPEED * DEGREES_PER_UNIT) / SPOKE_TURN) * SPOKE_TURN
+  const relays = arms.flatMap((arm) => (Number.isFinite(arm.open) ? [arm.open] : []))
+  return { counts, parcels, arms, relays, tallies, first, last, drive: { "--belt-ms": ms(belt), "--turn": `${turn}deg` } as CSSProperties, motor: { duration: belt / 1000 } }
 }
 
 const WAVES: readonly Wave[] = MANIFESTS.map(buildWave)
@@ -141,9 +164,9 @@ function Arm({ bin, swing }: { bin: number; swing: { open: number; shut: number 
   )
 }
 
-function Tally({ times, wave }: { times: readonly number[] | undefined; wave: number }) {
+function Tally({ times }: { times: readonly number[] | undefined }) {
   const x = 0
-  if (!times || wave === 0)
+  if (!times)
     return (
       <text className="ik-screen-text ik-dim" x={x} y={0} fontSize={7.5}>
         0
@@ -167,40 +190,46 @@ function Tally({ times, wave }: { times: readonly number[] | undefined; wave: nu
   )
 }
 
-export default function ConveyorSorter() {
-  const [run, setRun] = useState({ wave: 0, settled: false })
-  const timer = useRef(0)
-  const stop = useRef(() => {})
-  const clip = useId().replace(/:/g, "")
-  useEffect(
-    () => () => {
-      window.clearTimeout(timer.current)
-      stop.current()
-    },
-    [],
-  )
+type Timers = { current: number[] }
+type Stops = { current: Array<() => void> }
 
-  const { wave } = run
-  const current = wave > 0 ? WAVES[(wave - 1) % WAVES.length] : undefined
-  const previous = wave > 1 ? WAVES[(wave - 2) % WAVES.length] : undefined
+function release(timers: Timers, stops: Stops) {
+  for (const timer of timers.current) window.clearTimeout(timer)
+  for (const stop of stops.current) stop()
+  timers.current = []
+  stops.current = []
+}
+
+export default function ConveyorSorter() {
+  const [run, setRun] = useState(START)
+  const timers = useRef<number[]>([])
+  const stops = useRef<Array<() => void>>([])
+  const clip = useId().replace(/:/g, "")
+  useEffect(() => () => release(timers, stops), [])
+
+  const { batch, prior, settled } = run
+  const current = batch > 0 ? WAVES[batch - 1] : undefined
+  const previous = prior > 0 ? WAVES[prior - 1] : undefined
+  const later = (wait: number, step: () => void) => timers.current.push(window.setTimeout(step, wait))
+  const sound = (name: SoundName, options?: SoundOptions) => stops.current.push(playSound(name, options))
   const sort = (audible: boolean) => {
-    window.clearTimeout(timer.current)
-    stop.current()
-    const next = wave + 1
-    const plan = WAVES[(next - 1) % WAVES.length]
+    release(timers, stops)
+    const next = (batch % WAVES.length) + 1
+    const plan = WAVES[next - 1]
     if (!plan) return
-    if (audible) stop.current = playSound("cascade", { count: plan.parcels.length, stagger: STEP_MS / 1000, delay: plan.first / 1000 })
-    timer.current = window.setTimeout(() => {
-      setRun((now) => (now.wave === next ? { ...now, settled: true } : now))
-      if (audible) {
-        stop.current()
-        stop.current = playSound("complete")
-      }
-    }, plan.last)
-    setRun({ wave: next, settled: false })
+    if (audible) {
+      sound("motor", plan.motor)
+      for (const at of plan.relays) later(at, () => sound("relay"))
+      sound("cascade", { count: plan.parcels.length, stagger: STEP_MS / 1000, delay: plan.first / 1000 })
+    }
+    later(plan.last, () => {
+      setRun((now) => ({ ...now, settled: true }))
+      if (audible) sound("complete")
+    })
+    setRun({ batch: next, prior: batch, settled: false })
   }
   const demo = useDemoTap(() => {
-    if (wave === 0) sort(false)
+    if (batch === 0) sort(false)
   }, { delay: 1100 })
   const press = () => {
     demo.dismiss()
@@ -208,8 +237,8 @@ export default function ConveyorSorter() {
   }
 
   const aiming = demo.phase === "aim" || demo.phase === "press"
-  const batch = ((wave - 1) % WAVES.length) + 1
-  const readout = !current ? "ready · 6 parcels in" : run.settled ? `6 sorted · ${current.counts.join(" · ")}` : `sorting · batch ${batch}`
+  const running = current !== undefined && !settled
+  const readout = !current ? "ready · 6 parcels in" : settled ? `6 sorted · ${current.counts.join(" · ")}` : `sorting · batch ${batch}`
 
   return (
     <Plate
@@ -219,6 +248,7 @@ export default function ConveyorSorter() {
       hint="Press sort"
       readout={readout}
       className="fig-conveyor-sorter"
+      style={TIMING}
       fit={[BASE, { ...BED, z: 0, h: BEACON.z + BEACON.h }]}
       aspect={1.3}
       label="A parcel conveyor running out of a scan tunnel, with three diverter arms over three bins and a console. Press sort to send six parcels down the belt; each arm swings across in turn and peels its parcels off into its bin while the screen counts them."
@@ -254,7 +284,7 @@ export default function ConveyorSorter() {
           <Box key={hinge} x={hinge - 6} y={9.5} z={BELT_Z} w={12} d={6} h={12} r={2} top={<circle className="ik-detail" cx={6} cy={3} r={1.6} />} />
         ))}
         <Box {...RAIL} r={1} front={<path className="ik-detail" d={`M4 3h${RAIL.w - 8}`} />} />
-        <g key={`arms-${wave}`}>
+        <g key={`arms-${batch}`}>
           {HINGES.map((hinge, bin) => (
             <g key={hinge}>
               <Arm bin={bin} swing={current?.arms[bin]} />
@@ -274,7 +304,7 @@ export default function ConveyorSorter() {
         })}
 
         {previous ? (
-          <g key={`left-${wave}`} className="cs-leaving">
+          <g key={`left-${batch}`} className="cs-leaving">
             {previous.parcels.map((parcel) => {
               const [x, y] = slotCenter(parcel.bin, parcel.slot)
               return <ParcelBox key={`${parcel.bin}-${parcel.slot}`} x={x} y={y} z={BASE.h + BIN.floor} />
@@ -282,7 +312,7 @@ export default function ConveyorSorter() {
           </g>
         ) : null}
         {current ? (
-          <g key={`wave-${wave}`}>
+          <g key={`wave-${batch}`}>
             {current.parcels.map((parcel) => (
               <g key={`${parcel.bin}-${parcel.slot}`} className="cs-belt" style={peelVars(parcel)}>
                 <g className="cs-peel">
@@ -319,7 +349,31 @@ export default function ConveyorSorter() {
                 <path key={k} className="ik-detail" d={`M${8 + k * 3.4} 5v12`} />
               ))}
         />
-        <Box {...BEACON} r={3} />
+        <Box
+          {...BEACON}
+          r={3}
+          top={
+            <Glow on={running}>
+              <circle className="cs-lamp" data-on={running} cx={BEACON.w / 2} cy={BEACON.d / 2} r={1.8} />
+            </Glow>
+          }
+        />
+        <Box
+          {...DRIVE}
+          r={1.5}
+          top={<rect className="ik-detail" x={2} y={4} width={DRIVE.w - 4} height={5} rx={0.6} />}
+          front={<path className="ik-detail" d="M2 3v8M4 3v8M6 3v8" />}
+          side={
+            <g transform={`translate(${PULLEY.cx} ${PULLEY.cy})`}>
+              <circle className="ik-well" r={PULLEY.r + 0.9} />
+              <g key={`drive-${batch}`} className={current ? "cs-pulley run" : "cs-pulley"} style={current?.drive}>
+                <circle className="ik-detail" r={PULLEY.r} />
+                <path className="ik-detail" d={PULLEY_SPOKES} />
+              </g>
+              <circle className="ik-fill" r={1} />
+            </g>
+          }
+        />
 
         {HINGES.map((hinge, bin) => {
           const x = binX(bin)
@@ -358,26 +412,28 @@ export default function ConveyorSorter() {
                 </clipPath>
               </defs>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
-              <g clipPath={`url(#${clip}-screen)`} key={`screen-${wave}`}>
-                {current ? (
-                  <>
-                    <text className="ik-screen-text ik-dim cs-shown cs-passing" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2} style={{ "--on": "0ms", "--off": ms(current.last) } as CSSProperties}>
-                      sorting
+              <g clipPath={`url(#${clip}-screen)`} key={`screen-${batch}`}>
+                <Glow>
+                  {current ? (
+                    <>
+                      <text className="ik-screen-text ik-dim cs-shown cs-passing" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2} style={{ "--on": "0ms", "--off": ms(current.last) } as CSSProperties}>
+                        sorting
+                      </text>
+                      <text className="ik-screen-text ik-dim cs-shown" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2} style={{ "--on": ms(current.last) } as CSSProperties}>
+                        6 sorted
+                      </text>
+                    </>
+                  ) : (
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2}>
+                      ready
                     </text>
-                    <text className="ik-screen-text ik-dim cs-shown" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2} style={{ "--on": ms(current.last) } as CSSProperties}>
-                      6 sorted
-                    </text>
-                  </>
-                ) : (
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 3} y={SCREEN.y + 6.5} fontSize={5.2}>
-                    ready
-                  </text>
-                )}
-                {[0, 1, 2].map((bin) => (
-                  <g key={bin} transform={`translate(${SCREEN.x + 4 + bin * 9.5} ${SCREEN.y + 16})`}>
-                    <Tally times={current?.tallies[bin]} wave={wave} />
-                  </g>
-                ))}
+                  )}
+                  {[0, 1, 2].map((bin) => (
+                    <g key={bin} transform={`translate(${SCREEN.x + 4 + bin * 9.5} ${SCREEN.y + 16})`}>
+                      <Tally times={current?.tallies[bin]} />
+                    </g>
+                  ))}
+                </Glow>
               </g>
               {Array.from({ length: 3 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M4 ${SCREEN.y + SCREEN.h + 2 + k * 2}h${CONSOLE.w - 8}`} />
@@ -388,8 +444,8 @@ export default function ConveyorSorter() {
                 <path key={k} className="ik-detail" d={`M${8 + k * 3.4} 5v12`} />
               ))}
         />
-        {wave || aiming ? null : <Ripple {...KEY} r={4} />}
-        <Press label="Sort the next batch" onPress={press} data-hot={wave === 0}>
+        {batch || aiming ? null : <Ripple {...KEY} r={4} />}
+        <Press label="Sort the next batch" material="rubber" onPress={press} data-hot={batch === 0}>
           <g>
             <Box
               {...KEY}
@@ -405,6 +461,7 @@ export default function ConveyorSorter() {
             />
           </g>
         </Press>
+        <Callout at={[HINGES[0], ARM.y, ARM.top + 3]} dx={10} dy={-22} label="diverter" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>
