@@ -23,7 +23,7 @@
 .fig-vault-door svg[data-open="true"] .vd-bolt { transform: translateX(var(--travel)); transition-delay: var(--draw); }
 .fig-vault-door .vd-pip { fill: var(--ik-screen-ink); opacity: .85; transition: opacity 120ms linear calc(var(--thrown-at) + var(--back)); }
 .fig-vault-door svg[data-open="true"] .vd-pip { opacity: .14; transition-delay: var(--drawn); }
-.fig-vault-door .vd-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-vault-door .vd-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-vault-door svg[data-open="true"] .vd-lamp { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: var(--lit); }
 .fig-vault-door .vd-shown { animation: vd-on 1ms linear var(--on) both; }
 .fig-vault-door .vd-shown.vd-passing { animation: vd-on 1ms linear var(--on) both, vd-off 1ms linear var(--off) forwards; }

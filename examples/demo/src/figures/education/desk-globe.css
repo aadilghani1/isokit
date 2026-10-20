@@ -6,7 +6,7 @@
 .fig-desk-globe .dg-city[data-lit="true"] { animation: dg-lit 240ms var(--ik-ease) var(--arrive) both; }
 .fig-desk-globe .dg-leave { animation: dg-leave 320ms var(--ik-ease) both; }
 .fig-desk-globe .dg-arrive { animation: dg-arrive 320ms var(--ik-ease) var(--land) both; }
-.fig-desk-globe .dg-ping { fill: none; stroke: var(--ik-live); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; animation: dg-ping 700ms var(--ik-ease) forwards; }
+.fig-desk-globe .dg-ping { fill: none; stroke: var(--ik-live); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; animation: dg-ping var(--ik-t-move) var(--ik-ease) forwards; }
 .fig-desk-globe .dg-turning { animation: dg-turning 1320ms steps(1, end) both; }
 .fig-desk-globe .dg-cone { animation: dg-cone 360ms var(--ik-ease) both; }
 .fig-desk-globe .dg-key { font-size: 7.5px; }

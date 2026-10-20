@@ -1,4 +1,4 @@
-.edge .folder > g { transition: transform 700ms var(--ik-ease) calc(var(--d) * 45ms); }
+.edge .folder > g { transition: transform var(--ik-t-move) var(--ik-ease) calc(var(--d) * 45ms); }
 .edge .folder[data-down="true"]:not([data-on="true"]) > g { transform: translateY(-6px); transition: transform 120ms ease-out; }
 .edge .folder[data-on="true"] > g { transform: translateY(-20px); }
 .edge .folder[data-on="true"] .ik-face { stroke: var(--ik-live); }
@@ -11,6 +11,6 @@
 }
 .edge .light { fill: var(--ik-live); }
 .edge svg[data-reading="true"] .light { animation: ik-pulse 240ms steps(2) infinite; }
-.edge .sweep { fill: var(--ik-screen-ink); animation: edge-sweep 700ms var(--ik-ease) both; }
+.edge .sweep { fill: var(--ik-screen-ink); animation: edge-sweep var(--ik-t-move) var(--ik-ease) both; }
 @keyframes edge-sweep { to { transform: translateX(52px); } }
 @media (prefers-reduced-motion: reduce) { .edge .sweep { animation: none; } }

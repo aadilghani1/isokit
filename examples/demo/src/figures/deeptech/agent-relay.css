@@ -4,7 +4,7 @@
 .fig-agent-relay .tier-name { font-size: 3.4px; letter-spacing: .03em; }
 .fig-agent-relay .hub-word { font-size: 3.2px; }
 .fig-agent-relay .board-title { font-size: 2.9px; }
-.fig-agent-relay .switch-word { font-size: 4.6px; transition: fill 260ms var(--ik-ease); }
+.fig-agent-relay .switch-word { font-size: 4.6px; transition: fill var(--ik-t-state) var(--ik-ease); }
 .fig-agent-relay .switch-word[data-on="true"] { fill: var(--ik-ink-hi); }
 .fig-agent-relay svg:is([data-phase="idle"], [data-phase="done"]) .play { stroke: var(--ik-live); }
 
@@ -14,13 +14,13 @@
 .fig-agent-relay .faint { fill-opacity: .5; }
 .fig-agent-relay .meter-dim { fill-opacity: .55; }
 
-.fig-agent-relay .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease) calc(var(--i) * 60ms), stroke 260ms var(--ik-ease) calc(var(--i) * 60ms); }
+.fig-agent-relay .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease) calc(var(--i) * 60ms), stroke var(--ik-t-state) var(--ik-ease) calc(var(--i) * 60ms); }
 .fig-agent-relay .tier:is([data-state="plan"], [data-state="work"]) .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
 .fig-agent-relay .tier[data-state="wait"] .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
 .fig-agent-relay .tier[data-state="retry"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
 .fig-agent-relay .tier[data-state="wait"] .lamp { animation: ar-blink 900ms steps(2, jump-none) infinite; }
 .fig-agent-relay .tier[data-state="done"] .lamp { opacity: 0; }
-.fig-agent-relay .check { fill: none; stroke: var(--ik-line); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 260ms var(--ik-ease); }
+.fig-agent-relay .check { fill: none; stroke: var(--ik-line); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity var(--ik-t-state) var(--ik-ease); }
 .fig-agent-relay .tier[data-state="done"] .check { opacity: 1; }
 .fig-agent-relay .work { stroke: var(--ik-line); stroke-dasharray: 22 78; stroke-dashoffset: 22; opacity: 0; animation: ar-scan 1200ms linear infinite paused; }
 .fig-agent-relay .tier:is([data-state="work"], [data-state="plan"], [data-state="retry"]) .work { opacity: 1; animation-play-state: running; }

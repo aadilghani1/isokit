@@ -1,4 +1,4 @@
-.fig-infusion-pump .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-infusion-pump .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-infusion-pump svg[data-run="true"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: 820ms; }
 .fig-infusion-pump .drop { stroke-dasharray: 2.4 130; stroke-width: 2.8; }
 .fig-infusion-pump .drip { opacity: 0; }

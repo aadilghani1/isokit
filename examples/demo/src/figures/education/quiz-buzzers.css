@@ -1,6 +1,6 @@
 .fig-quiz-buzzers .qb-token { transition: opacity 0ms linear var(--t); }
 .fig-quiz-buzzers .qb-token[data-on="false"] { opacity: 0; }
-.fig-quiz-buzzers .qb-window { fill: var(--ik-screen); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke 260ms var(--ik-ease); }
+.fig-quiz-buzzers .qb-window { fill: var(--ik-screen); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke var(--ik-t-state) var(--ik-ease); }
 .fig-quiz-buzzers .qb-window[data-live="true"] { stroke: var(--ik-live); transition: stroke 0ms linear var(--t); }
 .fig-quiz-buzzers .qb-was { animation: qb-was 160ms linear var(--t) forwards; }
 .fig-quiz-buzzers .qb-now { animation: ik-enter 420ms var(--ik-ease) var(--t) both; }

@@ -8,7 +8,7 @@
 .fig-parcel-locker .door[data-state="shut"] { animation: pl-swing-shut 640ms linear both; }
 .fig-parcel-locker .leaf { fill: var(--ik-front); stroke: none; }
 .fig-parcel-locker .inside { fill: var(--ik-side); stroke: none; opacity: 0; transition: opacity 0ms linear 260ms; }
-.fig-parcel-locker .outline { fill: none; stroke: var(--ik-line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: stroke 260ms var(--ik-ease); }
+.fig-parcel-locker .outline { fill: none; stroke: var(--ik-line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: stroke var(--ik-t-state) var(--ik-ease); }
 .fig-parcel-locker .door[data-state="open"] .inside { opacity: 1; transition-delay: 146ms; }
 .fig-parcel-locker .door[data-state="open"] .outline { stroke: var(--ik-live); }
 .fig-parcel-locker .mark { transition: opacity 0ms linear 260ms; }

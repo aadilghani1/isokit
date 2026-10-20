@@ -1,7 +1,7 @@
 .fig-wafer-probe .key { font-size: 6.4px; }
 .fig-wafer-probe .tag { font-size: 5.5px; }
 .fig-wafer-probe svg[data-probed="false"] .pin { stroke: var(--ik-live); }
-.fig-wafer-probe .hop { transition: transform 700ms var(--ik-ease); }
+.fig-wafer-probe .hop { transition: transform var(--ik-t-move) var(--ik-ease); }
 .fig-wafer-probe svg[data-probed="true"] .hop { transform: translate(var(--dx), var(--dy)); transition: transform 140ms cubic-bezier(.45, 0, .25, 1) calc(var(--k) * 300ms); }
 .fig-wafer-probe svg[data-probed="true"] .dip { animation: wafer-probe-dip 300ms linear 6; }
 .fig-wafer-probe svg[data-probed="true"] .carriage .ik-face { stroke: var(--ik-live); }

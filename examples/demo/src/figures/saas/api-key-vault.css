@@ -1,6 +1,6 @@
 .fig-api-key-vault .card { transition: opacity 0ms linear var(--t); }
 .fig-api-key-vault .card[data-on="false"] { opacity: 0; }
-.fig-api-key-vault .card[data-live="true"] .ik-face { stroke: var(--ik-live); transition: stroke 260ms var(--ik-ease) var(--t), fill 260ms var(--ik-ease); }
+.fig-api-key-vault .card[data-live="true"] .ik-face { stroke: var(--ik-live); transition: stroke var(--ik-t-state) var(--ik-ease) var(--t), fill var(--ik-t-state) var(--ik-ease); }
 .fig-api-key-vault .gone { animation: akv-gone 600ms ease-in both; }
 .fig-api-key-vault .pip { fill: var(--ik-screen-ink); opacity: .14; }
 .fig-api-key-vault .pip[data-on="true"] { opacity: .85; }

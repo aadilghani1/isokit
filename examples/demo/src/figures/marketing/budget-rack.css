@@ -1,6 +1,6 @@
 .fig-budget-rack .coin { transition: opacity 0ms linear var(--t); }
 .fig-budget-rack .coin[data-on="false"] { opacity: 0; }
-.fig-budget-rack .art, .fig-budget-rack .pause { transition: opacity 260ms var(--ik-ease); }
+.fig-budget-rack .art, .fig-budget-rack .pause { transition: opacity var(--ik-t-state) var(--ik-ease); }
 .fig-budget-rack .pause { opacity: 0; }
 .fig-budget-rack .card[data-paused="true"] .art { opacity: .3; }
 .fig-budget-rack .card[data-paused="true"] .pause { opacity: 1; }

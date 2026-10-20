@@ -1,4 +1,4 @@
-.fig-signal-box .sb-slide { transition: transform 700ms var(--ik-ease); }
+.fig-signal-box .sb-slide { transition: transform var(--ik-t-move) var(--ik-ease); }
 .fig-signal-box .sb-tappet { transition: transform 420ms var(--ik-ease) 160ms; }
 .fig-signal-box svg[data-points="reverse"] .sb-tappet { transform: translateX(9px); }
 .fig-signal-box .sb-platform { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .4; stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -11,7 +11,7 @@
 .fig-signal-box svg:not([data-stage="held"]) .sb-train-2 .sb-tag { fill: var(--ik-live); stroke: var(--ik-live); }
 .fig-signal-box svg:not([data-stage="held"]) .sb-train-2 .sb-tag-text { fill: var(--ik-screen); }
 .fig-signal-box svg[data-stage="running"] .sb-leg { animation-name: sb-leg; animation-fill-mode: both; }
-.fig-signal-box .sb-needle { transform: rotate(-42deg); transition: transform 700ms var(--ik-ease); }
+.fig-signal-box .sb-needle { transform: rotate(-42deg); transition: transform var(--ik-t-move) var(--ik-ease); }
 .fig-signal-box svg[data-stage="running"] .sb-needle { transform: rotate(42deg); transition-delay: 300ms; }
 .fig-signal-box .sb-hand { fill: none; stroke: var(--ik-line); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .fig-signal-box .sb-name { font-size: 5.6px; }

@@ -1,7 +1,7 @@
 .fig-scooter-dock .sd-deck { fill: none; stroke: var(--ik-detail); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; }
-.fig-scooter-dock svg[data-phase="unlocked"] .sd-deck { stroke: var(--ik-live); animation: sd-deck-on 260ms var(--ik-ease) 760ms both; }
-.fig-scooter-dock svg[data-phase="locked"] .sd-deck { animation: sd-deck-off 260ms var(--ik-ease) 760ms both; }
-.fig-scooter-dock svg[data-phase="locked"] .sd-unlock .sd-button { animation: sd-hot 260ms var(--ik-ease) 760ms both; }
+.fig-scooter-dock svg[data-phase="unlocked"] .sd-deck { stroke: var(--ik-live); animation: sd-deck-on var(--ik-t-state) var(--ik-ease) 760ms both; }
+.fig-scooter-dock svg[data-phase="locked"] .sd-deck { animation: sd-deck-off var(--ik-t-state) var(--ik-ease) 760ms both; }
+.fig-scooter-dock svg[data-phase="locked"] .sd-unlock .sd-button { animation: sd-hot var(--ik-t-state) var(--ik-ease) 760ms both; }
 .fig-scooter-dock .sd-unlock[data-down="true"] .sd-button, .fig-scooter-dock svg[data-demo="press"] .sd-unlock[data-hot="true"] .sd-button { fill: var(--ik-well); transition-duration: 0ms; }
 .fig-scooter-dock .sd-lock-line { fill: none; stroke: var(--ik-screen-ink); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .fig-scooter-dock .sd-lock-body { fill: var(--ik-screen-ink); stroke: none; opacity: .75; }

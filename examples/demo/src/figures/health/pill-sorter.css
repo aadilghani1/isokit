@@ -1,4 +1,4 @@
-.fig-pill-sorter .dose { opacity: 0; transform: translateY(-6px); transition: opacity 260ms var(--ik-ease) calc(var(--j) * 60ms), transform 260ms var(--ik-ease) calc(var(--j) * 60ms); }
+.fig-pill-sorter .dose { opacity: 0; transform: translateY(-6px); transition: opacity var(--ik-t-state) var(--ik-ease) calc(var(--j) * 60ms), transform var(--ik-t-state) var(--ik-ease) calc(var(--j) * 60ms); }
 .fig-pill-sorter svg[data-filled="true"] .dose { opacity: 1; transform: none; transition: none; animation: ps-fall 460ms calc(var(--i) * 60ms) both; }
 .fig-pill-sorter svg[data-filled="true"] .cell { animation: ps-seat 560ms ease-out calc(var(--i) * 60ms + 460ms); }
 .fig-pill-sorter .pip { fill: var(--ik-screen-ink); opacity: .16; transition: opacity 0ms linear var(--t); }
@@ -6,7 +6,7 @@
 .fig-pill-sorter .shown { animation: ps-on 1ms linear var(--on) both; }
 .fig-pill-sorter .passing { opacity: 0; }
 .fig-pill-sorter .shown.passing { animation: ps-on 1ms linear var(--on) both, ps-off 1ms linear var(--off) forwards; }
-.fig-pill-sorter .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-pill-sorter .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-pill-sorter svg[data-filled="true"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: 820ms; }
 .fig-pill-sorter .day { font-size: 7px; }
 .fig-pill-sorter .key { font-size: 7px; }

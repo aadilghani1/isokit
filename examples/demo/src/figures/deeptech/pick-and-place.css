@@ -9,9 +9,9 @@
 .fig-pick-and-place .ik-press[data-hot="true"] .arrow { stroke: var(--ik-live); }
 .fig-pick-and-place .bridge.go, .fig-pick-and-place .head.go { animation: pnp-move 1600ms both; }
 .fig-pick-and-place .nozzle.go { animation: pnp-nozzle 1600ms both; }
-.fig-pick-and-place .bridge.back, .fig-pick-and-place .head.back { animation: pnp-back 700ms var(--ik-ease) both; }
+.fig-pick-and-place .bridge.back, .fig-pick-and-place .head.back { animation: pnp-back var(--ik-t-move) var(--ik-ease) both; }
 @keyframes pnp-move {
-  0% { transform: translate(var(--x0), var(--y0)); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  0% { transform: translate(var(--x0), var(--y0)); animation-timing-function: var(--ik-ease); }
   35%, 47.5% { transform: translate(var(--x1), var(--y1)); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
   67.5% { transform: translate(calc((var(--x1) + var(--x2)) / 2), calc((var(--y1) + var(--y2)) / 2)); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
   86.3%, 100% { transform: translate(var(--x2), var(--y2)); }

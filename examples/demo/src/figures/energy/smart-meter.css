@@ -1,4 +1,4 @@
-.fig-smart-meter .sm-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+.fig-smart-meter .sm-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-smart-meter .sm-lamp[data-on="true"] { fill: var(--ik-live); stroke: var(--ik-live); }
 .fig-smart-meter .sm-bar { fill: var(--ik-screen-ink); opacity: .7; }
 .fig-smart-meter .sm-band { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .45; stroke-width: 1; vector-effect: non-scaling-stroke; }

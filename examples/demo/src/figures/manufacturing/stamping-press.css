@@ -8,7 +8,7 @@
 .fig-stamping-press .sp-eject { opacity: 0; animation: stamping-press-eject 300ms var(--ik-ease) backwards; }
 @keyframes stamping-press-stroke {
   0%, 22% { transform: translateY(0); animation-timing-function: cubic-bezier(.55, 0, .9, .45); }
-  40%, 47% { transform: translateY(24px); animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+  40%, 47% { transform: translateY(24px); animation-timing-function: var(--ik-ease); }
   100% { transform: translateY(0); }
 }
 @keyframes stamping-press-held { from, to { opacity: 1; } }
