@@ -121,7 +121,8 @@ export const DOCS: readonly ComponentDoc[] = [
       "Glow is emission, not attention: the one live stroke still says where to look.",
       "On light themes --ik-glow-strength is 0, so lit means a darker fill; dark themes and the dark looks show the bloom.",
       "No CSS filter is used: Safari ignores filters on SVG children, and a halo layer costs one paint.",
-      "Colour a glow with --ik-glow on the Glow or an ancestor; --ik-glow-size sets how far it spreads.",
+      "Colour a glow with --ik-glow on an ancestor; --ik-glow-size sets how far it spreads, and text takes half of it.",
+      "When the light lands late through a transition-delay, set --ik-glow-delay to the same delay so the halo ignites with it.",
     ],
   },
   {
