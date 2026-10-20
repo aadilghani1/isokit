@@ -217,7 +217,7 @@ export default function SmartMeter() {
                   </text>
                   <Chart chart={view.chart} />
                 </g>
-                <Glow className="sm-glow">
+                <Glow>
                   <Register page={page} from={from} clip={`${clip}-register`} />
                 </Glow>
               </g>

@@ -236,7 +236,7 @@ export default function WindTurbine() {
                   </g>
                 )}
               </g>
-              <Glow className="wt-screen-glow">
+              <Glow>
                 <g key={`big-${step}`}>
                   {running ? (
                     [{ mw: "0.0", at: 0 }, ...OUTPUT.map((mw, k) => ({ mw, at: segOn(k) }))].map(({ mw, at }, k, all) => (

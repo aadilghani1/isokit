@@ -25,8 +25,7 @@
 .fig-vault-door svg[data-open="true"] .vd-pip { opacity: .14; transition-delay: var(--drawn); }
 .fig-vault-door .vd-lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 .fig-vault-door svg[data-open="true"] .vd-lamp { fill: var(--ik-live); stroke: var(--ik-live); transition-delay: var(--lit); }
-.fig-vault-door svg[data-open="true"] .vd-lamp-glow > .ik-halo { transition-delay: var(--lit); }
-.fig-vault-door .vd-screen-glow { --ik-glow-size: 2.2; }
+.fig-vault-door svg[data-open="true"] .vd-lamp-glow { --ik-glow-delay: var(--lit); }
 .fig-vault-door .vd-shown { animation: vd-on 1ms linear var(--on) both; }
 .fig-vault-door .vd-shown.vd-passing { animation: vd-on 1ms linear var(--on) both, vd-off 1ms linear var(--off) forwards; }
 @keyframes vd-open { 0% { transform: matrix(.866, .5, 0, 1, 0, 0); } 20% { transform: matrix(.986, .42, 0, 1, 0, 0); } 35% { transform: matrix(1.148, .247, 0, 1, 0, 0); } 50% { transform: matrix(1.225, 0, 0, 1, 0, 0); } 65% { transform: matrix(1.148, -.247, 0, 1, 0, 0); } 80% { transform: matrix(.986, -.42, 0, 1, 0, 0); } 100% { transform: matrix(.866, -.5, 0, 1, 0, 0); } }

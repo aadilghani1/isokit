@@ -151,7 +151,7 @@ export default function CardTerminal() {
           front={
             <>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={3} />
-              <Glow className="ct-screen-glow">
+              <Glow>
                 <g key={presses} className="ik-enter">
                   <text className="ik-screen-text ik-dim" x={SCREEN.x + 6} y={SCREEN.y + 8} fontSize={5.6}>
                     {approved ? `${amount} · ••42` : "enter pin · ••••"}

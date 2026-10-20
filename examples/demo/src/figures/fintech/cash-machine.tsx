@@ -195,7 +195,7 @@ export default function CashMachine() {
                   <rect className="ik-face" x={ATM.w - 8.1} y={SCREEN.y + 2 + k * 7} width={3.6} height={4.5} rx={0.8} />
                 </g>
               ))}
-              <Glow className="cm-screen-glow">
+              <Glow>
                 <g key={`small-${count}`}>
                   {fresh ? (
                     <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 8} fontSize={5.6}>

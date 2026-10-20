@@ -261,7 +261,7 @@ export default function EvCharger() {
                   {charging ? "34% → 80%" : phase === "unplugged" ? "unplugged" : "plug in"}
                 </text>
               </g>
-              <Glow className="ev-screen-glow">
+              <Glow>
                 <g key={`big-${step}`}>
                   {charging ? (
                     <>

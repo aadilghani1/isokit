@@ -4,7 +4,6 @@
 .fig-smart-meter .sm-band { fill: none; stroke: var(--ik-screen-ink); stroke-opacity: .45; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .fig-smart-meter .sm-night { fill: var(--ik-screen-ink); opacity: .2; }
 .fig-smart-meter .sm-now { fill: none; stroke: var(--ik-screen-ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linecap: round; }
-.fig-smart-meter .sm-glow { --ik-glow-size: 3; }
 .fig-smart-meter .sm-roll-in { animation: sm-roll-in var(--ik-t-state) var(--ik-ease) var(--roll-at) both; }
 .fig-smart-meter .sm-roll-out { animation: sm-roll-out var(--ik-t-state) var(--ik-ease) var(--roll-at) both; }
 .fig-smart-meter .sm-tag { font-size: 5.4px; }

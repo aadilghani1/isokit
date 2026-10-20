@@ -1,7 +1,6 @@
 .fig-cash-machine .cm-hood { font-size: 7px; letter-spacing: .3em; }
 .fig-cash-machine .cm-key { font-size: 5.4px; }
 .fig-cash-machine .cm-note-value { font-size: 6px; }
-.fig-cash-machine .cm-screen-glow { --ik-glow-size: 2.2; }
 .fig-cash-machine .cm-note { animation: cm-dispense var(--feed) var(--ik-ease-out) var(--t) both; }
 .fig-cash-machine .cm-lead { stroke: var(--ik-live); animation: cm-lit 1ms linear var(--lit) both; }
 .fig-cash-machine .cm-wheel[data-turn="true"] { animation: cm-turn var(--ik-t-move) var(--ik-ease-move) var(--t) both; }

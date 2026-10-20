@@ -252,7 +252,7 @@ export default function VaultDoor() {
           front={
             <>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
-              <Glow className="vd-screen-glow">
+              <Glow>
                 <text className="ik-screen-text ik-dim" x={SCREEN.x + 3.5} y={SCREEN.y + 6.6} fontSize={5.6}>
                   time lock
                 </text>
