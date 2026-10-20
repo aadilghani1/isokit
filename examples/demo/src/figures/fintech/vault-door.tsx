@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
-import { Box, Cursor, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, Cursor, Glow, Plate, Press, path, playSound, project, Ripple, useDemoTap, type Vec3 } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./vault-door.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Vault door",
   industry: "fintech",
   level: 3,
-  blurb: "Press the wheel: it turns, the five bolts draw back one after another and the round door swings open on its hinge.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "path", "project"],
-  sounds: ["press", "release", "cascade", "complete", "whoosh"],
+  blurb: "Press the wheel: it ticks through its detents, the five bolts draw back one after another and the round door swings open on its hinge. Press again and the bolts latch home.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "path", "project", "Dimension"],
+  sounds: ["press", "release", "tick", "cascade", "complete", "whoosh", "latch"],
 } satisfies FigureMeta
 
 type Phase = "locked" | "open" | "shut"
@@ -48,6 +49,13 @@ const SWING_AT = BOLT_AT + (BOLT_DEGS.length - 1) * STAGGER_MS + BOLT_MS + 80
 const SWING_MS = 900
 const THROW_GAP_MS = 60
 const THROW_RUN_MS = (BOLT_DEGS.length - 1) * STAGGER_MS + BOLT_MS
+const WHEEL_MS = 640
+const DETENTS = 3
+const DETENT_MS = WHEEL_MS / DETENTS
+const TICK_INTO_DETENT = 0.3
+const TICKS_AT = Array.from({ length: DETENTS }, (_, i) => Math.round((i + TICK_INTO_DETENT) * DETENT_MS))
+const LATCH_SEAT_MS = 70
+const RATCHET = { inner: 7.2, outer: 10, from: 15, step: 30 }
 const REST: Motion = { phase: "locked", swingAt: SWING_AT }
 const r3 = (n: number) => Math.round(n * 1000) / 1000
 const radians = (deg: number) => (deg * Math.PI) / 180
@@ -65,6 +73,10 @@ const BOLTS = BOLT_DEGS.map((deg, i) => {
   }
 })
 const SPOKES = [45, 135, 225, 315] as const
+const RATCHET_TEETH = `${Array.from({ length: 360 / RATCHET.step }, (_, k) => {
+  const a = radians(RATCHET.from + k * RATCHET.step)
+  return `${k === 0 ? "M" : "L"}${r3(Math.cos(a) * RATCHET.inner)} ${r3(Math.sin(a) * RATCHET.inner)}L${r3(Math.cos(a) * RATCHET.outer)} ${r3(Math.sin(a) * RATCHET.outer)}`
+}).join("")}Z`
 const RIVETS = Array.from({ length: 24 }, (_, k) => k * 15).filter((deg) => BOLT_DEGS.every((bolt) => Math.abs(bolt - deg) > 10))
 const BOXES = Array.from({ length: 42 }, (_, k) => ({ x: ROOM.x - 36 + (k % 6) * 12, y: ROOM.y - 32 + Math.floor(k / 6) * 9 }))
 const ARC: Vec3[] = Array.from({ length: 19 }, (_, k) => {
@@ -100,11 +112,11 @@ export default function VaultDoor() {
   const [motion, setMotion] = useState<Motion>(REST)
   const clip = useId().replace(/:/g, "")
   const stop = useRef(() => {})
-  const timer = useRef(0)
+  const timers = useRef<number[]>([])
   const since = useRef(0)
   useEffect(
     () => () => {
-      window.clearTimeout(timer.current)
+      for (const id of timers.current) window.clearTimeout(id)
       stop.current()
     },
     [],
@@ -113,24 +125,35 @@ export default function VaultDoor() {
   const { phase } = motion
   const open = phase === "open"
   const swing = phase === "locked" ? undefined : phase
+  const later = (at: number, play: () => void) => {
+    timers.current.push(window.setTimeout(play, at))
+  }
   const toggle = (audible: boolean) => {
     const now = performance.now()
     const swung = share((now - since.current - motion.swingAt) / SWING_MS)
     since.current = now
-    window.clearTimeout(timer.current)
+    for (const id of timers.current) window.clearTimeout(id)
+    timers.current = []
     stop.current()
+    if (audible) for (const at of TICKS_AT) later(at, () => playSound("tick"))
     if (open) {
-      if (audible) stop.current = playSound("whoosh")
-      setMotion({ phase: "shut", swingAt: -(1 - swung) * SWING_MS })
+      const swingAt = -(1 - swung) * SWING_MS
+      if (audible) {
+        stop.current = playSound("whoosh")
+        later(swingAt + SWING_MS + THROW_GAP_MS + THROW_RUN_MS - LATCH_SEAT_MS, () => {
+          stop.current = playSound("latch")
+        })
+      }
+      setMotion({ phase: "shut", swingAt })
       return
     }
     const ajar = phase === "shut" ? 1 - swung : 0
     const swingAt = ajar > 0 ? -ajar * SWING_MS : SWING_AT
     if (audible) {
       if (ajar === 0) stop.current = playSound("cascade", { count: BOLTS.length, stagger: STAGGER_MS / 1000, delay: (BOLT_AT + BOLT_MS) / 1000 })
-      timer.current = window.setTimeout(() => {
+      later(swingAt + SWING_MS, () => {
         stop.current = playSound("complete")
-      }, swingAt + SWING_MS)
+      })
     }
     setMotion({ phase: "open", swingAt })
   }
@@ -151,6 +174,8 @@ export default function VaultDoor() {
   const timing = {
     "--swing-at": `${motion.swingAt}ms`,
     "--swing-ms": `${SWING_MS}ms`,
+    "--wheel-ms": `${WHEEL_MS}ms`,
+    "--bolt-ms": `${BOLT_MS}ms`,
     "--throw-at": `${throwAt}ms`,
     "--thrown-at": `${throwAt + BOLT_MS}ms`,
     "--lit": `${settledAt}ms`,
@@ -227,29 +252,33 @@ export default function VaultDoor() {
           front={
             <>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
-              <text className="ik-screen-text ik-dim" x={SCREEN.x + 3.5} y={SCREEN.y + 6.6} fontSize={5.6}>
-                time lock
-              </text>
-              {BOLTS.map((bolt, i) => (
-                <rect key={bolt.deg} className="vd-pip" style={bolt.timing} x={SCREEN.x + 3.5 + i * 6.2} y={SCREEN.y + 9} width={5} height={3} rx={0.6} />
-              ))}
-              <g key={phase}>
-                {phase === "locked" ? (
-                  <text className="ik-screen-text" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4}>
-                    locked
-                  </text>
-                ) : (
-                  <>
-                    <text className="ik-screen-text vd-shown vd-passing" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4} style={{ "--on": "0ms", "--off": `${open ? settledAt : lockedAt}ms` } as CSSProperties}>
-                      {open ? "locked" : "open"}
+              <Glow className="vd-screen-glow">
+                <text className="ik-screen-text ik-dim" x={SCREEN.x + 3.5} y={SCREEN.y + 6.6} fontSize={5.6}>
+                  time lock
+                </text>
+                {BOLTS.map((bolt, i) => (
+                  <rect key={bolt.deg} className="vd-pip" style={bolt.timing} x={SCREEN.x + 3.5 + i * 6.2} y={SCREEN.y + 9} width={5} height={3} rx={0.6} />
+                ))}
+                <g key={phase}>
+                  {phase === "locked" ? (
+                    <text className="ik-screen-text" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4}>
+                      locked
                     </text>
-                    <text className="ik-screen-text vd-shown" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4} style={{ "--on": `${open ? settledAt : lockedAt}ms` } as CSSProperties}>
-                      {open ? "open" : "locked"}
-                    </text>
-                  </>
-                )}
-              </g>
-              <circle className="vd-lamp" cx={8} cy={31} r={2} />
+                  ) : (
+                    <>
+                      <text className="ik-screen-text vd-shown vd-passing" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4} style={{ "--on": "0ms", "--off": `${open ? settledAt : lockedAt}ms` } as CSSProperties}>
+                        {open ? "locked" : "open"}
+                      </text>
+                      <text className="ik-screen-text vd-shown" x={SCREEN.x + 3.5} y={SCREEN.y + 19.5} fontSize={7.4} style={{ "--on": `${open ? settledAt : lockedAt}ms` } as CSSProperties}>
+                        {open ? "open" : "locked"}
+                      </text>
+                    </>
+                  )}
+                </g>
+              </Glow>
+              <Glow on={open} className="vd-lamp-glow">
+                <circle className="vd-lamp" cx={8} cy={31} r={2} />
+              </Glow>
               <path className="ik-detail" d={`M14 31h${TIMELOCK.w - 20}`} />
             </>
           }
@@ -271,6 +300,9 @@ export default function VaultDoor() {
             <circle className="ik-face" cx={CENTER.x} cy={CENTER.y} r={R} />
             <circle className="ik-detail" cx={CENTER.x} cy={CENTER.y} r={R - 4} />
             <circle className="ik-detail" cx={CENTER.x} cy={CENTER.y} r={WHEEL.spoke + 3.5} />
+            <g transform={`translate(${CENTER.x} ${CENTER.y})`}>
+              <path className="ik-detail" d={RATCHET_TEETH} />
+            </g>
             {BOLTS.map((bolt) => (
               <g key={bolt.deg} transform={`translate(${CENTER.x} ${CENTER.y}) rotate(${bolt.deg})`}>
                 <rect className="ik-well" x={BOLT.from + BOLT.travel - 1.5} y={-BOLT.w / 2 - 1} width={R - BOLT.from - BOLT.travel + 0.5} height={BOLT.w + 2} rx={2} />
@@ -294,13 +326,17 @@ export default function VaultDoor() {
               </g>
             ))}
             {STRAPS.map((y) => (
-              <rect key={y} className="ik-face ik-top" x={STRAP_X} y={y - 4} width={-3 - STRAP_X} height={8} rx={2} />
+              <g key={y}>
+                <rect className="ik-face ik-top" x={STRAP_X} y={y - 4} width={-3 - STRAP_X} height={8} rx={2} />
+                <circle className="ik-fill" cx={STRAP_X + 4} cy={y} r={1.1} />
+                <circle className="ik-fill" cx={-8} cy={y} r={1.1} />
+              </g>
             ))}
 
             {phase === "locked" && demo.phase !== "aim" && demo.phase !== "press" ? (
               <Ripple inFace x={CENTER.x - WHEEL.spoke - 1} y={CENTER.y - WHEEL.spoke - 1} w={2 * WHEEL.spoke + 2} d={2 * WHEEL.spoke + 2} r={WHEEL.spoke + 1} />
             ) : null}
-            <Press label={open ? "Turn the wheel to shut and lock the door" : "Turn the wheel to unlock the door"} onPress={press} data-hot={!open}>
+            <Press label={open ? "Turn the wheel to shut and lock the door" : "Turn the wheel to unlock the door"} material="metal" onPress={press} data-hot={!open}>
               <g>
                 <g transform={`translate(${CENTER.x} ${CENTER.y})`}>
                   <g className="vd-proud" data-swing={swing}>
@@ -317,6 +353,7 @@ export default function VaultDoor() {
           </g>
         </g>
 
+        <Dimension from={[DOOR.x - R, FACE_Y, DOOR.z - R]} to={[DOOR.x - R, FACE_Y, DOOR.z + R]} offset={[R - COLLAR - 3, 0, 0]} label={`ø ${2 * R}`} />
         <Cursor at={[DOOR.x, HINGE.y, DOOR.z]} phase={demo.phase} />
       </g>
     </Plate>
