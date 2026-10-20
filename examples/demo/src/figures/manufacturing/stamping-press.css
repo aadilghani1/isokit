@@ -19,3 +19,4 @@
 @keyframes stamping-press-eject { from { opacity: 1; transform: translate(0, 0); } to { opacity: 0; transform: translate(15.59px, 9px); } }
 @keyframes stamping-press-roll-in { from { transform: translateY(7px); } }
 @keyframes stamping-press-roll-out { to { transform: translateY(-7px); } }
+@media (prefers-reduced-motion: reduce) { .fig-stamping-press .sp-roll-out { display: none; } }

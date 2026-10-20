@@ -12,3 +12,4 @@
 .fig-usage-meter .um-key { font-size: 10px; }
 @keyframes um-roll-in { from { transform: translateY(13px); } }
 @keyframes um-roll-out { to { transform: translateY(-13px); } }
+@media (prefers-reduced-motion: reduce) { .fig-usage-meter .um-roll-out { display: none; } }

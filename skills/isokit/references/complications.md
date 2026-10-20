@@ -36,9 +36,10 @@ const turning = wheels.filter((digit, index) => digit !== before[index]).length
 .fig-x .roll-out { animation: x-roll-out var(--ik-t-state) var(--ik-ease) calc(var(--i) * var(--ik-stagger)) both; }
 @keyframes x-roll-in { from { transform: translateY(9px); } }
 @keyframes x-roll-out { to { transform: translateY(-9px); } }
+@media (prefers-reduced-motion: reduce) { .fig-x .roll-out { display: none; } }
 ```
 
-Sound: `playSound("roll", { count: turning, stagger: 0.05 })`. Keep `previous` in state beside `count`.
+Sound: `playSound("roll", { count: turning, stagger: 0.05 })`. Keep `previous` in state beside `count`. Reduced motion stops the roll, so the old digit would sit on top of the new one: hide it.
 
 ## A needle that overshoots and settles
 

@@ -10,3 +10,4 @@
 .fig-metrics-board .range-label { font-size: 6px; }
 @keyframes mb-roll-in { from { transform: translateY(18px); } }
 @keyframes mb-roll-out { to { transform: translateY(-18px); } }
+@media (prefers-reduced-motion: reduce) { .fig-metrics-board .mb-roll-out { display: none; } }
