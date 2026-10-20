@@ -1,5 +1,5 @@
-import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, Flight, Plate, Press, playSound, project, Ripple, useDemoTap } from "react-isokit"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
+import { Box, Cursor, Flight, Glow, Plate, Press, playSound, project, Ripple, type SoundName, type SoundOptions, useDemoTap } from "react-isokit"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./pick-and-place.css"
 
@@ -8,9 +8,9 @@ export const meta = {
   title: "Pick and place",
   industry: "deeptech",
   level: 4,
-  blurb: "Press pick: the gantry head runs over the next chip, lifts it from the tray and seats it on the board.",
-  uses: ["Plate", "Box", "Press", "Flight", "Ripple", "Cursor", "useDemoTap"],
-  sounds: ["process", "done", "complete", "whoosh"],
+  blurb: "Press pick: the gantry motors run the head over the next chip, the vacuum valve clicks as it lifts the chip from the tray, and it seats on the board as the count rolls over.",
+  uses: ["Plate", "Box", "Press", "Glow", "Flight", "Ripple", "Cursor", "useDemoTap", "project"],
+  sounds: ["motor", "relay", "roll", "done", "complete", "whoosh"],
 } satisfies FigureMeta
 
 type Pos = readonly [number, number]
@@ -36,10 +36,15 @@ const KEY = { x: 34, y: 122, z: 10, w: 50, d: 18, h: 5 }
 const CELLS = [0, 1, 2, 3, 4, 5] as const
 const TRAY_AT: readonly Pos[] = CELLS.map((k) => [47 + (k % 3) * 18, 25 + Math.floor(k / 3) * 18])
 const SLOT_AT: readonly Pos[] = CELLS.map((k) => [48 + (k % 3) * 32, 76 + Math.floor(k / 3) * 20])
+const MOVE_MS = 1600
+const RETURN_MS = 700
+const PICK_MS = 680
 const LIFT_MS = 760
 const CARRY_MS = 640
 const LAND_MS = LIFT_MS + CARRY_MS
 const STAGGER_MS = 50
+const COUNT = { x: 9, y: 18.4, size: 7, pitch: 4.2 }
+const COUNT_WINDOW = { x: COUNT.x - 0.6, y: 11.6, width: COUNT.pitch + 1.2, height: 8.4 }
 
 const posOf = (placed: number): Pos => (placed === 0 ? HOME : (SLOT_AT[placed - 1] ?? HOME))
 const chipBox = ([cx, cy]: Pos) => ({ x: cx - CHIP.w / 2, y: cy - CHIP.d / 2, z: CHIP.z, w: CHIP.w, d: CHIP.d, h: CHIP.h })
@@ -62,12 +67,13 @@ function Chip({ at }: { at: Pos }) {
 export default function PickAndPlace() {
   const [run, setRun] = useState({ placed: 0, step: 0 })
   const [touched, setTouched] = useState(false)
-  const stop = useRef(() => {})
-  const timer = useRef(0)
+  const stops = useRef<Array<() => void>>([])
+  const timers = useRef<number[]>([])
+  const clip = useId().replace(/[^\w-]/g, "")
   useEffect(
     () => () => {
-      window.clearTimeout(timer.current)
-      stop.current()
+      for (const timer of timers.current) window.clearTimeout(timer)
+      for (const stop of stops.current) stop()
     },
     [],
   )
@@ -76,20 +82,24 @@ export default function PickAndPlace() {
   const full = placed === CELLS.length
   const reset = step > 0 && placed === 0
   const advance = (audible: boolean) => {
-    window.clearTimeout(timer.current)
-    stop.current()
+    for (const timer of timers.current) window.clearTimeout(timer)
+    for (const stop of stops.current) stop()
+    timers.current = []
+    stops.current = []
+    const later = (ms: number, name: SoundName, options?: SoundOptions) => timers.current.push(window.setTimeout(() => stops.current.push(playSound(name, options)), ms))
     if (full) {
-      if (audible) stop.current = playSound("whoosh")
+      if (audible) {
+        stops.current.push(playSound("whoosh"), playSound("motor", { duration: RETURN_MS / 1000 }), playSound("roll"))
+      }
       setRun({ placed: 0, step: step + 1 })
       return
     }
     const next = placed + 1
     if (audible) {
-      stop.current = playSound("process")
-      timer.current = window.setTimeout(() => {
-        stop.current()
-        stop.current = playSound(next === CELLS.length ? "complete" : "done")
-      }, LAND_MS)
+      stops.current.push(playSound("motor", { duration: LAND_MS / 1000 }))
+      later(PICK_MS, "relay")
+      later(LAND_MS, "roll")
+      later(LAND_MS, next === CELLS.length ? "complete" : "done")
     }
     setRun({ placed: next, step: step + 1 })
   }
@@ -107,6 +117,8 @@ export default function PickAndPlace() {
   const to = posOf(placed)
   const motion = step === 0 ? undefined : reset ? "back" : "go"
   const picked = reset ? -1 : placed - 1
+  const previous = reset ? CELLS.length : step > 0 ? placed - 1 : placed
+  const turns = previous !== placed
   const readout = full ? "board full · 6 of 6" : placed ? `placed · ${placed} of 6` : reset ? "reset · 6 in tray" : "ready · 6 in tray"
 
   return (
@@ -117,10 +129,16 @@ export default function PickAndPlace() {
       hint={full ? "Press to reset" : "Press pick"}
       readout={readout}
       className="fig-pick-and-place"
+      style={{ "--move": `${MOVE_MS}ms`, "--return": `${RETURN_MS}ms`, "--count-at": `${picked >= 0 ? LAND_MS : 0}ms` } as CSSProperties}
       fit={[BED, { x: BEAM.x, y: 6, z: 0, w: BEAM.w, d: 95, h: HEAD.z + HEAD.h }]}
       aspect={1.3}
       label="A pick-and-place gantry with a tray of six chips and a circuit board. Press pick to move the next chip from the tray to its slot on the board; after six, press again to reset."
     >
+      <defs>
+        <clipPath id={clip}>
+          <rect {...COUNT_WINDOW} />
+        </clipPath>
+      </defs>
       <g ref={demo.ref}>
         <Box
           {...BED}
@@ -235,24 +253,33 @@ export default function PickAndPlace() {
               <rect className="ik-screen" x={5} y={4} width={40} height={17} rx={2.5} />
               {picked >= 0 ? (
                 <g key={`was-${step}`} className="was" style={{ animationDelay: `${LAND_MS}ms` }}>
-                  <Count placed={placed - 1} />
+                  <CountLabel placed={placed - 1} />
                 </g>
               ) : null}
               <g key={`count-${step}`} className="ik-enter" style={{ animationDelay: `${picked >= 0 ? LAND_MS : 0}ms` }}>
-                <Count placed={placed} />
+                <CountLabel placed={placed} />
               </g>
+              <g clipPath={`url(#${clip})`}>
+                <g key={`wheel-${step}`}>
+                  {turns ? (
+                    <text className="ik-screen-text roll-out" x={COUNT.x} y={COUNT.y} fontSize={COUNT.size}>
+                      {previous}
+                    </text>
+                  ) : null}
+                  <text className={turns ? "ik-screen-text roll-in" : "ik-screen-text"} x={COUNT.x} y={COUNT.y} fontSize={COUNT.size}>
+                    {placed}
+                  </text>
+                </g>
+              </g>
+              <text className="ik-screen-text" x={COUNT.x + 2 * COUNT.pitch} y={COUNT.y} fontSize={COUNT.size}>
+                {`of ${CELLS.length}`}
+              </text>
               {CELLS.map((k) => (
-                <rect
-                  key={k}
-                  className="pip"
-                  data-on={k < placed}
-                  x={49 + (k % 3) * 3.6}
-                  y={7 + Math.floor(k / 3) * 3.6}
-                  width={2.4}
-                  height={2.4}
-                  rx={0.5}
-                  style={{ "--t": `${k === picked ? LAND_MS : 0}ms` } as CSSProperties}
-                />
+                <g key={k} style={{ "--t": `${k === picked ? LAND_MS : 0}ms` } as CSSProperties}>
+                  <Glow on={k < placed} className="pip-glow">
+                    <rect className="pip" data-on={k < placed} x={49 + (k % 3) * 3.6} y={7 + Math.floor(k / 3) * 3.6} width={2.4} height={2.4} rx={0.5} />
+                  </Glow>
+                </g>
               ))}
               <path className="ik-detail" d="M49 17h10M49 20h10" />
             </>
@@ -263,7 +290,7 @@ export default function PickAndPlace() {
         />
 
         {!touched && step === 0 && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label={full ? "Reset the board" : "Pick the next part"} onPress={press} data-hot={placed === 0}>
+        <Press label={full ? "Reset the board" : "Pick the next part"} material="plastic" onPress={press} data-hot={placed === 0}>
           <g>
             <Box
               {...KEY}
@@ -285,16 +312,11 @@ export default function PickAndPlace() {
   )
 }
 
-function Count({ placed }: { placed: number }) {
+function CountLabel({ placed }: { placed: number }) {
   return (
-    <>
-      <text className="ik-screen-text ik-dim" x={9} y={10.6} fontSize={5.6}>
-        {placed === CELLS.length ? "full" : placed ? "placed" : "ready"}
-      </text>
-      <text className="ik-screen-text" x={9} y={18.4} fontSize={7}>
-        {`${placed} of 6`}
-      </text>
-    </>
+    <text className="ik-screen-text ik-dim" x={COUNT.x} y={10.6} fontSize={5.6}>
+      {placed === CELLS.length ? "full" : placed ? "placed" : "ready"}
+    </text>
   )
 }
 

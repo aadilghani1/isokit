@@ -1,5 +1,6 @@
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, project, Ripple, useDemoTap } from "react-isokit"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, project, Ripple, type SoundName, useDemoTap } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./wafer-probe.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Wafer prober",
   industry: "deeptech",
   level: 3,
-  blurb: "Press probe: the head steps across six dies, marks each pass or fail, and the console tallies the yield.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "project", "curve", "path"],
-  sounds: ["process", "error", "done"],
+  blurb: "Press probe: the head steps across six dies with a tick at every touchdown, marks each pass or fail, and the console tallies the yield. The next wafer drops onto the vacuum chuck and latches.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "project", "curve", "path", "Callout"],
+  sounds: ["tick", "error", "done", "latch"],
 } satisfies FigureMeta
 
 type Wafer = { id: string; fail: number | null }
@@ -48,8 +49,9 @@ const KEY = { x: 144, y: 86, z: BASE.h, w: 46, d: 20, h: 6 }
 
 const STEP_MS = 300
 const TOUCH_MS = 190
+const HOP_MS = 140
+const LOAD_MS = 420
 const END_MS = ROW.length * STEP_MS
-const PROCESS_MS = 620
 const dieX = (i: number) => WAFER.x + MID + i * PITCH
 const touchAt = (k: number) => k * STEP_MS + TOUCH_MS
 const HOPS = ROW.map((i, k) => {
@@ -81,7 +83,7 @@ function Head() {
 }
 
 export default function WaferProbe() {
-  const [state, setState] = useState<{ wafer: number; probed: boolean; run: number }>({ wafer: 0, probed: false, run: 0 })
+  const [state, setState] = useState<{ wafer: number; probed: boolean; run: number; loaded: boolean }>({ wafer: 0, probed: false, run: 0, loaded: false })
   const [touched, setTouched] = useState(false)
   const stops = useRef<Array<() => void>>([])
   const timers = useRef<number[]>([])
@@ -104,22 +106,18 @@ export default function WaferProbe() {
   const yieldPct = Math.round((passed / ROW.length) * 100)
   const act = (audible: boolean) => {
     hush()
+    const later = (ms: number, name: SoundName) => timers.current.push(window.setTimeout(() => stops.current.push(playSound(name)), ms))
     if (state.probed) {
-      setState({ wafer: (state.wafer + 1) % WAFERS.length, probed: false, run: state.run })
+      if (audible) later(LOAD_MS, "latch")
+      setState({ wafer: (state.wafer + 1) % WAFERS.length, probed: false, run: state.run, loaded: true })
       return
     }
     if (audible) {
-      const at = (ms: number, sound: () => () => void) => window.setTimeout(() => stops.current.push(sound()), ms)
-      stops.current.push(playSound("process"))
-      timers.current = [
-        at(PROCESS_MS, () => playSound("process")),
-        at(2 * PROCESS_MS, () => playSound("process")),
-        ...(wafer.fail === null ? [] : [at(touchAt(wafer.fail), () => playSound("error"))]),
-        window.setTimeout(() => {
-          for (const stop of stops.current) stop()
-          stops.current = [playSound("done")]
-        }, END_MS),
-      ]
+      ROW.forEach((_, k) => {
+        later(touchAt(k), "tick")
+      })
+      if (wafer.fail !== null) later(touchAt(wafer.fail), "error")
+      later(END_MS, "done")
     }
     setState({ ...state, probed: true, run: state.run + 1 })
   }
@@ -152,10 +150,11 @@ export default function WaferProbe() {
       hint={state.probed ? "Press for the next wafer" : "Press probe"}
       readout={state.probed ? `yield ${yieldPct}% · ${passed}/${ROW.length}` : `${wafer.id.toLowerCase()} · ready`}
       className="fig-wafer-probe"
+      style={{ "--step": `${STEP_MS}ms`, "--hop": `${HOP_MS}ms`, "--load": `${LOAD_MS}ms`, "--end": `${END_MS}ms` } as CSSProperties}
       data-probed={state.probed}
       fit={[BASE, { ...BEAM, z: 0, h: BEAM.z + BEAM.h }, { ...CARRIAGE, x: dieX(Math.max(...ROW)) - CARRIAGE.w / 2, z: 0, h: CARRIAGE.z + CARRIAGE.h }, { ...CONSOLE, z: 0, h: CONSOLE.z + CONSOLE.h }]}
       aspect={1.3}
-      label="A wafer prober: a silicon wafer on a chuck under a gantry probe head, beside a console. Press probe and the head tests six dies, marking each pass or fail while the console tallies the yield."
+      label="A wafer prober: a silicon wafer on a vacuum chuck under a gantry probe head, beside a console. Press probe and the head tests six dies, marking each pass or fail while the console tallies the yield; press again to load the next wafer."
     >
       <g ref={demo.ref}>
         <Box {...BASE} r={10} />
@@ -185,23 +184,25 @@ export default function WaferProbe() {
             </>
           }
         />
-        <Box
-          {...WAFER}
-          r={WAFER.w / 2}
-          top={
-            <g key={wafer.id} className="ik-enter">
-              {DIES.map(({ i, j }) => (
-                <rect key={`${i}-${j}`} className="ik-detail" x={MID + i * PITCH - DIE / 2} y={MID + j * PITCH - DIE / 2} width={DIE} height={DIE} rx={0.8} />
-              ))}
-              <path className="ik-well" d={`M${MID - 3} ${WAFER.d}a3 3 0 0 1 6 0z`} />
-              {ROW.map((i, k) => (
-                <g key={i} className="hit" style={{ "--t": `${touchAt(k)}ms` } as CSSProperties} transform={`translate(${MID + i * PITCH} ${MID})`}>
-                  {wafer.fail === k ? <path className="ik-line ik-thick" d={CROSS} /> : <circle className="ik-fill" r={2} />}
-                </g>
-              ))}
-            </g>
-          }
-        />
+        <g key={wafer.id} className={state.loaded ? "wafer-load" : undefined}>
+          <Box
+            {...WAFER}
+            r={WAFER.w / 2}
+            top={
+              <g className="ik-enter">
+                {DIES.map(({ i, j }) => (
+                  <rect key={`${i}-${j}`} className="ik-detail" x={MID + i * PITCH - DIE / 2} y={MID + j * PITCH - DIE / 2} width={DIE} height={DIE} rx={0.8} />
+                ))}
+                <path className="ik-well" d={`M${MID - 3} ${WAFER.d}a3 3 0 0 1 6 0z`} />
+                {ROW.map((i, k) => (
+                  <g key={i} className="hit" style={{ "--t": `${touchAt(k)}ms` } as CSSProperties} transform={`translate(${MID + i * PITCH} ${MID})`}>
+                    {wafer.fail === k ? <path className="ik-line ik-thick" d={CROSS} /> : <circle className="ik-fill" r={2} />}
+                  </g>
+                ))}
+              </g>
+            }
+          />
+        </g>
         <Box {...UPRIGHT_R} r={2} side={<rect className="ik-well" x={4} y={UPRIGHT_R.z + UPRIGHT_R.h - 18} width={4} height={4} rx={0.8} />} />
         <Box {...JACK} r={1} />
         <path className="ik-line" d={CABLE} />
@@ -236,7 +237,9 @@ export default function WaferProbe() {
               {ROW.map((i, k) => (
                 <g key={i} className="tally" style={{ "--t": `${touchAt(k)}ms` } as CSSProperties} transform={`translate(${9 + k * 6.8} 15.5)`}>
                   <rect className="cell" width={5} height={5} rx={0.8} />
-                  <g className="hit">{wafer.fail === k ? <path className="cross" d="M1.2 1.2l2.6 2.6M3.8 1.2L1.2 3.8" /> : <rect className="pass" width={5} height={5} rx={0.8} />}</g>
+                  <Glow on={state.probed} className="tally-glow">
+                    <g className="hit">{wafer.fail === k ? <path className="cross" d="M1.2 1.2l2.6 2.6M3.8 1.2L1.2 3.8" /> : <rect className="pass" width={5} height={5} rx={0.8} />}</g>
+                  </Glow>
                 </g>
               ))}
               {state.probed ? (
@@ -269,7 +272,7 @@ export default function WaferProbe() {
         />
 
         {!touched && !state.probed && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={5} /> : null}
-        <Press label={state.probed ? "Load the next wafer" : "Probe six dies"} onPress={press} data-hot={!state.probed}>
+        <Press label={state.probed ? "Load the next wafer" : "Probe six dies"} material="plastic" onPress={press} data-hot={!state.probed}>
           <g>
             <Box
               {...KEY}
@@ -285,6 +288,7 @@ export default function WaferProbe() {
             />
           </g>
         </Press>
+        <Callout at={[CHUCK.x + CHUCK.w / 2 + 45 / Math.SQRT2, CHUCK.y + CHUCK.d / 2 + 45 / Math.SQRT2, CHUCK.z + CHUCK.h / 2]} dx={14} dy={10} label="vacuum chuck" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>

@@ -1,5 +1,6 @@
-import { useId, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, Ripple, useDemoTap } from "react-isokit"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, useDemoTap } from "react-isokit"
+import { Dimension } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./stamping-press.css"
 
@@ -8,10 +9,13 @@ export const meta = {
   title: "Stamping press",
   industry: "manufacturing",
   level: 1,
-  blurb: "Press the palm button: the ram comes down on the die and the flat blank comes out a bracket.",
-  uses: ["Plate", "Box", "Press", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["press", "release"],
+  blurb: "Press the palm button: the ram drops on the die with a thud, the flat blank comes out a bracket and the stroke counter rolls on a part.",
+  uses: ["Plate", "Box", "Press", "Glow", "Ripple", "Cursor", "useDemoTap", "curve", "path", "Dimension"],
+  sounds: ["press", "release", "latch", "roll"],
 } satisfies FigureMeta
+
+type Shown = { count: number; from: number }
+type Wheel = { digit: string; before: string; rank: number }
 
 const BASE = { x: 0, y: 0, z: 0, w: 160, d: 132, h: 8 }
 const BED = { x: 12, y: 12, z: 8, w: 96, d: 84, h: 26 }
@@ -45,10 +49,59 @@ const COLLAR = { x: 122, y: 95, z: PEDESTAL.z + PEDESTAL.h, w: 22, d: 22, h: 3 }
 const STEM = { x: 128, y: 101, z: COLLAR.z + COLLAR.h, w: 10, d: 10, h: 5 }
 const PALM = { x: 121, y: 94, z: STEM.z + STEM.h, w: 24, d: 24, h: 6 }
 const SCREEN = { x: 8, y: 5, w: 50, h: 16 }
+const COUNTER = { x: SCREEN.x + 4, y: SCREEN.y + 13.6, size: 6.6, char: 3.96, places: 3 }
+const WHEELS_X = COUNTER.x + "part ".length * COUNTER.char
+const STRIPES = Array.from({ length: 9 }, (_, k) => `M${14 + k * 4} 12.5l3.6 -6`).join("")
+const NUTS = [
+  [7, 7],
+  [CROWN.w - 7, 7],
+  [7, CROWN.d - 7],
+  [CROWN.w - 7, CROWN.d - 7],
+] as const
 const START = 17
 const LAST = 999
+const STROKE_MS = 1100
+const STRIKE_MS = 440
+const ROLL_STAGGER_MS = 50
+const TIMING = { "--stroke-ms": `${STROKE_MS}ms`, "--strike-ms": `${STRIKE_MS}ms` } as CSSProperties
 
-const partNumber = (count: number) => String(count).padStart(3, "0")
+const partNumber = (count: number) => String(count).padStart(COUNTER.places, "0")
+
+function wheelsOf(from: number, to: number): { wheels: Wheel[]; turning: number } {
+  const before = partNumber(from).split("")
+  const after = partNumber(to).split("")
+  const wheels: Wheel[] = []
+  let turning = 0
+  for (let index = after.length - 1; index >= 0; index--) {
+    const digit = after[index] ?? "0"
+    const was = before[index] ?? "0"
+    wheels[index] = { digit, before: was, rank: digit === was ? -1 : turning }
+    if (digit !== was) turning++
+  }
+  return { wheels, turning }
+}
+
+function Counter({ count, from, clip }: Shown & { clip: string }) {
+  return (
+    <g clipPath={`url(#${clip})`}>
+      {wheelsOf(from, count).wheels.map(({ digit, before, rank }, index) => {
+        const x = WHEELS_X + index * COUNTER.char
+        return (
+          <g key={`${index}-${count}`} style={{ "--roll-at": `${Math.max(0, rank) * ROLL_STAGGER_MS}ms` } as CSSProperties}>
+            {rank >= 0 ? (
+              <text className="ik-screen-text sp-roll-out" x={x} y={COUNTER.y} fontSize={COUNTER.size}>
+                {before}
+              </text>
+            ) : null}
+            <text className={rank >= 0 ? "ik-screen-text sp-roll-in" : "ik-screen-text"} x={x} y={COUNTER.y} fontSize={COUNTER.size}>
+              {digit}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
 
 function FrontFlange() {
   return <Box {...FAR_FLANGE} r={0.6} side={<circle className="ik-well" cx={FLANGE.d / 2} cy={4.5} r={1.6} />} />
@@ -73,18 +126,33 @@ function WebAndBackFlange() {
 }
 
 export default function StampingPress() {
-  const [count, setCount] = useState(START)
-  const clip = useId().replace(/:/g, "")
-  const stamp = () => setCount(count >= LAST ? 1 : count + 1)
+  const [shown, setShown] = useState<Shown>({ count: START, from: START })
+  const strike = useRef(0)
+  const clip = useId().replace(/[^\w-]/g, "")
+  useEffect(() => () => window.clearTimeout(strike.current), [])
+
+  const { count } = shown
+  const stamp = (audible: boolean) => {
+    const next = count >= LAST ? 1 : count + 1
+    window.clearTimeout(strike.current)
+    if (audible) {
+      const { turning } = wheelsOf(count, next)
+      strike.current = window.setTimeout(() => {
+        playSound("latch", { size: 1 })
+        playSound("roll", { count: turning, stagger: ROLL_STAGGER_MS / 1000 })
+      }, STRIKE_MS)
+    }
+    setShown({ count: next, from: count })
+  }
   const demo = useDemoTap(
     () => {
-      if (count === START) stamp()
+      if (count === START) stamp(false)
     },
     { delay: 500 },
   )
   const press = () => {
     demo.dismiss()
-    stamp()
+    stamp(true)
   }
 
   const fresh = count === START
@@ -99,20 +167,21 @@ export default function StampingPress() {
       hint="Press the palm button"
       readout={fresh ? `ready · ${START} parts` : `part ${count} · ok`}
       className="fig-stamping-press"
+      style={TIMING}
       fit={[BASE, { x: CROWN.x, y: CROWN.y, z: 0, w: CROWN.w, d: CROWN.d, h: CYLINDER_CAP.z + CYLINDER_CAP.h }]}
       aspect={1.15}
-      label="A hydraulic stamping press: a C-frame with a cylinder on its crown, a ram over a die set with a flat blank on it, a hydraulic power unit, and a palm button on a pedestal. Press the palm button to bring the ram down and stamp the blank into a bracket."
+      label="A hydraulic stamping press: a C-frame with a cylinder on its crown, a ram over a die set with a flat blank on it, a stroke counter on the crown, a hydraulic power unit, and a palm button on a pedestal. Press the palm button to bring the ram down, stamp the blank into a bracket and roll the counter on by one part."
     >
       <g ref={demo.ref}>
         <Box
           {...BASE}
           r={10}
           top={[
-                [6, 6],
-                [BASE.w - 6, BASE.d - 6],
-              ].map(([cx, cy]) => (
-                <circle key={`${cx}-${cy}`} className="ik-fill" cx={cx} cy={cy} r={1.6} />
-              ))}
+            [6, 6],
+            [BASE.w - 6, BASE.d - 6],
+          ].map(([cx, cy]) => (
+            <circle key={`${cx}-${cy}`} className="ik-fill" cx={cx} cy={cy} r={1.6} />
+          ))}
         />
         <Box
           {...BED}
@@ -137,8 +206,8 @@ export default function StampingPress() {
           r={3}
           front={<path className="ik-detail" d={`M8 6h${SPINE.w - 16}M8 10h${SPINE.w - 16}`} />}
           side={[18, 36, 54].map((y) => (
-                <path key={y} className="ik-detail" d={`M4 ${y}h${SPINE.d - 8}`} />
-              ))}
+            <path key={y} className="ik-detail" d={`M4 ${y}h${SPINE.d - 8}`} />
+          ))}
         />
         <Box
           {...BOLSTER}
@@ -197,6 +266,7 @@ export default function StampingPress() {
             front={
               <>
                 <path className="ik-detail" d={`M6 4h${RAM.w - 12}`} />
+                <path className="ik-detail" d={STRIPES} />
                 {[8, RAM.w - 8].map((cx) => (
                   <circle key={cx} className="ik-detail" cx={cx} cy={9} r={2} />
                 ))}
@@ -210,23 +280,35 @@ export default function StampingPress() {
         <Box
           {...CROWN}
           r={5}
+          top={NUTS.map(([cx, cy]) => (
+            <g key={`${cx}-${cy}`}>
+              <circle className="ik-detail" cx={cx} cy={cy} r={3} />
+              <circle className="ik-fill" cx={cx} cy={cy} r={1.2} />
+            </g>
+          ))}
           front={
             <>
               <defs>
                 <clipPath id={`${clip}-screen`}>
                   <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
                 </clipPath>
+                <clipPath id={`${clip}-counter`}>
+                  <rect x={WHEELS_X - 0.6} y={COUNTER.y - 5.6} width={COUNTER.places * COUNTER.char + 1.2} height={7} />
+                </clipPath>
               </defs>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={2.5} />
               <g clipPath={`url(#${clip}-screen)`}>
-                <g key={count} className="ik-enter" style={{ animationDelay: fresh ? "0ms" : "440ms" }}>
-                  <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 6.4} fontSize={4.8}>
-                    {fresh ? "blank in" : "40 t · ok"}
+                <Glow>
+                  <g key={count} className="ik-enter" style={{ animationDelay: fresh ? "0ms" : "var(--strike-ms)" }}>
+                    <text className="ik-screen-text ik-dim" x={SCREEN.x + 4} y={SCREEN.y + 6.4} fontSize={4.8}>
+                      {fresh ? "blank in" : "40 t · ok"}
+                    </text>
+                  </g>
+                  <text className="ik-screen-text" x={COUNTER.x} y={COUNTER.y} fontSize={COUNTER.size}>
+                    part
                   </text>
-                  <text className="ik-screen-text" x={SCREEN.x + 4} y={SCREEN.y + 13.6} fontSize={6.6}>
-                    {`part ${partNumber(fresh ? START : count)}`}
-                  </text>
-                </g>
+                  <Counter count={count} from={shown.from} clip={`${clip}-counter`} />
+                </Glow>
               </g>
               <circle className="ik-well" cx={73} cy={13} r={7.5} />
               <path className="ik-detail" d="M67.5 15.5a6 6 0 0 1 11 0" />
@@ -234,8 +316,8 @@ export default function StampingPress() {
             </>
           }
           side={Array.from({ length: 7 }, (_, k) => (
-                <path key={k} className="ik-detail" d={`M${40 + k * 3.4} 6v14`} />
-              ))}
+            <path key={k} className="ik-detail" d={`M${40 + k * 3.4} 6v14`} />
+          ))}
         />
         <Box {...PORT} r={1} />
         <Box {...CYLINDER} r={CYLINDER.w / 2} />
@@ -274,12 +356,13 @@ export default function StampingPress() {
         />
         <Box {...COLLAR} r={COLLAR.w / 2} />
         {fresh && !aiming ? <Ripple x={PALM.x} y={PALM.y} z={COLLAR.z + COLLAR.h} w={PALM.w} d={PALM.d} r={PALM.w / 2} /> : null}
-        <Press label="Press the palm button to stamp a part" onPress={press} data-hot={fresh}>
+        <Press label="Press the palm button to stamp a part" material="plastic" onPress={press} data-hot={fresh}>
           <g>
             <Box {...STEM} r={STEM.w / 2} />
             <Box {...PALM} r={PALM.w / 2} top={<circle className="ik-detail" cx={PALM.w / 2} cy={PALM.d / 2} r={7} />} />
           </g>
         </Press>
+        <Dimension from={[PUNCH.x + PUNCH.w, PUNCH.y + PUNCH.d, SEAT + 2]} to={[PUNCH.x + PUNCH.w, PUNCH.y + PUNCH.d, PUNCH.z]} offset={[16, 0, 0]} label={`stroke ${STROKE}`} />
         <Cursor at={[PALM.x + PALM.w / 2, PALM.y + PALM.d / 2, PALM.z + PALM.h]} phase={demo.phase} />
       </g>
     </Plate>

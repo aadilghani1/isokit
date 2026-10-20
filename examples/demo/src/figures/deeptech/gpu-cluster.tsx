@@ -1,5 +1,6 @@
-import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, Signal, type SoundName, type SoundOptions, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./gpu-cluster.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "GPU cluster",
   industry: "deeptech",
   level: 3,
-  blurb: "Press train: the job runs down the cable, four GPU nodes light bottom to top and the loss curve falls one more epoch.",
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["boot", "cascade", "done"],
+  blurb: "Press train: the job runs down the cable, four GPU nodes light bottom to top with their fans spinning up, the loss curve falls one more epoch and its digits roll over.",
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path", "Callout"],
+  sounds: ["boot", "cascade", "motor", "roll", "done"],
 } satisfies FigureMeta
 
 type Epoch = 0 | 1 | 2 | 3
@@ -36,11 +37,18 @@ const SIGNAL_MS = 320
 const STAGGER_MS = 60
 const DRAW_AT = 560
 const DRAW_MS = 700
+const FAN_MS = 1500
+const READ_AT = DRAW_AT + DRAW_MS - 200
+const ROLL_MS = 50
 const NEXT: Readonly<Record<Epoch, Epoch>> = { 0: 1, 1: 2, 2: 3, 3: 0 }
 const LOSS: Readonly<Record<Epoch, number>> = { 0: 2.3, 1: 0.91, 2: 0.63, 3: 0.42 }
 const EPOCHS = [1, 2, 3] as const
 
 const PLOT = { x: 10, y: 26, w: 46, h: 12 }
+const READING = { x: PLOT.x, y: 22.5, size: 7, pitch: 4.2 }
+const WHEELS_AT = READING.x + 5 * READING.pitch
+const WHEEL_WINDOW = { x: WHEELS_AT - 0.6, y: 15.5, width: 4 * READING.pitch + 1.2, height: 8.6 }
+const lossDigits = (epoch: Epoch) => LOSS[epoch].toFixed(2).split("")
 const JITTER = [0, 0.5, -0.4, 0.45, -0.3, 0.35, -0.25, 0.2, 0]
 const r2 = (n: number) => Math.round(n * 100) / 100
 const yOf = (loss: number) => PLOT.y + ((Math.log(2.4) - Math.log(loss)) / (Math.log(2.4) - Math.log(0.3))) * PLOT.h
@@ -88,27 +96,34 @@ export default function GpuCluster() {
   const [run, setRun] = useState<{ epoch: Epoch; step: number }>({ epoch: 0, step: 0 })
   const [touched, setTouched] = useState(false)
   const stops = useRef<Array<() => void>>([])
-  const timer = useRef(0)
+  const timers = useRef<number[]>([])
+  const clip = useId().replace(/[^\w-]/g, "")
   useEffect(
     () => () => {
-      window.clearTimeout(timer.current)
+      for (const timer of timers.current) window.clearTimeout(timer)
       for (const stop of stops.current) stop()
     },
     [],
   )
 
   const { epoch, step } = run
+  const rolling = epoch > 1
+  const digits = lossDigits(epoch)
+  const before = lossDigits(rolling ? ((epoch - 1) as Epoch) : epoch)
   const train = (audible: boolean) => {
-    window.clearTimeout(timer.current)
+    for (const timer of timers.current) window.clearTimeout(timer)
     for (const stop of stops.current) stop()
+    timers.current = []
     stops.current = []
     const next = NEXT[epoch]
     if (audible && next > 0) {
+      const later = (ms: number, name: SoundName, options?: SoundOptions) => timers.current.push(window.setTimeout(() => stops.current.push(playSound(name, options)), ms))
+      const turning = epoch > 0 ? lossDigits(next).filter((digit, index) => digit !== digits[index]).length : 0
       if (epoch === 0) stops.current.push(playSound("boot"))
       stops.current.push(playSound("cascade", { count: TIERS.length, stagger: STAGGER_MS / 1000, delay: SIGNAL_MS / 1000 }))
-      timer.current = window.setTimeout(() => {
-        stops.current.push(playSound("done"))
-      }, DRAW_AT + DRAW_MS)
+      later(SIGNAL_MS, "motor", { duration: FAN_MS / 1000 })
+      if (turning) later(READ_AT, "roll", { count: turning, stagger: ROLL_MS / 1000 })
+      later(DRAW_AT + DRAW_MS, "done")
     }
     setRun({ epoch: next, step: step + 1 })
   }
@@ -136,11 +151,17 @@ export default function GpuCluster() {
       hint={epoch === 0 ? "Press train" : epoch === 3 ? "Press to reset" : `Press for epoch ${epoch + 1}`}
       readout={epoch === 0 ? "idle · 4 nodes" : `epoch ${epoch} · loss ${LOSS[epoch].toFixed(2)}`}
       className="fig-gpu-cluster"
+      style={{ "--fan": `${FAN_MS}ms`, "--draw": `${DRAW_MS}ms`, "--draw-at": `${DRAW_AT}ms`, "--read-at": `${READ_AT}ms`, "--roll-step": `${ROLL_MS}ms` } as CSSProperties}
       data-epoch={epoch}
       fit={[BASE, { x: RACK.x, y: RACK.y, z: 0, w: RACK.w, d: RACK.d, h: CAP.z + CAP.h }, { ...HEAD, z: 0, h: HEAD.z + HEAD.h }]}
       aspect={1.3}
-      label="A GPU training cluster: four nodes in a rack, cabled to a head unit with a screen. Press train to run an epoch; the nodes light up and the loss curve falls."
+      label="A GPU training cluster: four nodes in a rack, cabled to a head unit with a screen. Press train to run an epoch; the nodes light up, their fans spin and the loss curve falls."
     >
+      <defs>
+        <clipPath id={clip}>
+          <rect {...WHEEL_WINDOW} />
+        </clipPath>
+      </defs>
       <g ref={demo.ref}>
         <Box {...BASE} r={10} />
         <Box {...PLINTH} r={3} front={<path className="ik-detail" d={`M4 3h${RACK.w - 8}`} />} />
@@ -163,7 +184,11 @@ export default function GpuCluster() {
                   {Array.from({ length: 6 }, (_, k) => (
                     <path key={k} className="ik-detail" d={`M${34 + k * 2.6} 4.5v7`} />
                   ))}
-                  <circle key={`lamp-${step}`} className="lamp" data-on={on} data-off={reset} style={{ "--t": t, "--u": u } as CSSProperties} cx={57} cy={8} r={1.9} />
+                  <g style={{ "--t": t, "--u": u } as CSSProperties}>
+                    <Glow on={on} className="lamp-glow">
+                      <circle key={`lamp-${step}`} className="lamp" data-on={on} data-off={reset} cx={57} cy={8} r={1.9} />
+                    </Glow>
+                  </g>
                 </>
               }
             />
@@ -232,11 +257,37 @@ export default function GpuCluster() {
                   {small}
                 </text>
               </g>
-              <g key={`b-${step}`} className="ik-enter" style={{ animationDelay: `${epoch ? DRAW_AT + DRAW_MS - 200 : 0}ms` }}>
-                <text className="ik-screen-text" x={PLOT.x} y={22.5} fontSize={7}>
-                  {big}
-                </text>
-              </g>
+              {rolling ? (
+                <>
+                  <text className="ik-screen-text" x={READING.x} y={READING.y} fontSize={READING.size}>
+                    loss
+                  </text>
+                  <g clipPath={`url(#${clip})`}>
+                    {digits.map((digit, index) => {
+                      const turns = digit !== before[index]
+                      const x = WHEELS_AT + index * READING.pitch
+                      return (
+                        <g key={`${index}-${step}`} style={{ "--i": digits.length - 1 - index } as CSSProperties}>
+                          {turns ? (
+                            <text className="ik-screen-text roll-out" x={x} y={READING.y} fontSize={READING.size}>
+                              {before[index]}
+                            </text>
+                          ) : null}
+                          <text className={turns ? "ik-screen-text roll-in" : "ik-screen-text"} x={x} y={READING.y} fontSize={READING.size}>
+                            {digit}
+                          </text>
+                        </g>
+                      )
+                    })}
+                  </g>
+                </>
+              ) : (
+                <g key={`b-${step}`} className="ik-enter" style={{ animationDelay: `${epoch ? READ_AT : 0}ms` }}>
+                  <text className="ik-screen-text" x={READING.x} y={READING.y} fontSize={READING.size}>
+                    {big}
+                  </text>
+                </g>
+              )}
               <circle className="ik-fill" cx={10} cy={49.5} r={1.6} />
               {Array.from({ length: 8 }, (_, k) => (
                 <path key={k} className="ik-detail" d={`M${18 + k * 3} 46v7`} />
@@ -249,7 +300,7 @@ export default function GpuCluster() {
         />
 
         {!touched && epoch === 0 && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={5} /> : null}
-        <Press label={epoch === 0 ? "Train one epoch" : epoch === 3 ? "Reset the training run" : "Train the next epoch"} onPress={press} data-hot={epoch === 0}>
+        <Press label={epoch === 0 ? "Train one epoch" : epoch === 3 ? "Reset the training run" : "Train the next epoch"} material="plastic" onPress={press} data-hot={epoch === 0}>
           <g>
             <Box
               {...KEY}
@@ -265,6 +316,7 @@ export default function GpuCluster() {
             />
           </g>
         </Press>
+        <Callout at={[RACK.x + RACK.w, RACK.y, CAP.z + CAP.h]} dx={16} dy={-12} label="4 nodes · 32 gpus" />
         <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
       </g>
     </Plate>
