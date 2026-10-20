@@ -98,8 +98,8 @@ export const RECIPES: Record<SoundName, Recipe> = {
     return 0.4
   },
   tick: (mixer, { pitch }) => {
-    noise(mixer, { frequency: 4600 * pitch, q: 3, decay: 0.005, peak: 0.16 })
-    tone(mixer, { frequency: 1750 * pitch, decay: 0.006, peak: 0.03 })
+    noise(mixer, { frequency: 4600 * pitch, q: 3, decay: 0.005, peak: 0.32 })
+    tone(mixer, { frequency: 1750 * pitch, decay: 0.006, peak: 0.06 })
     return 0.03
   },
   latch: (mixer, { pitch }) => {
@@ -117,22 +117,22 @@ export const RECIPES: Record<SoundName, Recipe> = {
   },
   motor: (mixer, { pitch, options }) => {
     const hold = amount(options.duration, 0.1, 10, 0.9)
-    tone(mixer, { frequency: 82 * pitch, glideTo: 128 * pitch, wave: "triangle", attack: 0.09, hold, decay: 0.14, peak: 0.06 })
-    tone(mixer, { frequency: 164 * pitch, glideTo: 256 * pitch, wave: "square", attack: 0.09, hold, decay: 0.1, peak: 0.006 })
-    noise(mixer, { frequency: 380, filter: "lowpass", q: 0.8, attack: 0.09, hold, decay: 0.14, peak: 0.05 })
+    tone(mixer, { frequency: 82 * pitch, glideTo: 128 * pitch, wave: "triangle", attack: 0.09, hold, decay: 0.14, peak: 0.034 })
+    tone(mixer, { frequency: 164 * pitch, glideTo: 256 * pitch, wave: "square", attack: 0.09, hold, decay: 0.1, peak: 0.004 })
+    noise(mixer, { frequency: 380, filter: "lowpass", q: 0.8, attack: 0.09, hold, decay: 0.14, peak: 0.03 })
     return hold + 0.25
   },
   roll: (mixer, { pitch, still, options }) => {
     const count = Math.round(amount(options.count, 1, 12, 1))
     const step = still ? 0.012 : amount(options.stagger, 0, 0.5, 0.045)
     for (let index = 0; index < count; index++) {
-      noise(mixer, { frequency: (3800 - index * 260) * pitch, q: 2.5, at: index * step, decay: 0.006, peak: 0.12 })
-      noise(mixer, { frequency: 1100, filter: "lowpass", at: index * step + 0.012, decay: 0.012, peak: 0.08 })
+      noise(mixer, { frequency: (3800 - index * 260) * pitch, q: 2.5, at: index * step, decay: 0.006, peak: 0.26 })
+      noise(mixer, { frequency: 1100, filter: "lowpass", at: index * step + 0.012, decay: 0.012, peak: 0.15 })
     }
     return (count - 1) * step + 0.06
   },
   beep: (mixer) => {
-    tone(mixer, { frequency: 1975.53, wave: "square", attack: 0.003, hold: 0.07, decay: 0.03, peak: 0.035 })
+    tone(mixer, { frequency: 1975.53, wave: "square", attack: 0.003, hold: 0.07, decay: 0.03, peak: 0.018 })
     return 0.12
   },
 }
