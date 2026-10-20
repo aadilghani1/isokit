@@ -114,7 +114,7 @@ skills/isokit/                SKILL.md, references (api, levels, rules, recipes,
    | Sound engine | 2.75 kB | 2.56 kB |
    | Drafting | 1 kB | 0.92 kB |
    | CSS | 2.75 kB | 2.52 kB |
-   | Themes CSS | 1 kB | 0.83 kB |
+   | Themes CSS | 1 kB | 0.90 kB |
 
    The sound engine chunk imports types only from the rest of `src/`. One runtime import from the main chunk makes size-limit count the whole entry, and the lazy split is lost.
 9. **The public API is stable.**
@@ -216,6 +216,7 @@ These are the reasons behind code that looks odd. Each one cost a bug to learn.
 - **Only the `index` chunk carries `"use client"`.** `react-isokit/schema` stays importable from server code, where validating JSON usually happens.
 
 - **`themes.css` uses zero specificity and loads after `styles.css`.** Looks override the core palette by order, so a host can still override a look with one class.
+- **Every colour a look sets is in oklab, even a plain seed.** Chrome interpolates a one-sided keyframe (`from { fill: var(--ik-well) }`, with the other end taken from the element) wrongly when the two ends are in different colour spaces, and painted it near-black. A seed is mixed with itself to move it into oklab beside the derived tones; a test in `glow-and-looks.test.tsx` keeps it that way.
 
 ### Drawing figures
 

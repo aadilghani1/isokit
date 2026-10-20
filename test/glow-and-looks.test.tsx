@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs"
 import { renderToString } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { Glow, Plate } from "../src"
@@ -36,5 +37,11 @@ describe("Plate looks", () => {
   })
   it("leaves the look unset by default", () => {
     expect(render(<Plate label="Drawing" viewBox="0 0 100 80" />).querySelector(".ik-plate")?.hasAttribute("data-look")).toBe(false)
+  })
+  it("keeps every colour a look sets in one colour space", () => {
+    const themes = readFileSync("src/themes.css", "utf8")
+    const colours = [...themes.matchAll(/--ik-(?!drafting|glow-strength|strength|[a-z]+-(?:light|dark))[a-z-]+: ([^;]+);/g)].map(([, value]) => value)
+    expect(colours.length).toBeGreaterThan(20)
+    for (const value of colours) expect(value).toMatch(/^(color-mix\(in oklab,|var\(--ik-(paper|pen|live)\)$)/)
   })
 })
