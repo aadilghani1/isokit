@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react"
-import { Box, type Box3, Cursor, curve, Flight, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Box, type Box3, Cursor, curve, Flight, Glow, Plate, Press, path, playSound, Ripple, Signal, useDemoTap, type Vec3 } from "react-isokit"
+import { Callout } from "react-isokit/drafting"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./webhook-relay.css"
 
@@ -8,9 +9,9 @@ export const meta = {
   title: "Webhook relay",
   industry: "saas",
   level: 4,
-  blurb: "Press send: the event flies to three endpoints, each answers 200, and a failed delivery retries down its cable.",
-  uses: ["Plate", "Box", "Press", "Flight", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["notify", "error", "success"],
+  blurb: "Press send: the event flies to three endpoints, each relay clicks shut as it answers 200, and a failed delivery ticks its retry dial and retries down its cable.",
+  uses: ["Plate", "Box", "Press", "Flight", "Signal", "Glow", "Ripple", "Cursor", "useDemoTap", "curve", "path", "Callout"],
+  sounds: ["press", "release", "notify", "relay", "error", "tick", "success"],
 } satisfies FigureMeta
 
 type Hook = { id: "api" | "crm" | "slack"; label: string; y: number; port: number; order: number }
@@ -34,8 +35,14 @@ const FLY_MS = 560
 const FLY_LIFT = 34
 const RETRY_GAP = 380
 const RETRY_MS = 460
-const LAST = Math.max(...HOOKS.map((h) => h.order)) * STAGGER + FLY_MS
+const LAMP_LAG = 50
+const ACK_MS = 140
+const LAST_ORDER = HOOKS.reduce((most, hook) => Math.max(most, hook.order), 0)
+const LAST = LAST_ORDER * STAGGER + FLY_MS
 const PLANE = "M0 4.2L10 0L6.6 9.2L4.9 5.3ZM4.9 5.3L10 0"
+const ARM = { x: 6, y: 11, length: 8 }
+const DIAL = { x: 33, y: 12, r: 5 }
+const DETENTS = Array.from({ length: 8 }, (_, k) => (k * Math.PI) / 4)
 
 const boxOf = (hook: Hook) => ({ ...EP, y: hook.y })
 const arrival = (hook: Hook) => hook.order * STAGGER + FLY_MS
@@ -47,7 +54,11 @@ const RETRY_AT = (CRM ? arrival(CRM) : LAST) + RETRY_GAP
 const RETRIED = RETRY_AT + RETRY_MS
 const eventOf = (n: number) => EVENTS[(Math.max(n, 1) - 1) % EVENTS.length] ?? EVENTS[0]
 const fails = (n: number) => n > 0 && n % 3 === 0
+const retriesBy = (n: number) => Math.floor(n / 3)
 const ms = (value: number) => `${value}ms`
+const PLATE_STYLE = { "--retry-at": ms(RETRY_AT) } as CSSProperties
+const detent = (a: number, r: number) => `${DIAL.x + Math.cos(a) * r} ${DIAL.y + Math.sin(a) * r}`
+const DETENT_MARKS = DETENTS.map((a) => `M${detent(a, DIAL.r + 1)}L${detent(a, DIAL.r + 2.2)}`).join("")
 
 function Envelope(b: Box3) {
   return <Box {...b} r={1.2} top={<path className="ik-detail" d={`M1.6 1.6L${b.w / 2} ${b.d * 0.6}L${b.w - 1.6} 1.6`} />} />
@@ -99,53 +110,62 @@ export default function WebhookRelay() {
   const [touched, setTouched] = useState(false)
   const stops = useRef<Array<() => void>>([])
   const timers = useRef<number[]>([])
-  const cut = () => release(timers, stops)
   useEffect(() => () => release(timers, stops), [])
 
   const { n, settled } = run
   const failing = fails(n)
-  const done = failing ? RETRIED : LAST
+  const done = (failing ? RETRIED : LAST) + ACK_MS
   const later = (wait: number, step: () => void) => timers.current.push(window.setTimeout(step, wait))
+  const sound = (wait: number, name: "relay" | "error" | "tick" | "success") => later(wait, () => stops.current.push(playSound(name)))
   const send = (audible: boolean) => {
-    cut()
+    release(timers, stops)
     const next = n + 1
+    const retrying = fails(next)
     if (audible) {
       stops.current.push(playSound("notify"))
-      if (fails(next) && CRM) later(arrival(CRM), () => stops.current.push(playSound("error")))
-      later(fails(next) ? RETRIED : LAST, () => stops.current.push(playSound("success")))
+      for (const hook of HOOKS) {
+        if (retrying && hook.id === "crm") {
+          sound(arrival(hook), "error")
+          sound(RETRY_AT, "tick")
+          sound(RETRIED, "relay")
+        } else sound(arrival(hook), "relay")
+      }
+      sound((retrying ? RETRIED : LAST) + ACK_MS, "success")
     }
-    if (fails(next)) later(RETRIED, () => setRun((r) => (r.n === next ? { ...r, settled: true } : r)))
+    if (retrying) later(RETRIED, () => setRun((r) => (r.n === next ? { ...r, settled: true } : r)))
     setRun({ n: next, settled: false })
   }
-  const demo = useDemoTap(
+  const { ref: demoAnchor, phase, dismiss, plate } = useDemoTap(
     () => {
       if (n === 0) send(false)
     },
     { delay: 1200 },
   )
   const press = () => {
-    demo.dismiss()
+    dismiss()
     setTouched(true)
     send(true)
   }
 
   const event = eventOf(n)
+  const retries = retriesBy(n)
   const readout = n === 0 ? "1 event queued · 3 hooks" : !failing ? `${event} · delivered · 3/3` : settled ? `${event} · crm retried · 3/3` : `${event} · crm 500 · retrying`
 
   return (
     <Plate
-      {...demo.plate}
+      {...plate}
       fig="SaaS"
       name="Webhook relay"
       hint={n === 0 ? "Press send" : "Send the next event"}
       readout={readout}
       className="fig-webhook-relay"
+      style={PLATE_STYLE}
       data-fresh={n === 0}
       fit={[BASE, SRC, [104, 30, 84], [104, 84, 84]]}
       aspect={1.3}
-      label="An app with an outbox tray, cabled to three webhook endpoints: API, CRM and Slack. Press send to deliver the event to all three and watch each one answer."
+      label="An app with an outbox tray, cabled to three webhook endpoints: API, CRM and Slack, each with a relay, a lamp and a retry dial. Press send to deliver the event to all three and watch each one answer."
     >
-      <g ref={demo.ref}>
+      <g ref={demoAnchor}>
         <Box {...BASE} r={10} />
         <Box
           {...SRC}
@@ -176,7 +196,11 @@ export default function WebhookRelay() {
               <text className="ik-label ack-label" x={45} y={35.8} textAnchor="end">
                 ACK
               </text>
-              <circle key={`ack-${n}`} className="ack" data-on={n > 0} style={{ "--t": ms(done) } as CSSProperties} cx={50} cy={34} r={2.2} />
+              <g key={`ack-${n}`} style={{ "--t": ms(done) } as CSSProperties}>
+                <Glow on={n > 0} className="ack-glow">
+                  <circle className="ack" data-on={n > 0} cx={50} cy={34} r={2.2} />
+                </Glow>
+              </g>
             </>
           }
           side={
@@ -191,7 +215,7 @@ export default function WebhookRelay() {
           }
         />
         <Box {...TRAY} r={2} top={<rect className="ik-well" x={2.5} y={2.5} width={TRAY.w - 5} height={TRAY.d - 5} rx={1.5} />} />
-        <g key={`tray-${n}`} className={n > 0 ? "refill" : undefined}>
+        <g key={`tray-${n}`} className={n > 0 ? "refill" : undefined} style={{ "--refill": ms(LAST) } as CSSProperties}>
           <Envelope {...ENV} />
         </g>
         {CABLES.map((d, i) => (
@@ -201,6 +225,13 @@ export default function WebhookRelay() {
         {HOOKS.map((hook) => {
           const failed = failing && hook.id === "crm"
           const at = arrival(hook)
+          const lit = failed ? RETRIED : at
+          const timing = {
+            "--in": ms(failed ? at : at + LAMP_LAG),
+            "--retry": ms(RETRIED + LAMP_LAG),
+            "--lit": ms(lit),
+            "--lamp-at": ms(lit + LAMP_LAG),
+          } as CSSProperties
           return (
             <Box
               key={hook.id}
@@ -209,27 +240,41 @@ export default function WebhookRelay() {
               top={
                 <>
                   <rect className="ik-well" x={22} y={4.5} width={19} height={14} rx={1.5} />
+                  <path className="ik-detail" d={`M${ARM.x + ARM.length + 1.4} ${ARM.y - 2.6}v5.2`} />
+                  <g key={`arm-${n}`} transform={`translate(${ARM.x} ${ARM.y})`} style={timing}>
+                    <g className="arm" data-closing={n > 0}>
+                      <path className="ik-line" d={`M0 0h${ARM.length}`} />
+                    </g>
+                    <circle className="ik-fill" r={1.1} />
+                  </g>
                   <text className="ik-label hook" x={5} y={25.5}>
                     {hook.label}
                   </text>
                 </>
               }
-              front={<path className="ik-detail" d="M5 7v9M8.2 7v9M11.4 7v9M14.6 7v9" />}
+              front={
+                <>
+                  <path className="ik-detail" d="M5 7v9M8.2 7v9M11.4 7v9M14.6 7v9" />
+                  <path className="ik-detail" d={DETENT_MARKS} />
+                  <circle className="ik-face ik-top" cx={DIAL.x} cy={DIAL.y} r={DIAL.r} />
+                  <g transform={`translate(${DIAL.x} ${DIAL.y})`}>
+                    <g className="dial" style={{ "--step": hook.id === "crm" ? retries : 0 } as CSSProperties}>
+                      <path className="ik-line" d={`M0-1V${-DIAL.r + 1}`} />
+                    </g>
+                  </g>
+                </>
+              }
               side={
                 <>
                   <rect className="ik-screen" x={3} y={3.5} width={15.5} height={10} rx={1.5} />
                   <g key={n}>
                     <Status n={n} hook={hook} />
                   </g>
-                  <circle
-                    key={`lamp-${n}`}
-                    className="lamp"
-                    data-state={n === 0 ? "idle" : failed ? "retry" : "ok"}
-                    style={{ "--in": ms(at), "--retry": ms(RETRIED) } as CSSProperties}
-                    cx={22.3}
-                    cy={8.5}
-                    r={2}
-                  />
+                  <g key={`lamp-${n}`} style={timing}>
+                    <Glow on={n > 0} className="lamp-glow">
+                      <circle className="lamp" data-state={n === 0 ? "idle" : failed ? "retry" : "ok"} cx={22.3} cy={8.5} r={2} />
+                    </Glow>
+                  </g>
                   {failed ? (
                     <g key={`cross-${n}`} className="span" style={{ "--in": ms(at), "--out": ms(RETRIED) } as CSSProperties}>
                       <path className="ik-line ik-thick" d="M20.4 6.6l3.8 3.8M24.2 6.6l-3.8 3.8" />
@@ -241,8 +286,8 @@ export default function WebhookRelay() {
             />
           )
         })}
-        {!touched && n === 0 && demo.phase !== "aim" && demo.phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
-        <Press label="Send the event" onPress={press} data-hot={n === 0}>
+        {!touched && n === 0 && phase !== "aim" && phase !== "press" ? <Ripple {...KEY} r={6} /> : null}
+        <Press label="Send the event" material="plastic" onPress={press} data-hot={n === 0}>
           <g>
             <Box
               {...KEY}
@@ -267,7 +312,8 @@ export default function WebhookRelay() {
             ))}
           </g>
         ) : null}
-        <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={demo.phase} />
+        {CRM ? <Callout at={[EP.x + DIAL.x, CRM.y + EP.d, EP.z + EP.h - DIAL.y]} dx={30} dy={40} label={`retries · ${retries}`} /> : null}
+        <Cursor at={[KEY.x + KEY.w / 2, KEY.y + KEY.d / 2, KEY.z + KEY.h]} phase={phase} />
       </g>
     </Plate>
   )

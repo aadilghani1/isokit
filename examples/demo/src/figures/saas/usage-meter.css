@@ -6,7 +6,9 @@
 .fig-usage-meter svg[data-used="true"][data-warn="false"] .um-hand { stroke: var(--ik-live); }
 .fig-usage-meter .um-warn { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease); }
 .fig-usage-meter svg[data-warn="true"] .um-warn { fill: var(--ik-live); stroke: var(--ik-live); animation: ik-pulse 1.2s ease-in-out infinite; }
-.fig-usage-meter .um-roll { animation: um-roll 420ms var(--ik-ease) both; }
+.fig-usage-meter .um-roll-in { animation: um-roll-in var(--ik-t-state) var(--ik-ease) calc(var(--i) * var(--carry)) both; }
+.fig-usage-meter .um-roll-out { animation: um-roll-out var(--ik-t-state) var(--ik-ease) calc(var(--i) * var(--carry)) both; }
 .fig-usage-meter .um-small { font-size: 5.6px; }
 .fig-usage-meter .um-key { font-size: 10px; }
-@keyframes um-roll { from { opacity: 0; transform: translateY(9px); } }
+@keyframes um-roll-in { from { transform: translateY(13px); } }
+@keyframes um-roll-out { to { transform: translateY(-13px); } }
