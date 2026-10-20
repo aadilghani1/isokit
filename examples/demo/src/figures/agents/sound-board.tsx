@@ -42,7 +42,7 @@ export function SoundBoard() {
     >
       <Box {...BASE} r={10} front={<path className="ik-detail" d={`M8 ${BASE.h / 2}h${BASE.w - 16}`} />} />
       {PADS.map((p) => (
-        <Press key={p.name} label={`Play ${p.name}`} onPress={() => play(p.name)} sound={false} data-hot={lit === p.name}>
+        <Press key={p.name} label={`Play ${p.name}`} material="rubber" onPress={() => play(p.name)} sound={false} data-hot={lit === p.name}>
           <g>
             <Box
               x={p.x}
