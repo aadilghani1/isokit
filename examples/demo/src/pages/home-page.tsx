@@ -138,16 +138,16 @@ playSound("cascade", { count: 4, stagger: 0.06 })`}</code>
           <div className="section-head">
             <p className="eyebrow">Theming</p>
             <h2>Same figure, your colours.</h2>
-            <p>Match your website with a few CSS colour settings. Light and dark themes are included. Try the same counter in three different styles.</p>
+            <p>Light and dark come built in. Import react-isokit/themes.css for three looks, each with a light and a dark version: blueprint draws the figure on isometric graph paper, paper inks it in sepia, phosphor makes it glow like a terminal.</p>
           </div>
           <div className="grid">
-            <div className="theme-paper">
-              <TallyCounter theme="Paper" />
-            </div>
-            <div className="theme-blueprint">
+            <div data-look="blueprint">
               <TallyCounter theme="Blueprint" />
             </div>
-            <div className="theme-phosphor">
+            <div data-look="paper">
+              <TallyCounter theme="Paper" />
+            </div>
+            <div data-look="phosphor">
               <TallyCounter theme="Phosphor" />
             </div>
           </div>

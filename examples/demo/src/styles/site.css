@@ -166,3 +166,15 @@ td code { white-space: nowrap; }
   .docs-card, .sound-play, .folder-mark > span, .folder-toggle { transition: none; }
   .docs-card:hover, .sound-play:active { transform: none; }
 }
+
+.bench-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-6); align-items: start; }
+.bench-stage, .bench-dials { position: sticky; top: var(--space-6); }
+.bench-stage .ik-plate { height: min(560px, 72svh); aspect-ratio: auto; }
+.bench-dials { max-height: calc(100svh - var(--space-7)); overflow: auto; }
+.bench-output { padding-top: var(--section-space); }
+.bench-output pre { white-space: pre-wrap; word-break: break-all; }
+.bench-copied { color: var(--muted); font-size: var(--text-small); }
+@media (max-width: 900px) {
+  .bench-layout { grid-template-columns: minmax(0, 1fr); }
+  .bench-stage, .bench-dials { position: static; max-height: none; }
+}

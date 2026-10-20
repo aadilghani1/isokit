@@ -2,7 +2,7 @@ import { attribute, type FigureFiles, quoted, scope, type TemplateInput } from "
 
 export function levelTwoCauseAndEffect(input: TemplateInput): FigureFiles {
   const tsx = `import { useEffect, useRef, useState } from "react"
-import { Box, Cursor, curve, Plate, Press, path, playSound, Ripple, Signal, useDemoTap } from "react-isokit"
+import { Box, Cursor, curve, Glow, Plate, Press, path, playSound, Ripple, Signal, useDemoTap } from "react-isokit"
 import type { FigureMeta } from "../../catalog/figure-meta"
 import "./${input.slug}.css"
 
@@ -12,8 +12,8 @@ export const meta = {
   industry: ${quoted(input.industry)},
   level: 2,
   blurb: ${quoted(input.blurb)},
-  uses: ["Plate", "Box", "Press", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
-  sounds: ["press", "release", "done"],
+  uses: ["Plate", "Box", "Press", "Glow", "Signal", "Ripple", "Cursor", "useDemoTap", "curve", "path"],
+  sounds: ["press", "release", "relay", "done"],
 } satisfies FigureMeta
 
 const SENDER = { x: 0, y: 78, z: 0, w: 62, d: 44, h: 16 }
@@ -43,7 +43,9 @@ export default function ${input.componentName}() {
     setArrived(false)
     arrival.current = window.setTimeout(() => {
       setArrived(true)
-      if (audible) stopSound.current = playSound("done")
+      if (!audible) return
+      playSound("relay")
+      stopSound.current = playSound("done")
     }, ARRIVAL_MS)
   }
   const demo = useDemoTap(() => send(false))
@@ -70,7 +72,7 @@ export default function ${input.componentName}() {
         <path className="ik-line" d={path(CABLE)} />
         {sent ? <Signal key={sent} points={CABLE} delay={SIGNAL_DELAY_MS} duration={SIGNAL_MS} /> : null}
         {sent || aiming ? null : <Ripple x={SENDER.x} y={SENDER.y} z={SENDER.z} w={SENDER.w} d={SENDER.d} r={8} />}
-        <Press label="Send to the receiver" onPress={press} data-hot={sent === 0}>
+        <Press label="Send to the receiver" material="rubber" onPress={press} data-hot={sent === 0}>
           <g>
             <Box {...SENDER} r={8} top={<circle className="ik-detail" cx={SENDER.w / 2} cy={SENDER.d / 2} r={9} />} />
           </g>
@@ -78,7 +80,11 @@ export default function ${input.componentName}() {
         <Box
           {...RECEIVER}
           r={8}
-          top={<circle className="lamp" cx={RECEIVER.w / 2} cy={RECEIVER.d / 2} r={6} />}
+          top={
+            <Glow on={arrived}>
+              <circle className="lamp" cx={RECEIVER.w / 2} cy={RECEIVER.d / 2} r={6} />
+            </Glow>
+          }
           front={
             <>
               <rect className="ik-screen" x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx={3} />
@@ -94,7 +100,7 @@ export default function ${input.componentName}() {
   )
 }
 `
-  const css = `${scope(input)} .lamp { fill: var(--ik-well); stroke: var(--ik-detail); vector-effect: non-scaling-stroke; transition: fill 260ms var(--ik-ease), stroke 260ms var(--ik-ease); }
+  const css = `${scope(input)} .lamp { fill: var(--ik-well); stroke: var(--ik-detail); vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease), stroke var(--ik-t-state) var(--ik-ease); }
 ${scope(input)} svg[data-arrived="true"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
 `
   return { tsx, css }

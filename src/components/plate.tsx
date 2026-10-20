@@ -1,8 +1,9 @@
-import { type CSSProperties, type ReactNode, type RefObject, type SVGProps, useEffect, useRef, useState } from "react"
+import { type CSSProperties, type ReactNode, type RefObject, type SVGProps, useEffect, useId, useRef, useState } from "react"
 import { classNames } from "../class-names"
 import { check, DEV } from "../development-checks"
 import { canObserveIntersection } from "../environment"
 import { frame } from "../geometry/framing"
+import { gridSheet, gridTile } from "../geometry/grid"
 import type { Box3, Vec3 } from "../schema"
 import { primeSound } from "../sound/sound-player"
 
@@ -18,12 +19,14 @@ export type PlateProps = {
   readout?: ReactNode
   credit?: boolean
   theme?: "light" | "dark" | "system"
+  look?: "blueprint" | "paper" | "phosphor" | (string & {})
   className?: string
   style?: CSSProperties
   children?: ReactNode
 } & Omit<SVGProps<SVGSVGElement>, "viewBox" | "children" | "className" | "style" | "fit" | "name">
 
 const NEAR_VIEWPORT: IntersectionObserverInit = { rootMargin: "80px" }
+const GRID = gridTile(10)
 
 function useNearViewport(): [RefObject<HTMLDivElement | null>, boolean] {
   const plate = useRef<HTMLDivElement>(null)
@@ -41,14 +44,15 @@ function useNearViewport(): [RefObject<HTMLDivElement | null>, boolean] {
   return [plate, near]
 }
 
-export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, name, hint, readout, credit = true, theme, className, style, children, ...svg }: PlateProps): ReactNode {
+export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, name, hint, readout, credit = true, theme, look, className, style, children, ...svg }: PlateProps): ReactNode {
   const [plate, awake] = useNearViewport()
+  const gridId = `ik-grid${useId().replace(/[^\w-]/g, "")}`
   if (DEV && !viewBox && !fit?.length) check("fit", undefined, `<Plate label="${label}"> needs a fit (boxes or points) or a viewBox`)
   const box = viewBox ?? frame(fit ?? [], aspect, pad)
   const hasHeader = fig != null || name != null
   const hasFooter = hint !== undefined || readout !== undefined
   return (
-    <div ref={plate} className={classNames("ik-plate", className)} style={style} data-theme={theme} data-awake={awake || undefined} onPointerEnter={primeSound} onFocusCapture={primeSound}>
+    <div ref={plate} className={classNames("ik-plate", className)} style={style} data-theme={theme} data-look={look} data-awake={awake || undefined} onPointerEnter={primeSound} onFocusCapture={primeSound}>
       {hasHeader && (
         <div className="ik-cap">
           <span className="ik-cap-hi">{fig}</span>
@@ -56,6 +60,12 @@ export function Plate({ label, fit, aspect = 1.25, pad = 0.07, viewBox, fig, nam
         </div>
       )}
       <svg viewBox={box} role="group" aria-label={label} {...svg}>
+        <defs>
+          <pattern id={gridId} width={GRID.width} height={GRID.height} patternUnits="userSpaceOnUse">
+            <path className="ik-grid-line" d={GRID.path} />
+          </pattern>
+        </defs>
+        <rect className="ik-grid" {...gridSheet(box)} fill={`url(#${gridId})`} />
         {children}
       </svg>
       {(hasFooter || credit) && (

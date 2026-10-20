@@ -1,5 +1,5 @@
 import type { SoundName, SoundOptions } from "../schema"
-import { type CascadeShape, RECIPES } from "./sound-recipes"
+import { amount, RECIPES } from "./sound-recipes"
 
 type AudioGraph = { context: AudioContext; master: GainNode; noise: AudioBuffer }
 
@@ -11,13 +11,13 @@ const STOP_DISCONNECT_MS = 150
 const MIN_IDLE_SECONDS = 4
 const IDLE_MARGIN_SECONDS = 0.5
 
-const clamp = (value: number | undefined, low: number, high: number, fallback: number): number => (value === undefined || !Number.isFinite(value) ? fallback : Math.min(high, Math.max(low, value)))
+const SIZE_REFERENCE = 0.15
+const SEMITONES_PER_SIZE = 12
+const SEMITONE_REACH = 2
+const THROTTLE_SECONDS: Partial<Record<SoundName, number>> = { tick: 0.03, roll: 0.03 }
+const lastPlayed = new Map<SoundName, number>()
 
-const cascadeShape = (options: SoundOptions): CascadeShape => ({
-  count: Math.round(clamp(options.count, 1, 32, 4)),
-  stagger: clamp(options.stagger, 0, 2, 0.06),
-  delay: clamp(options.delay, 0, 5, 0.3),
-})
+const sizePitch = (size: number | undefined): number => (size === undefined ? 1 : 2 ** (amount((SIZE_REFERENCE - size) * SEMITONES_PER_SIZE, -SEMITONE_REACH, SEMITONE_REACH, 0) / 12))
 
 const prefersStillness = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
 
@@ -63,15 +63,27 @@ export function play(name: SoundName, options: SoundOptions = {}): () => void {
   if (!recipe) return () => {}
   graph ??= buildGraph(volume)
   const { context, master, noise } = graph
+  const gap = THROTTLE_SECONDS[name]
+  if (gap !== undefined) {
+    if (context.currentTime - (lastPlayed.get(name) ?? -1) < gap) return () => {}
+    lastPlayed.set(name, context.currentTime)
+  }
   const bus = context.createGain()
-  bus.connect(master)
-  const shape = cascadeShape(options)
+  const panner = options.pan && context.createStereoPanner ? context.createStereoPanner() : null
+  if (panner) {
+    panner.pan.value = amount(options.pan, -1, 1, 0)
+    bus.connect(panner).connect(master)
+  } else bus.connect(master)
+  const release = () => {
+    bus.disconnect()
+    panner?.disconnect()
+  }
   let stopped = false
   const start = () => {
     if (stopped) return
-    const pitch = 1 + (Math.random() - 0.5) * PITCH_SPREAD
-    const length = recipe({ context, bus, noise, startAt: context.currentTime + START_OFFSET_SECONDS }, pitch, shape, prefersStillness())
-    window.setTimeout(() => bus.disconnect(), (length + BUS_RELEASE_SECONDS) * 1000)
+    const pitch = (1 + (Math.random() - 0.5) * PITCH_SPREAD) * sizePitch(options.size)
+    const length = recipe({ context, bus, noise, startAt: context.currentTime + START_OFFSET_SECONDS }, { pitch, still: prefersStillness(), options })
+    window.setTimeout(release, (length + BUS_RELEASE_SECONDS) * 1000)
     suspendWhenQuiet(context, length)
   }
   if (context.state === "running") start()
@@ -80,6 +92,6 @@ export function play(name: SoundName, options: SoundOptions = {}): () => void {
     if (stopped) return
     stopped = true
     bus.gain.setTargetAtTime(0, context.currentTime, STOP_FADE_SECONDS)
-    window.setTimeout(() => bus.disconnect(), STOP_DISCONNECT_MS)
+    window.setTimeout(release, STOP_DISCONNECT_MS)
   }
 }

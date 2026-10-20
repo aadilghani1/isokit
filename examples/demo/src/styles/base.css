@@ -30,7 +30,8 @@ figure { margin: 0; min-width: 0; }
 figcaption strong a { text-decoration: none; }
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
 .grid .ik-plate { height: 300px; aspect-ratio: auto; }
-main .ik-plate { border-radius: var(--radius-card); border-color: var(--ik-border); box-shadow: var(--bezel); background-image: linear-gradient(155deg, color-mix(in srgb, var(--ik-top) 60%, transparent), transparent 38%); }
+main .ik-plate { border-radius: var(--radius-card); border-color: var(--ik-border); box-shadow: var(--bezel); }
+main .ik-plate:not([data-look], [data-look] *) { background-image: linear-gradient(155deg, color-mix(in srgb, var(--ik-top) 60%, transparent), transparent 38%); }
 figcaption { display: grid; gap: 2px; padding: 14px var(--space-1) 0; font-size: var(--text-small); }
 figcaption span { color: var(--muted); }
 
@@ -45,9 +46,6 @@ pre { margin: 0; padding: 18px; overflow-x: auto; border: 1px solid var(--line);
 .section-head { max-width: 640px; margin-bottom: 26px; }
 .section-head p:not(.eyebrow) { color: var(--muted); margin: 0; }
 .themes, .agent { padding: var(--section-space) 0 0; }
-.theme-paper .ik-plate { --ik-panel: #f3ecdd; --ik-top: #fbf6ea; --ik-front: #f5eedf; --ik-side: #ebe2cf; --ik-well: #e6dcc6; --ik-line: #8a7a5c; --ik-detail: #cdbf9f; --ik-live: #3b2f1e; --ik-ink: #8a7a5c; --ik-ink-hi: #3b2f1e; --ik-screen: #e9e0c9; --ik-screen-ink: #3b2f1e; --ik-border: #e6dcc6; }
-.theme-blueprint .ik-plate { --ik-panel: #1f4e8c; --ik-top: #24589c; --ik-front: #215294; --ik-side: #1d4a85; --ik-well: #1b4580; --ik-line: #cfe0ff; --ik-detail: #6f93c9; --ik-live: #ffffff; --ik-ink: #a9c3ec; --ik-ink-hi: #ffffff; --ik-screen: #183f73; --ik-screen-ink: #ffffff; --ik-border: #2a5da0; }
-.theme-phosphor .ik-plate { --ik-panel: #0b0f0b; --ik-top: #111811; --ik-front: #0f150f; --ik-side: #0c110c; --ik-well: #0a0e0a; --ik-line: #3c8a4c; --ik-detail: #1f4026; --ik-live: #7dff9a; --ik-ink: #3f8a4f; --ik-ink-hi: #7dff9a; --ik-screen: #061006; --ik-screen-ink: #7dff9a; --ik-border: #142014; }
 
 .steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .steps li { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 380px); gap: var(--space-2) var(--space-6); align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line); }

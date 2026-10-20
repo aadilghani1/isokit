@@ -9,11 +9,12 @@ import { PUSHARY_ICON } from "../logos/agent-logos"
 import { FiguresPage, LevelBadge } from "./figures-page"
 
 const VARIATIONS = [
-  { id: "default", title: "Default", className: "" },
-  { id: "paper", title: "Paper", className: "theme-paper" },
-  { id: "blueprint", title: "Blueprint", className: "theme-blueprint" },
-  { id: "phosphor", title: "Phosphor", className: "theme-phosphor" },
-  { id: "dark", title: "Dark", className: "dark" },
+  { id: "default", title: "Default", look: undefined, className: undefined },
+  { id: "dark", title: "Dark", look: undefined, className: "dark" },
+  { id: "blueprint", title: "Blueprint", look: "blueprint", className: undefined },
+  { id: "cyanotype", title: "Blueprint · dark", look: "blueprint", className: "dark" },
+  { id: "paper", title: "Paper", look: "paper", className: undefined },
+  { id: "phosphor", title: "Phosphor", look: "phosphor", className: "dark" },
 ] as const
 
 const INDUSTRY_TITLES: ReadonlyMap<string, string> = new Map(INDUSTRIES.map((industry) => [industry.id, industry.title]))
@@ -96,11 +97,11 @@ function FigureDetail({ figure }: { figure: FigureEntry }): ReactNode {
       <section className="figure-section" aria-labelledby="variations">
         <div className="section-head">
           <h2 id="variations">Variations</h2>
-          <p>The same component under different themes. Nothing in it changes: every colour comes from the --ik-* properties.</p>
+          <p>The same component in each look from react-isokit/themes.css, light and dark. Nothing in it changes: every colour comes from the --ik-* properties, and blueprint adds the drafting layer.</p>
         </div>
         <div className="variation-grid">
           {VARIATIONS.map((variation) => (
-            <figure key={variation.id} className={variation.className}>
+            <figure key={variation.id} className={variation.className} data-look={variation.look}>
               <Figure />
               <figcaption>
                 <strong>{variation.title}</strong>

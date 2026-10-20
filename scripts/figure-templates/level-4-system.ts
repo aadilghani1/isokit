@@ -112,12 +112,12 @@ export default function ${input.componentName}() {
           <Box key={level} {...itemOn(TARGET, level)} r={4} />
         ))}
         {state.trip || aiming ? null : <Ripple {...LOAD_KEY} r={5} />}
-        <Press label={state.delivered === CAPACITY ? "Reset the target" : "Load the source"} onPress={() => { demo.dismiss(); load(true) }} disabled={state.stage === "moving"} data-hot={loadHot}>
+        <Press label={state.delivered === CAPACITY ? "Reset the target" : "Load the source"} material="metal" onPress={() => { demo.dismiss(); load(true) }} disabled={state.stage === "moving"} data-hot={loadHot}>
           <g>
             <Box {...LOAD_KEY} r={5} top={<text className="ik-label" x={8} y={14}>LOAD</text>} />
           </g>
         </Press>
-        <Press label="Send to the target" onPress={() => { demo.dismiss(); send() }} disabled={!sendHot} data-hot={sendHot}>
+        <Press label="Send to the target" material="metal" onPress={() => { demo.dismiss(); send() }} disabled={!sendHot} data-hot={sendHot}>
           <g>
             <Box {...SEND_KEY} r={5} top={<text className="ik-label" x={8} y={14}>SEND</text>} />
           </g>
