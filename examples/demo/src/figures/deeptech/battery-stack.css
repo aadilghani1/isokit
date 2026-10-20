@@ -4,7 +4,7 @@
 .fig-battery-stack .seg { fill: var(--ik-screen-ink); opacity: .12; transition: opacity var(--ik-t-state) var(--ik-ease) var(--t); }
 .fig-battery-stack .seg[data-on="true"] { opacity: .85; }
 .fig-battery-stack .seg-glow { --ik-glow-size: 3; }
-.fig-battery-stack .seg-glow > .ik-halo { transition-delay: var(--t); }
+.fig-battery-stack .seg-glow { --ik-glow-delay: var(--t); --ik-glow-fade-delay: var(--t); }
 .fig-battery-stack .plug { transition: transform var(--seat) var(--ik-ease-move); }
 .fig-battery-stack svg[data-charged="true"] .plug { transform: translate(var(--seat-x), var(--seat-y)); }
 .fig-battery-stack svg[data-charged="true"] .bus .ik-face { stroke: var(--ik-live); transition-delay: var(--bus-at); }

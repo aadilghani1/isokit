@@ -15,7 +15,7 @@
 .fig-agent-relay .meter-dim { fill-opacity: .55; }
 
 .fig-agent-relay .lamp { fill: var(--ik-well); stroke: var(--ik-detail); stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill var(--ik-t-state) var(--ik-ease) calc(var(--i) * var(--lamp-step)), stroke var(--ik-t-state) var(--ik-ease) calc(var(--i) * var(--lamp-step)); }
-.fig-agent-relay .lamp-glow > .ik-halo { transition-delay: calc(var(--i) * var(--lamp-step)); }
+.fig-agent-relay .lamp-glow { --ik-glow-delay: calc(var(--i) * var(--lamp-step)); --ik-glow-fade-delay: calc(var(--i) * var(--lamp-step)); }
 .fig-agent-relay .tier:is([data-state="plan"], [data-state="work"]) .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
 .fig-agent-relay .tier[data-state="wait"] .lamp { fill: var(--ik-line); stroke: var(--ik-line); }
 .fig-agent-relay .tier[data-state="retry"] .lamp { fill: var(--ik-live); stroke: var(--ik-live); }
