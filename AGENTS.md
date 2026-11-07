@@ -49,7 +49,7 @@ src/
     sound-placement.ts        a pressed part's stereo pan and size, from its box on screen
     use-sound-enabled.ts      the React hook over the store
     sound-engine.ts           the AudioContext graph, a lazy chunk (module singleton)
-    sound-recipes.ts          the nineteen sounds as data over the voices
+    sound-recipes.ts          the twenty sounds as data over the voices
     sound-materials.ts        how plastic, metal, rubber, glass and paper press and release
     sound-voices.ts           tone, noise and bell: the synthesis primitives
 test/                         vitest; DOM tests opt in with the jsdom pragma
@@ -109,11 +109,11 @@ skills/isokit/                SKILL.md, references (api, levels, rules, recipes,
 
    | Bundle | Budget | Now |
    | --- | --- | --- |
-   | Core (Plate, Box, Press, frame) | 3.5 kB | 3.14 kB |
-   | Main entry | 5.25 kB | 4.88 kB |
-   | Sound engine | 2.75 kB | 2.56 kB |
+   | Core (Plate, Box, Press, frame) | 3.5 kB | 3.17 kB |
+   | Main entry | 5.25 kB | 4.91 kB |
+   | Sound engine | 2.75 kB | 2.63 kB |
    | Drafting | 1 kB | 0.92 kB |
-   | CSS | 2.75 kB | 2.52 kB |
+   | CSS | 2.75 kB | 2.59 kB |
    | Themes CSS | 1 kB | 0.90 kB |
 
    The sound engine chunk imports types only from the rest of `src/`. One runtime import from the main chunk makes size-limit count the whole entry, and the lazy split is lost.

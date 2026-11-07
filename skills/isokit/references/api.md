@@ -90,7 +90,7 @@ All input types come from zod schemas in `react-isokit/schema` (`box3Schema`, `v
 ## Sound
 
 - Off until the app calls `configureSound({ defaultOn: true })` once, or the reader presses a `<SoundToggle />`.
-- `playSound(name, options?)` returns `stop()`. Names: `press release toggle boot success error notify complete cascade whoosh paper process done`, and the mechanical complications `tick latch relay motor roll beep`.
+- `playSound(name, options?)` returns `stop()`. Names: `press release toggle boot success error notify complete cascade whoosh paper process done`, and the mechanical complications `tick latch relay motor charge roll beep`. `motor` and `charge` take `duration`: how long the motor runs, or how long the charge whine climbs before it cuts.
 - Options: `material` (shapes press and release), `pan` (-1 to 1) and `size` (the part's share of the plate, 0 to 1; bigger is lower), which Press fills in for you; `duration` (seconds the motor holds); `count`, `stagger`, `delay` for cascade and roll.
 - `tick` and `roll` are throttled to one every 30 ms.
 - `playSound("cascade", { count, stagger, delay })` lands `count` rising tocks `stagger` seconds apart starting at `delay`, then a small bell: match it to a staggered CSS animation.

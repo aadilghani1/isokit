@@ -20,6 +20,7 @@ export const SOUNDS: readonly SoundDoc[] = [
   { name: "latch", feel: "A catch, then a heavier seat.", when: "A lid, door, plug or clasp closes and locks.", seconds: 0.2 },
   { name: "relay", feel: "A dry contact click with a bounce.", when: "Just before a light or motor comes on: the switch closing.", seconds: 0.1 },
   { name: "motor", feel: "A low hum that rises, holds and winds down.", when: "A servo, feeder or drive runs for a while. Pass duration; keep its stop() to cut it.", seconds: 1.15 },
+  { name: "charge", feel: "An electric whine that climbs, then cuts.", when: "Something charges before it fires: a capacitor, a flash, a reactor core. Pass duration for the climb and land the light as it cuts.", seconds: 1.05 },
   { name: "roll", feel: "Quick soft ticks, one per wheel.", when: "Odometer digits turn over; pass count for the wheels that carry.", seconds: 0.2 },
   { name: "beep", feel: "One short square beep.", when: "A terminal, scanner or meter confirms.", seconds: 0.15 },
 ]

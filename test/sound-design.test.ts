@@ -34,6 +34,10 @@ describe("sound recipes", () => {
     }))
     expect(lengths.size).toBeGreaterThan(1)
   })
+  it("climbs the charge for as long as it is asked, then cuts", () => {
+    const { mixer } = recordingMixer()
+    expect(RECIPES.charge(mixer, { pitch: 1, still: false, options: { duration: 2 } })).toBeCloseTo(2.15, 5)
+  })
   it("holds the motor for as long as it is asked to run", () => {
     const { mixer } = recordingMixer()
     expect(RECIPES.motor(mixer, { pitch: 1, still: false, options: { duration: 3 } })).toBeCloseTo(3.25, 5)

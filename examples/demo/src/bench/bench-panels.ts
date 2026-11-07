@@ -107,7 +107,7 @@ export const SOUND = {
       },
     ]),
   ),
-  recipes: { tick: { type: "action" }, latch: { type: "action" }, relay: { type: "action" }, motor: { type: "action" }, roll: { type: "action" }, beep: { type: "action" } },
+  recipes: { tick: { type: "action" }, latch: { type: "action" }, relay: { type: "action" }, motor: { type: "action" }, charge: { type: "action" }, roll: { type: "action" }, beep: { type: "action" } },
   copy: { type: "action", label: "Copy the material table" },
 } as DialConfig
 

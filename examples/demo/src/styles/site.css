@@ -178,3 +178,11 @@ td code { white-space: nowrap; }
   .bench-layout { grid-template-columns: minmax(0, 1fr); }
   .bench-stage, .bench-dials { position: static; max-height: none; }
 }
+.lab-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.lab-landing-cta { margin-top: var(--space-5); }
+.lab-landing-stage .ik-plate { height: min(720px, 82svh); }
+.lab-landing-looks { margin-top: var(--space-3); }
+.part-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--space-4) var(--space-6); margin: 0; }
+.part-list dt { margin: 0 0 4px; }
+.part-list dt a { color: var(--fg); }
+.part-list dd { margin: 0; color: var(--muted); }
