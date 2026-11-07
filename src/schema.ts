@@ -21,7 +21,7 @@ export const plateFrameSchema = z.object({
   pad: z.optional(size("pad").check(z.lte(2, "pad is a share of the figure's size; keep it under 2"))),
 })
 
-export const soundNames = ["press", "release", "toggle", "boot", "success", "error", "notify", "complete", "cascade", "whoosh", "paper", "process", "done", "tick", "latch", "relay", "motor", "roll", "beep"] as const
+export const soundNames = ["press", "release", "toggle", "boot", "success", "error", "notify", "complete", "cascade", "whoosh", "paper", "process", "done", "tick", "latch", "relay", "motor", "charge", "roll", "beep"] as const
 
 export const materials = ["plastic", "metal", "rubber", "glass", "paper"] as const
 

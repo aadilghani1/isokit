@@ -122,6 +122,13 @@ export const RECIPES: Record<SoundName, Recipe> = {
     noise(mixer, { frequency: 380, filter: "lowpass", q: 0.8, attack: 0.09, hold, decay: 0.14, peak: 0.03 })
     return hold + 0.25
   },
+  charge: (mixer, { pitch, options }) => {
+    const rise = amount(options.duration, 0.1, 10, 0.9)
+    tone(mixer, { frequency: 180 * pitch, glideTo: 1500 * pitch, attack: rise, decay: 0.12, peak: 0.05 })
+    tone(mixer, { frequency: 181.5 * pitch, glideTo: 1512 * pitch, wave: "sawtooth", attack: rise, decay: 0.1, peak: 0.006 })
+    noise(mixer, { frequency: 1400, glideTo: 6400, q: 2.5, attack: rise, decay: 0.08, peak: 0.025 })
+    return rise + 0.15
+  },
   roll: (mixer, { pitch, still, options }) => {
     const count = Math.round(amount(options.count, 1, 12, 1))
     const step = still ? 0.012 : amount(options.stagger, 0, 0.5, 0.045)

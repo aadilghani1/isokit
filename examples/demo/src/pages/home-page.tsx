@@ -5,6 +5,7 @@ import { GITHUB_REPO, pusharyFrom } from "../app/links"
 import { href } from "../app/route-store"
 import { SiteFooter } from "../app/site-footer"
 import { SiteHeader } from "../app/site-header"
+import { GETTING_STARTED } from "../catalog/getting-started"
 import { ApprovalPad } from "../figures/agents/approval-pad"
 import { DeskComputer } from "../figures/agents/desk-computer"
 import { EdgeBox } from "../figures/agents/edge-box"
@@ -45,11 +46,6 @@ function TinyKey(): ReactNode {
   )
 }
 
-const STEPS: ReadonlyArray<{ title: string; body: string; command: string }> = [
-  { title: "Add it to your React app", body: "Install the drawing kit in your project.", command: "npm i react-isokit" },
-  { title: "Give your coding agent the instructions", body: "The isokit skill works with Claude Code, Codex, Cursor and other agents that support skills.", command: "npx skills add aadilghani1/isokit" },
-  { title: "Describe what you want", body: "Say what to draw and what should happen when someone clicks it. Your agent writes the code for you.", command: "/isokit a coffee grinder with a dial that sets the grind" },
-]
 
 export function HomePage(): ReactNode {
   return (
@@ -108,7 +104,7 @@ export function HomePage(): ReactNode {
             <p>You need a React project and a coding agent. Prefer to write the code yourself? <a href={href("components")}>Read the component docs</a>.</p>
           </div>
           <ol className="steps">
-            {STEPS.map((s, i) => (
+            {GETTING_STARTED.map((s, i) => (
               <li key={s.title}>
                 <span className="n">{String(i + 1).padStart(2, "0")}</span>
                 <div>
@@ -124,7 +120,7 @@ export function HomePage(): ReactNode {
         <section className="split">
           <div>
             <p className="eyebrow">Sound</p>
-            <h2>Nineteen sounds, no files.</h2>
+            <h2>Twenty sounds, no files.</h2>
             <p>Every key clicks like what it is made of, sounds lower when it is bigger and sits where it is drawn in stereo. Mechanisms tick, latch, relay, hum and roll, and results chime. The browser makes the sounds, so there are no audio files to download. Sound is optional.</p>
             <pre>
               <code>{`configureSound({ defaultOn: true })

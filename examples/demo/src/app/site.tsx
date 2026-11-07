@@ -4,13 +4,15 @@ import { DesignSystemPage } from "../pages/design-system-page"
 import { FigurePage } from "../pages/figure-page"
 import { FiguresPage } from "../pages/figures-page"
 import { HomePage } from "../pages/home-page"
+import { LabFigurePage } from "../pages/lab-figure-page"
+import { LabPage } from "../pages/lab-page"
 import { SoundPage } from "../pages/sound-page"
 import { StudioPage } from "../pages/studio-page"
 import { useRoute } from "./route-store"
 import { SiteFooter } from "./site-footer"
 import { SiteHeader } from "./site-header"
 
-const PAGES = ["figures", "studio", "components", "sound", "design-system", "bench"] as const
+const PAGES = ["figures", "studio", "lab", "components", "sound", "design-system", "bench"] as const
 type Page = (typeof PAGES)[number]
 const BenchPage = import.meta.env.DEV ? lazy(() => import("../pages/bench-page")) : null
 const PAGE_SET: ReadonlySet<string> = new Set(BenchPage ? PAGES : PAGES.filter((page) => page !== "bench"))
@@ -24,6 +26,8 @@ function PageBody({ page, slug }: { page: Page; slug: string | undefined }): Rea
       return slug ? <FigurePage slug={slug} /> : <FiguresPage />
     case "studio":
       return <StudioPage />
+    case "lab":
+      return slug ? <LabFigurePage slug={slug} /> : <LabPage />
     case "components":
       return <ComponentsPage slug={slug} />
     case "sound":

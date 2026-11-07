@@ -8,6 +8,7 @@ import { useTheme } from "./theme-store"
 const NAV_LINKS = [
   { to: "figures", label: "Figures" },
   { to: "studio", label: "Studio" },
+  { to: "lab", label: "Lab" },
   { to: "components", label: "Components" },
   { to: "sound", label: "Sound" },
 ] as const

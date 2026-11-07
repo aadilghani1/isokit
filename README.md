@@ -184,7 +184,7 @@ const result = box3Schema.safeParse(json)
 if (!result.success) console.error(describe(result.error))
 ```
 
-**The palette:** `press`, `release`, `toggle`, `boot`, `success`, `error`, `notify`, `complete`, `cascade`, `whoosh`, `paper`, `process`, `done`, and the mechanical complications `tick`, `latch`, `relay`, `motor`, `roll`, `beep`. `cascade` and `roll` take `{ count, stagger, delay }` so their steps land in time with your animation; `motor` takes `{ duration }`. Press passes `material`, `pan` and `size` for its own clicks; you can pass them too.
+**The palette:** `press`, `release`, `toggle`, `boot`, `success`, `error`, `notify`, `complete`, `cascade`, `whoosh`, `paper`, `process`, `done`, and the mechanical complications `tick`, `latch`, `relay`, `motor`, `charge`, `roll`, `beep`. `cascade` and `roll` take `{ count, stagger, delay }` so their steps land in time with your animation; `motor` and `charge` take `{ duration }`. Press passes `material`, `pan` and `size` for its own clicks; you can pass them too.
 
 ## Styling
 
