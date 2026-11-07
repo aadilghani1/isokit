@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { around, onPlane } from "./geometry"
+import "./parts.css"
 
 export type BoltCircleProps = {
   count: number

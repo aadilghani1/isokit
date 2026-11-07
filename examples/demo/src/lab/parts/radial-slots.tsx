@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo } from "react"
 import { slots } from "./geometry"
+import "./parts.css"
 
 export type RadialSlotsProps = {
   count: number

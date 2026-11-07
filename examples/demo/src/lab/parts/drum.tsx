@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo } from "react"
 import { Box, type Vec3 } from "react-isokit"
 import { around, NEAR, nearArc, verticals, wallEdge, within } from "./geometry"
+import "./parts.css"
 
 export type DrumProps = {
   at: Vec3

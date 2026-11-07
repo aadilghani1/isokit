@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react"
+import "./parts.css"
 
 export type ExplodedProps = {
   assembled: boolean

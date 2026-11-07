@@ -2,6 +2,7 @@ import { type CSSProperties, type ReactNode, useMemo } from "react"
 import { Glow, type Vec3 } from "react-isokit"
 import { coilRing } from "./geometry"
 import { Ring } from "./ring"
+import "./parts.css"
 
 export type CoilRingProps = {
   at: Vec3

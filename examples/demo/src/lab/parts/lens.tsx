@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Glow } from "react-isokit"
+import "./parts.css"
 
 export type LensProps = {
   r: number
