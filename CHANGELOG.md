@@ -1,5 +1,11 @@
 # react-isokit
 
+## 0.6.0
+
+### Minor Changes
+
+- [#34](https://github.com/aadilghani1/isokit/pull/34) [`054dfee`](https://github.com/aadilghani1/isokit/commit/054dfee289541fd3b488e20fbd4e6cc9cf3e8070) Thanks [@aadilghani1](https://github.com/aadilghani1)! - Add `charge`, an electric whine that climbs for `duration` seconds and cuts: for something that charges before it fires, such as a capacitor, a flash or a reactor core. Land the light as it cuts.
+
 ## 0.5.0
 
 ### Minor Changes
