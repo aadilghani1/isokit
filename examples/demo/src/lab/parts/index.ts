@@ -1,5 +1,3 @@
-import "./parts.css"
-
 export { Bloom, type BloomProps, type LightSource } from "./bloom"
 export { BoltCircle, type BoltCircleProps } from "./bolt-circle"
 export { COIL_FILL, CoilRing, type CoilRingProps } from "./coil-ring"

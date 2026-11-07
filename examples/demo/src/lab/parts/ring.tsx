@@ -3,6 +3,7 @@ import { top, type Vec3 } from "react-isokit"
 import { Drum } from "./drum"
 import { ellipse, seenThrough } from "./geometry"
 import { usePartId } from "./part-id"
+import "./parts.css"
 
 export type RingProps = {
   at: Vec3

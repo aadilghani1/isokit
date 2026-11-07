@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import "./parts.css"
 
 export type SeatProps = {
   r: number

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 import { top, type Vec3 } from "react-isokit"
 import { usePartId } from "./part-id"
+import "./parts.css"
 
 export type LightSource = { x: number; y: number; r: number; step?: number; weight?: number }
 
